@@ -44,16 +44,39 @@ dependencies {
 ## Project Structure
 
 ### 1. Data Models
-- Create data classes for health metrics:
+- Create flexible data classes for health metrics:
   ```kotlin
+  // Main entry that stores timestamp and metadata
   data class HealthEntry(
       val id: Long,
       val timestamp: Long,
-      val weight: Float?,
-      val waistCircumference: Float?,
-      val healthNote: String?,
-      val syncStatus: Boolean
+      val syncStatus: Boolean,
+      val note: String? = null
   )
+
+  // Flexible metric value storage
+  data class MetricValue(
+      val id: Long,
+      val entryId: Long,  // References HealthEntry
+      val metricType: String,  // e.g., "weight", "waist", "blood_pressure", etc.
+      val value: String,  // Store as string to support various formats
+      val unit: String?  // e.g., "kg", "cm", "mmHg", etc.
+  )
+
+  // Metric type definition for UI and validation
+  data class MetricType(
+      val name: String,  // e.g., "weight", "waist", etc.
+      val displayName: String,  // e.g., "Body Weight", "Waist Circumference"
+      val valueType: ValueType,  // NUMBER, TEXT, BOOLEAN
+      val defaultUnit: String?,
+      val validationRules: List<ValidationRule>? = null
+  )
+
+  enum class ValueType {
+      NUMBER,
+      TEXT,
+      BOOLEAN
+  }
   ```
 
 ### 2. Database Layer

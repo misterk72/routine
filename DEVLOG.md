@@ -9,13 +9,24 @@
 - [ ] Create project structure (packages for models, database, ui, network)
 
 ### Data Layer Implementation
-- [ ] Create HealthEntry data class
+- [ ] Create data models
+  - [ ] HealthEntry class (core entry with timestamp)
+  - [ ] MetricValue class (flexible value storage)
+  - [ ] MetricType class (metric definitions)
+  - [ ] ValueType enum
 - [ ] Set up Room Database
   - [ ] Create Database class
-  - [ ] Implement DAOs
+  - [ ] Implement DAOs for each entity
+  - [ ] Set up relationships between entities
   - [ ] Write database migrations
-- [ ] Create Repository class
-- [ ] Add unit tests for database operations
+- [ ] Create Repository classes
+  - [ ] HealthEntryRepository
+  - [ ] MetricRepository
+  - [ ] MetricTypeRepository
+- [ ] Add unit tests
+  - [ ] Test basic CRUD operations
+  - [ ] Test relationships between entities
+  - [ ] Test metric type validation
 
 ### UI Development
 - [ ] Design and implement layouts
