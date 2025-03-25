@@ -14,6 +14,13 @@
 - Added essential Android configuration files
 - Initialized Git repository
 
+### Backend Architecture
+- [x] Design SQLite database schema
+- [x] Create Docker container for SQLite
+- [x] Implement data import from Excel
+- [x] Add flexible fields (JSON, tags, notes)
+- [x] Create database indexes for performance
+
 ### Data Layer Implementation
 - [ ] Create data models
   - [ ] HealthEntry class (core entry with timestamp)
@@ -48,18 +55,16 @@
 - [ ] Implement date/time picker
 - [ ] Add input validation
 
-### Nextcloud Integration
-- [ ] Add Nextcloud authentication
-  - [ ] Implement login screen
-  - [ ] Store credentials securely
-- [ ] Create sync service
-  - [ ] Implement background worker
-  - [ ] Add sync status tracking
-  - [ ] Handle conflicts
-- [ ] Add offline support
-  - [ ] Implement local queue for pending changes
-  - [ ] Add sync status indicators
-- [ ] Write sync service tests
+### Visualization Integration
+- [ ] Set up Grafana data source
+- [ ] Create basic dashboards
+  - [ ] Workout history
+  - [ ] Progress tracking
+  - [ ] Statistical analysis
+- [ ] Implement data export features
+  - [ ] Excel export
+  - [ ] JSON export
+  - [ ] CSV export
 
 ### Polish and Testing
 - [ ] Add error handling
@@ -72,7 +77,7 @@
 ### Documentation
 - [ ] Add code documentation
 - [ ] Create user guide
-- [ ] Document Nextcloud setup process
+- [ ] Document Docker setup process
 - [ ] Add screenshots to README
 
 ### Optional Enhancements
@@ -88,3 +93,10 @@
 ### March 24, 2025
 - Created initial project documentation
 - Defined project structure and requirements
+
+### March 25, 2025
+- Designed and implemented SQLite database schema
+- Created Docker container for database
+- Implemented data import from Excel
+- Added flexible fields for future extensibility
+- Set up database indexes for performance optimization

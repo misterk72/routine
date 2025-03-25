@@ -1,0 +1,11 @@
+version: '3'
+services:
+  sqlite:
+    build: .
+    volumes:
+      - ./data:/data
+    ports:
+      - "3306:3306"
+    environment:
+      - SQLITE_DATABASE=health.db
+    restart: always

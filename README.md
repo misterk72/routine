@@ -6,7 +6,8 @@ An Android application for tracking personal health metrics including:
 - Waist measurements
 - Health remarks/notes
 - Timestamps for all entries
-- Nextcloud integration for data storage
+- SQLite database with Docker container for data storage
+- Grafana integration for data visualization
 
 ## Technical Requirements
 
@@ -29,9 +30,6 @@ dependencies {
     implementation 'androidx.room:room-ktx:2.6.1'
     kapt 'androidx.room:room-compiler:2.6.1'
     
-    // Nextcloud Android Library
-    implementation 'com.github.nextcloud:android-library:2.1.0'
-    
     // Coroutines for async operations
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
     
@@ -40,6 +38,49 @@ dependencies {
     implementation 'androidx.lifecycle:lifecycle-livedata-ktx:2.7.0'
 }
 ```
+
+## Backend Architecture
+
+### Database Structure
+- SQLite database with Docker container
+- Structured schema for workouts with flexible fields
+- JSON support for custom data
+- Tag-based categorization
+- Free-form notes
+
+### Database Schema
+```sql
+CREATE TABLE workouts (
+    id INTEGER PRIMARY KEY,
+    date_time DATETIME NOT NULL,
+    program TEXT,
+    duration_minutes INTEGER,
+    average_speed REAL,
+    distance_km REAL,
+    calories INTEGER,
+    calories_per_km REAL,
+    average_heart_rate INTEGER,
+    max_heart_rate INTEGER,
+    min_heart_rate INTEGER,
+    weight_kg REAL,
+    fat_mass_kg REAL,
+    fat_percentage REAL,
+    waist_circumference_cm REAL,
+    background_music TEXT,
+    observations TEXT,
+    custom_data JSON,
+    tags TEXT,
+    notes TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+### Data Flow
+1. Android app collects workout data
+2. Data is synchronized with SQLite database
+3. Grafana connects to SQLite for visualization
+4. Data can be exported for analysis
 
 ## Project Structure
 
@@ -83,14 +124,9 @@ dependencies {
 - Use Room database for local storage
 - Create DAOs (Data Access Objects) for CRUD operations
 - Implement repository pattern for data management
+- Sync with Dockerized SQLite database
 
-### 3. Nextcloud Integration
-- Implement Nextcloud authentication
-- Create sync service for data backup
-- Store data in JSON format on Nextcloud
-- Handle offline capabilities
-
-### 4. UI Components
+### 3. UI Components
 1. Main Activity
    - List of health entries
    - Add new entry button
@@ -99,72 +135,42 @@ dependencies {
 2. Add/Edit Entry Screen
    - Date/time picker
    - Weight input field
-   - Waist measurement input field
-   - Notes text area
-   - Save button
+   - Metric selection
+   - Note input
+   - Tag selection
 
-3. Settings Screen
-   - Nextcloud credentials
-   - Sync frequency settings
-   - Units preference (kg/lbs, cm/inches)
+### 4. Visualization
+- Grafana dashboards for:
+  - Workout history
+  - Progress tracking
+  - Statistical analysis
+  - Trend visualization
 
-## Implementation Steps
+## Setup Instructions
 
-1. **Project Setup**
-   - Create new Android project in Android Studio
-   - Configure build.gradle with required dependencies
-   - Set up version control (Git)
+1. Clone the repository
+2. Build the Docker container:
+   ```bash
+   cd docker-sqlite
+   docker-compose build
+   docker-compose up -d
+   ```
+3. Import existing data (if any):
+   ```bash
+   python import_data.py
+   ```
+4. Open the project in Android Studio
+5. Run the app on your device or emulator
 
-2. **Database Implementation**
-   - Create Room database classes
-   - Implement data models
-   - Create DAOs and Repository
+## Data Export
+- Export to Excel format
+- Export to JSON format
+- Export to CSV format
+- Custom export options available
 
-3. **UI Development**
-   - Design and implement main activity layout
-   - Create add/edit entry screen
-   - Implement settings screen
-   - Add form validation
-
-4. **Nextcloud Integration**
-   - Implement Nextcloud authentication
-   - Create sync service
-   - Add background sync functionality
-   - Handle error cases and offline mode
-
-5. **Testing**
-   - Unit tests for database operations
-   - Integration tests for Nextcloud sync
-   - UI testing for main flows
-
-6. **Polishing**
-   - Add data visualization (optional)
-   - Implement data export feature
-   - Add notifications for sync status
-   - Error handling and user feedback
-
-## Security Considerations
-- Encrypt sensitive data in local storage
-- Secure Nextcloud credentials
-- Implement proper authentication flow
-- Handle API tokens securely
-
-## Future Enhancements
-- Data visualization and trends
-- Export to CSV/PDF
-- Reminder notifications
-- Health metrics goals
-- Progress photos
-- BMI calculation
-- Integration with other health platforms
-
-## Getting Started
-1. Clone this repository
-2. Open project in Android Studio
-3. Configure your Nextcloud instance in settings
-4. Build and run the application
-
-## Notes
-- Ensure you have a Nextcloud instance set up and accessible
-- The app requires Android 7.0 or higher
-- Internet permission is required for sync functionality
+## Visualization Features
+- Interactive charts
+- Trend analysis
+- Statistical summaries
+- Custom dashboard creation
+- Data filtering and sorting
