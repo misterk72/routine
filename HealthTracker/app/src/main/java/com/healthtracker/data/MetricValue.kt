@@ -13,6 +13,9 @@ import androidx.room.PrimaryKey
             childColumns = ["entryId"],
             onDelete = ForeignKey.CASCADE
         )
+    ],
+    indices = [
+        androidx.room.Index("entryId")
     ]
 )
 data class MetricValue(

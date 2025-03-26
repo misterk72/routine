@@ -32,7 +32,9 @@ abstract class HealthDatabase : RoomDatabase() {
                     context.applicationContext,
                     HealthDatabase::class.java,
                     "health_database"
-                ).build()
+                )
+                .fallbackToDestructiveMigration() // Add this line to handle schema changes
+                .build()
                 INSTANCE = instance
                 instance
             }

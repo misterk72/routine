@@ -25,9 +25,8 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Set up the Toolbar after setting the content view
+        // Set up the Toolbar
         binding.toolbar.title = "Health Tracker"
-        setSupportActionBar(binding.toolbar)
 
         setupRecyclerView()
         setupFab()
@@ -35,7 +34,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupRecyclerView() {
-        adapter = HealthEntryAdapter { entry ->
+        adapter = HealthEntryAdapter { _ ->
             // Handle entry click
         }
         binding.entriesRecyclerView.layoutManager = LinearLayoutManager(this)
@@ -49,9 +48,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showDatePicker() {
-        // Using a custom theme to avoid PendingIntent issues
         val datePicker = MaterialDatePicker.Builder.datePicker()
-            .setTheme(R.style.ThemeOverlay_App_MaterialCalendar)
             .setTitleText("Select date")
             .build()
 
