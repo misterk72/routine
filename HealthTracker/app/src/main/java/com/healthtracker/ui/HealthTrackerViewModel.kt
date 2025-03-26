@@ -16,14 +16,14 @@ class HealthTrackerViewModel @Inject constructor(
     private val database: HealthDatabase
 ) : ViewModel() {
 
-    private val _entries = MutableLiveData<List<HealthEntry>>()
+    private val _entries = MutableLiveData<List<HealthEntry>>(emptyList())
     val entries: LiveData<List<HealthEntry>> = _entries
 
     init {
         loadEntries()
     }
 
-    private fun loadEntries() {
+    fun loadEntries() {
         viewModelScope.launch {
             database.healthEntryDao().getAllEntries().collect { entries ->
                 _entries.value = entries
@@ -34,18 +34,21 @@ class HealthTrackerViewModel @Inject constructor(
     fun addEntry(entry: HealthEntry) {
         viewModelScope.launch {
             database.healthEntryDao().insert(entry)
+            loadEntries()
         }
     }
 
     fun updateEntry(entry: HealthEntry) {
         viewModelScope.launch {
             database.healthEntryDao().update(entry)
+            loadEntries()
         }
     }
 
     fun deleteEntry(entry: HealthEntry) {
         viewModelScope.launch {
             database.healthEntryDao().delete(entry)
+            loadEntries()
         }
     }
 }
