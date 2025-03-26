@@ -13,7 +13,7 @@ import com.healthtracker.data.converters.DateTimeConverters
         MetricValue::class,
         MetricType::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 @TypeConverters(DateTimeConverters::class)
@@ -34,6 +34,7 @@ abstract class HealthDatabase : RoomDatabase() {
                     "health_database"
                 )
                 .fallbackToDestructiveMigration() // Add this line to handle schema changes
+                .allowMainThreadQueries() // Allow main thread queries for testing
                 .build()
                 INSTANCE = instance
                 instance

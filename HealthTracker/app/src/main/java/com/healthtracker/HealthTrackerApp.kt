@@ -8,6 +8,7 @@ import android.os.Build
 import android.os.StrictMode
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
+import com.healthtracker.data.SampleDataProvider
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
 
@@ -21,6 +22,9 @@ class HealthTrackerApp : Application(), Configuration.Provider {
     
     @Inject
     lateinit var workerFactory: HiltWorkerFactory
+    
+    @Inject
+    lateinit var sampleDataProvider: SampleDataProvider
     
     override fun onCreate() {
         super.onCreate()
@@ -36,6 +40,9 @@ class HealthTrackerApp : Application(), Configuration.Provider {
                 .build()
             StrictMode.setVmPolicy(policy)
         }
+        
+        // Insert sample data for testing
+        sampleDataProvider.insertSampleDataIfNeeded()
     }
     
     private fun createNotificationChannel() {

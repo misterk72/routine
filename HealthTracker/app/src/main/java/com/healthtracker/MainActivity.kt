@@ -1,18 +1,20 @@
 package com.healthtracker
 
-import android.app.PendingIntent
 import android.content.Intent
 import android.os.Bundle
+import android.view.Menu
+import android.view.MenuItem
+import android.view.View
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.google.android.material.datepicker.MaterialDatePicker
+import com.healthtracker.data.HealthEntry
 import com.healthtracker.databinding.ActivityMainBinding
+import com.healthtracker.ui.EntryActivity
 import com.healthtracker.ui.HealthEntryAdapter
 import com.healthtracker.ui.HealthTrackerViewModel
+import com.healthtracker.ui.SettingsActivity
 import dagger.hilt.android.AndroidEntryPoint
-import java.time.LocalDateTime
-import java.time.ZoneId
 
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
@@ -27,15 +29,31 @@ class MainActivity : AppCompatActivity() {
 
         // Set up the Toolbar
         binding.toolbar.title = "Health Tracker"
+        binding.toolbar.inflateMenu(R.menu.menu_main)
+        
+        // Set up toolbar menu item clicks
+        binding.toolbar.setOnMenuItemClickListener { item ->
+            when (item.itemId) {
+                R.id.action_settings -> {
+                    startActivity(Intent(this, SettingsActivity::class.java))
+                    true
+                }
+                else -> false
+            }
+        }
 
         setupRecyclerView()
         setupFab()
-        observeEntries()
+        observeViewModel()
     }
 
     private fun setupRecyclerView() {
-        adapter = HealthEntryAdapter { _ ->
-            // Handle entry click
+        adapter = HealthEntryAdapter { entry ->
+            // Launch EntryActivity to edit the selected entry
+            val intent = Intent(this, EntryActivity::class.java).apply {
+                putExtra(EntryActivity.EXTRA_ENTRY_ID, entry.id)
+            }
+            startActivity(intent)
         }
         binding.entriesRecyclerView.layoutManager = LinearLayoutManager(this)
         binding.entriesRecyclerView.adapter = adapter
@@ -43,36 +61,32 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupFab() {
         binding.fabAddEntry.setOnClickListener {
-            showDatePicker()
+            // Launch EntryActivity to create a new entry
+            startActivity(Intent(this, EntryActivity::class.java))
         }
     }
 
-    private fun showDatePicker() {
-        val datePicker = MaterialDatePicker.Builder.datePicker()
-            .setTitleText("Select date")
-            .build()
-
-        datePicker.addOnPositiveButtonClickListener { selection ->
-            val date = LocalDateTime.ofInstant(
-                java.util.Date(selection).toInstant(),
-                ZoneId.systemDefault()
-            )
-            // Handle date selection with a placeholder entry
-            val entry = com.healthtracker.data.HealthEntry(
-                timestamp = date,
-                weight = 0f,
-                waistMeasurement = 0f,
-                notes = "New entry"
-            )
-            viewModel.addEntry(entry)
-        }
-
-        datePicker.show(supportFragmentManager, "datePicker")
-    }
-
-    private fun observeEntries() {
+    private fun observeViewModel() {
+        // Observe entries
         viewModel.entries.observe(this) { entries ->
             adapter.submitList(entries)
+            
+            // Show empty state if no entries
+            binding.entriesRecyclerView.visibility = if (entries.isEmpty()) View.GONE else View.VISIBLE
+            // TODO: Add empty state view and show it when entries.isEmpty()
         }
+        
+        // Observe loading state
+        viewModel.isLoading.observe(this) { isLoading ->
+            // TODO: Show loading indicator when isLoading is true
+            // For now we'll just disable the FAB during loading
+            binding.fabAddEntry.isEnabled = !isLoading
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Refresh entries when returning to this screen
+        viewModel.loadEntries()
     }
 }
