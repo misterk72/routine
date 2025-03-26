@@ -1,0 +1,37 @@
+R_DEF: Internal format may change without notice
+local
+color black
+color ic_launcher_background
+color purple_200
+color purple_500
+color purple_700
+color teal_200
+color teal_700
+color white
+drawable ic_launcher_foreground
+id entriesRecyclerView
+id fabAddEntry
+id notesEditText
+id notesLayout
+id notesText
+id saveButton
+id timestampEditText
+id timestampLayout
+id timestampText
+id toolbar
+id waistEditText
+id waistLayout
+id waistText
+id weightEditText
+id weightLayout
+id weightText
+layout activity_add_entry
+layout activity_main
+layout item_health_entry
+mipmap ic_launcher
+mipmap ic_launcher_round
+string app_name
+style ThemeOverlay.App.MaterialCalendar
+style Theme.HealthTracker
+style Theme.HealthTracker.AppBarOverlay
+style Theme.HealthTracker.PopupOverlay

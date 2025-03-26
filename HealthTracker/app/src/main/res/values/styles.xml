@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Add a custom style for the Material Date Picker -->
+    <style name="ThemeOverlay.App.MaterialCalendar" parent="@style/ThemeOverlay.MaterialComponents.MaterialCalendar">
+        <item name="android:windowIsFloating">false</item>
+    </style>
+</resources>
