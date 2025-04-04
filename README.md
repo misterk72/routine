@@ -1,23 +1,25 @@
-# Personal Health Tracker - Android App
+# Suivi Santé - Application Android
 
-## Project Overview
-An Android application for tracking personal health metrics including:
-- Body weight
-- Waist measurements
-- Health remarks/notes
-- Timestamps for all entries
-- SQLite database with Docker container for data storage
-- Grafana integration for data visualization
+*Note: L'application est entièrement en français*
 
-## Technical Requirements
+## Aperçu du Projet
+Une application Android pour suivre les métriques de santé personnelles, notamment :
+- Poids corporel
+- Tour de taille
+- Remarques/notes de santé
+- Horodatage pour toutes les entrées
+- Base de données SQLite avec conteneur Docker pour le stockage des données
+- Intégration Grafana pour la visualisation des données
 
-### Development Environment
+## Exigences Techniques
+
+### Environnement de Développement
 - Android Studio (latest version)
 - Minimum Android SDK: API 24 (Android 7.0)
 - Target Android SDK: API 34 (Android 14)
 - Kotlin programming language
 
-### Dependencies
+### Dépendances
 ```gradle
 dependencies {
     // Android Core Libraries
@@ -39,16 +41,16 @@ dependencies {
 }
 ```
 
-## Backend Architecture
+## Architecture Backend
 
-### Database Structure
+### Structure de la Base de Données
 - SQLite database with Docker container
 - Structured schema for workouts with flexible fields
 - JSON support for custom data
 - Tag-based categorization
 - Free-form notes
 
-### Database Schema
+### Schéma de la Base de Données
 ```sql
 CREATE TABLE workouts (
     id INTEGER PRIMARY KEY,
@@ -76,15 +78,15 @@ CREATE TABLE workouts (
 );
 ```
 
-### Data Flow
-1. Android app collects workout data
-2. Data is synchronized with SQLite database
-3. Grafana connects to SQLite for visualization
-4. Data can be exported for analysis
+### Flux de Données
+1. L'application Android collecte les données de santé
+2. Les données sont synchronisées avec la base de données SQLite
+3. Grafana se connecte à SQLite pour la visualisation
+4. Les données peuvent être exportées pour analyse
 
-## Project Structure
+## Structure du Projet
 
-### 1. Data Models
+### 1. Modèles de Données
 - Create flexible data classes for health metrics:
   ```kotlin
   // Main entry that stores timestamp and metadata
@@ -120,33 +122,33 @@ CREATE TABLE workouts (
   }
   ```
 
-### 2. Database Layer
+### 2. Couche Base de Données
 - Use Room database for local storage
 - Create DAOs (Data Access Objects) for CRUD operations
 - Implement repository pattern for data management
 - Sync with Dockerized SQLite database
 
-### 3. UI Components
-1. Main Activity
-   - List of health entries
-   - Add new entry button
-   - Sync status indicator
+### 3. Composants UI
+1. Activité Principale
+   - Liste des entrées de santé
+   - Bouton d'ajout de nouvelle entrée
+   - Indicateur de statut de synchronisation
 
-2. Add/Edit Entry Screen
-   - Date/time picker
-   - Weight input field
-   - Metric selection
-   - Note input
-   - Tag selection
+2. Écran d'Ajout/Modification d'Entrée
+   - Sélecteur de date/heure
+   - Champ de saisie du poids
+   - Sélection de métrique
+   - Saisie de note
+   - Sélection de tags
 
-### 4. Visualization
+### 4. Visualisation
 - Grafana dashboards for:
   - Workout history
   - Progress tracking
   - Statistical analysis
   - Trend visualization
 
-## Setup Instructions
+## Instructions d'Installation
 
 1. Clone the repository
 2. Build the Docker container:
@@ -162,9 +164,9 @@ CREATE TABLE workouts (
 4. Open the project in Android Studio
 5. Run the app on your device or emulator
 
-## Testing
+## Tests
 
-### Unit Tests
+### Tests Unitaires
 The project includes comprehensive unit tests for:
 - Data models (HealthEntry, MetricValue, MetricType)
 - ViewModels with coroutines and Flow
@@ -175,7 +177,7 @@ Run unit tests:
 ./gradlew test
 ```
 
-### Instrumentation Tests
+### Tests d'Instrumentation
 Android instrumentation tests cover:
 - Room database operations
 - DAO implementations
@@ -186,9 +188,9 @@ Run instrumentation tests:
 ./gradlew connectedAndroidTest
 ```
 
-### Test Dependencies
+### Dépendances de Test
 ```gradle
-// Unit Testing
+// Tests Unitaires
 testImplementation 'junit:junit:4.13.2'
 testImplementation 'org.mockito:mockito-core:5.3.1'
 testImplementation 'org.mockito.kotlin:mockito-kotlin:5.1.0'
@@ -196,7 +198,7 @@ testImplementation 'androidx.arch.core:core-testing:2.2.0'
 testImplementation 'org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3'
 testImplementation 'app.cash.turbine:turbine:1.0.0'
 
-// Instrumentation Testing
+// Tests d'Instrumentation
 androidTestImplementation 'androidx.test.ext:junit:1.1.5'
 androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
 androidTestImplementation 'androidx.test:runner:1.5.2'

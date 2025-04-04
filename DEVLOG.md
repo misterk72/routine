@@ -8,12 +8,6 @@
 - [x] Add initial dependencies in build.gradle
 - [x] Create project structure (packages for models, database, ui, network)
 
-#### Completed on March 24, 2025:
-- Set up basic Android project structure
-- Configured Gradle with necessary dependencies
-- Added essential Android configuration files
-- Initialized Git repository
-
 ### Backend Architecture
 - [x] Design SQLite database schema
 - [x] Create Docker container for SQLite
@@ -82,15 +76,19 @@
 
 ### Optional Enhancements
 - [ ] Add data visualization
-- [ ] Implement dark mode
+- [x] ~~Implement dark mode~~ (Removed on April 4, 2025)
 - [ ] Add widgets
 - [ ] Create backup/restore functionality
 - [ ] Add BMI calculator
-- [ ] Implement reminder notifications
+- [x] ~~Implement reminder notifications~~ (Removed on April 4, 2025)
 
 ## Progress Notes
 
 ### March 24, 2025
+- Set up basic Android project structure
+- Configured Gradle with necessary dependencies
+- Added essential Android configuration files
+- Initialized Git repository
 - Created initial project documentation
 - Defined project structure and requirements
 
@@ -148,3 +146,18 @@
   - Fixed Toolbar setup in MainActivity to avoid conflicts with NoActionBar theme
 - Successfully tested app on Pixel 7a device
 - Pushed all changes to GitHub
+
+### April 4, 2025
+- Localized the entire application into French
+  - Translated all UI elements, including buttons, labels, error messages, and notifications
+  - Created French string resources in values-fr/strings.xml
+  - Updated HealthTrackerApp.kt to use French as the default language
+  - Ensured all metric displays (weight, waist) use localized formats
+- Simplified the application by removing features
+  - Removed dark mode option from settings
+  - Removed notifications functionality
+  - Removed associated UI elements, code, and string resources
+- Refactored settings screen
+  - Removed appearance section entirely
+  - Streamlined the settings interface
+- Tested all changes on Pixel 7a device
