@@ -69,11 +69,7 @@ class SettingsActivity : AppCompatActivity() {
             viewModel.setDarkMode(isChecked)
         }
 
-        // Units radio group
-        binding.unitsRadioGroup.setOnCheckedChangeListener { _, checkedId ->
-            val useMetric = (checkedId == binding.metricRadioButton.id)
-            viewModel.setMetricUnits(useMetric)
-        }
+
 
         // Notifications switch
         binding.notificationsSwitch.setOnCheckedChangeListener { _, isChecked ->
@@ -115,10 +111,7 @@ class SettingsActivity : AppCompatActivity() {
             // In a real app, we would apply the theme change here
         }
 
-        viewModel.isMetricUnits.observe(this) { isMetric ->
-            binding.metricRadioButton.isChecked = isMetric
-            binding.imperialRadioButton.isChecked = !isMetric
-        }
+
 
         viewModel.notificationsEnabled.observe(this) { enabled ->
             binding.notificationsSwitch.isChecked = enabled
