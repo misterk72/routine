@@ -226,44 +226,84 @@ class MetricTypesAdapter(
     }
 
     override fun onCreateViewHolder(parent: android.view.ViewGroup, viewType: Int): ViewHolder {
-        // Using a standard two-line list item with two buttons
-        val view = android.view.LayoutInflater.from(parent.context)
-            .inflate(android.R.layout.simple_list_item_2, parent, false)
+        // Create a custom layout for our list item
+        val context = parent.context
         
-        // In a real app, we would create a custom layout
-        // For demo purposes, we're adding buttons programmatically
-        val layout = view as android.widget.LinearLayout
-        layout.orientation = android.widget.LinearLayout.HORIZONTAL
+        // Create the main horizontal layout
+        val layout = android.widget.LinearLayout(context).apply {
+            orientation = android.widget.LinearLayout.HORIZONTAL
+            layoutParams = android.view.ViewGroup.LayoutParams(
+                android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                android.view.ViewGroup.LayoutParams.WRAP_CONTENT
+            )
+            setPadding(16, 16, 16, 16)
+        }
         
-        val textContainer = android.widget.LinearLayout(parent.context)
-        textContainer.orientation = android.widget.LinearLayout.VERTICAL
-        textContainer.layoutParams = android.widget.LinearLayout.LayoutParams(
-            0, android.widget.LinearLayout.LayoutParams.WRAP_CONTENT, 1f
-        )
+        // Create the text container
+        val textContainer = android.widget.LinearLayout(context).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            layoutParams = android.widget.LinearLayout.LayoutParams(
+                0, android.widget.LinearLayout.LayoutParams.WRAP_CONTENT, 1f
+            )
+        }
         
-        val text1 = layout.findViewById<android.widget.TextView>(android.R.id.text1)
-        val text2 = layout.findViewById<android.widget.TextView>(android.R.id.text2)
-        layout.removeAllViews()
+        // Create the title text view
+        val text1 = android.widget.TextView(context).apply {
+            id = android.R.id.text1
+            layoutParams = android.widget.LinearLayout.LayoutParams(
+                android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
+                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+            textSize = 16f
+        }
         
+        // Create the details text view
+        val text2 = android.widget.TextView(context).apply {
+            id = android.R.id.text2
+            layoutParams = android.widget.LinearLayout.LayoutParams(
+                android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
+                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+            textSize = 14f
+        }
+        
+        // Add text views to the text container
         textContainer.addView(text1)
         textContainer.addView(text2)
+        
+        // Add the text container to the main layout
         layout.addView(textContainer)
         
         // Add edit button
-        val editButton = android.widget.ImageButton(parent.context)
-        editButton.id = android.R.id.button1
-        editButton.setImageResource(android.R.drawable.ic_menu_edit)
-        editButton.background = null
+        val editButton = android.widget.ImageButton(context).apply {
+            id = android.R.id.button1
+            setImageResource(android.R.drawable.ic_menu_edit)
+            background = null
+            layoutParams = android.widget.LinearLayout.LayoutParams(
+                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
+                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                gravity = android.view.Gravity.CENTER_VERTICAL
+                marginEnd = 8
+            }
+        }
         layout.addView(editButton)
         
         // Add delete button
-        val deleteButton = android.widget.ImageButton(parent.context)
-        deleteButton.id = android.R.id.button2
-        deleteButton.setImageResource(android.R.drawable.ic_menu_delete)
-        deleteButton.background = null
+        val deleteButton = android.widget.ImageButton(context).apply {
+            id = android.R.id.button2
+            setImageResource(android.R.drawable.ic_menu_delete)
+            background = null
+            layoutParams = android.widget.LinearLayout.LayoutParams(
+                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
+                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                gravity = android.view.Gravity.CENTER_VERTICAL
+            }
+        }
         layout.addView(deleteButton)
         
-        return ViewHolder(view)
+        return ViewHolder(layout)
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {

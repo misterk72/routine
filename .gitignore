@@ -79,3 +79,4 @@ google-services.json
 
 # Android Profiling
 *.hprof
+HealthTracker/error_log.txt
