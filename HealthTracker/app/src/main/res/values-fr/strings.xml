@@ -17,8 +17,6 @@
     
     <!-- Settings Activity -->
     <string name="settings">Paramètres</string>
-    <string name="appearance">Apparence</string>
-    <string name="dark_mode">Mode sombre</string>
     <string name="notifications">Notifications</string>
     <string name="enable_reminders">Activer les rappels</string>
     <string name="reminder_time">Heure de rappel</string>

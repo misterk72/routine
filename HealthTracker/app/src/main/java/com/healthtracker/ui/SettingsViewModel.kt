@@ -22,18 +22,12 @@ class SettingsViewModel @Inject constructor(
 ) : ViewModel() {
 
     companion object {
-        const val PREF_DARK_MODE = "dark_mode"
         const val PREF_NOTIFICATIONS_ENABLED = "notifications_enabled"
         const val PREF_REMINDER_TIME = "reminder_time"
         const val PREF_EXPORT_FORMAT = "export_format"
     }
     
     // Settings state
-    private val _isDarkMode = MutableLiveData(false)
-    val isDarkMode: LiveData<Boolean> = _isDarkMode
-    
-
-    
     private val _notificationsEnabled = MutableLiveData(false)
     val notificationsEnabled: LiveData<Boolean> = _notificationsEnabled
     
@@ -63,8 +57,6 @@ class SettingsViewModel @Inject constructor(
      * Load settings from SharedPreferences
      */
     private fun loadSettings() {
-        _isDarkMode.value = sharedPreferences.getBoolean(PREF_DARK_MODE, false)
-
         _notificationsEnabled.value = sharedPreferences.getBoolean(PREF_NOTIFICATIONS_ENABLED, false)
         _reminderTime.value = sharedPreferences.getString(PREF_REMINDER_TIME, "08:00") ?: "08:00"
         _exportFormat.value = sharedPreferences.getString(PREF_EXPORT_FORMAT, "CSV") ?: "CSV"
@@ -81,17 +73,6 @@ class SettingsViewModel @Inject constructor(
         }
     }
     
-    /**
-     * Update dark mode setting
-     */
-    fun setDarkMode(enabled: Boolean) {
-        _isDarkMode.value = enabled
-        sharedPreferences.edit()
-            .putBoolean(PREF_DARK_MODE, enabled)
-            .apply()
-    }
-    
-
     
     /**
      * Update notifications setting

@@ -69,13 +69,6 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     private fun setupListeners() {
-        // Dark mode switch
-        binding.darkModeSwitch.setOnCheckedChangeListener { _, isChecked ->
-            viewModel.setDarkMode(isChecked)
-        }
-
-
-
         // Notifications switch
         binding.notificationsSwitch.setOnCheckedChangeListener { _, isChecked ->
             viewModel.setNotificationsEnabled(isChecked)
@@ -111,13 +104,6 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     private fun observeViewModel() {
-        viewModel.isDarkMode.observe(this) { isDarkMode ->
-            binding.darkModeSwitch.isChecked = isDarkMode
-            // In a real app, we would apply the theme change here
-        }
-
-
-
         viewModel.notificationsEnabled.observe(this) { enabled ->
             binding.notificationsSwitch.isChecked = enabled
             binding.reminderTimeLabel.isEnabled = enabled
