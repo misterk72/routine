@@ -30,7 +30,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:background="?attr/selectableItemBackgroundBorderless"
-        android:contentDescription="Delete metric"
+        android:contentDescription="@string/delete"
         android:src="@android:drawable/ic_menu_delete"
         app:layout_constraintBottom_toBottomOf="@+id/metricValueText"
         app:layout_constraintEnd_toEndOf="parent"

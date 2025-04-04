@@ -4,16 +4,18 @@ import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
+import android.content.res.Configuration
 import android.os.Build
 import android.os.StrictMode
 import androidx.hilt.work.HiltWorkerFactory
-import androidx.work.Configuration
+import androidx.work.Configuration as WorkConfiguration
 import com.healthtracker.data.SampleDataProvider
 import dagger.hilt.android.HiltAndroidApp
+import java.util.Locale
 import javax.inject.Inject
 
 @HiltAndroidApp
-class HealthTrackerApp : Application(), Configuration.Provider {
+class HealthTrackerApp : Application(), WorkConfiguration.Provider {
     
     companion object {
         // Create a channel ID for notifications
@@ -28,6 +30,9 @@ class HealthTrackerApp : Application(), Configuration.Provider {
     
     override fun onCreate() {
         super.onCreate()
+        
+        // Force French locale for the entire application
+        setLocale()
         
         // Create notification channel for Android O and above
         createNotificationChannel()
@@ -45,10 +50,20 @@ class HealthTrackerApp : Application(), Configuration.Provider {
         sampleDataProvider.insertSampleDataIfNeeded()
     }
     
+    private fun setLocale() {
+        val locale = Locale.FRENCH
+        Locale.setDefault(locale)
+        
+        val config = Configuration(resources.configuration)
+        config.setLocale(locale)
+        
+        resources.updateConfiguration(config, resources.displayMetrics)
+    }
+    
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val name = "Health Tracker"
-            val descriptionText = "Health Tracker notifications"
+            val name = getString(R.string.app_name)
+            val descriptionText = getString(R.string.notifications_description)
             val importance = NotificationManager.IMPORTANCE_DEFAULT
             val channel = NotificationChannel(CHANNEL_ID, name, importance).apply {
                 description = descriptionText
@@ -58,8 +73,8 @@ class HealthTrackerApp : Application(), Configuration.Provider {
         }
     }
     
-    override val workManagerConfiguration: Configuration
-        get() = Configuration.Builder()
+    override val workManagerConfiguration: WorkConfiguration
+        get() = WorkConfiguration.Builder()
             .setWorkerFactory(workerFactory)
             .setMinimumLoggingLevel(android.util.Log.INFO)
             .build()

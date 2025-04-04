@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Application name -->
+    <string name="app_name">Suivi Santé</string>
+    
+    <!-- Common -->
+    <string name="save">Enregistrer</string>
+    <string name="change">Modifier</string>
+    <string name="add">Ajouter</string>
+    <string name="delete">Supprimer</string>
+    <string name="export">Exporter</string>
+    
+    <!-- Main Activity -->
+    <string name="add_new_health_entry">Ajouter un nouveau suivi de santé</string>
+    <string name="edit_health_entry">Modifier le suivi de santé</string>
+    <string name="new_health_entry">Nouveau suivi de santé</string>
+    
+    <!-- Settings Activity -->
+    <string name="settings">Paramètres</string>
+    <string name="appearance">Apparence</string>
+    <string name="dark_mode">Mode sombre</string>
+    <string name="notifications">Notifications</string>
+    <string name="enable_reminders">Activer les rappels</string>
+    <string name="reminder_time">Heure de rappel</string>
+    <string name="data_export">Exportation de données</string>
+    <string name="metric_types">Types de mesures</string>
+    <string name="add_metric_type">Ajouter un type de mesure</string>
+    
+    <!-- Entry Activity -->
+    <string name="date_and_time">Date et heure</string>
+    <string name="basic_metrics">Mesures de base</string>
+    <string name="weight">Poids</string>
+    <string name="weight_kg">Poids (kg)</string>
+    <string name="waist_measurement">Tour de taille</string>
+    <string name="waist_measurement_cm">Tour de taille (cm)</string>
+    <string name="additional_metrics">Mesures supplémentaires</string>
+    <string name="add_metric">Ajouter une mesure</string>
+    <string name="notes">Notes</string>
+    <string name="additional_notes">Notes supplémentaires</string>
+    <string name="save_entry">Enregistrer le suivi</string>
+    
+    <!-- Error Messages -->
+    <string name="invalid_weight">Valeur de poids invalide</string>
+    <string name="invalid_waist">Mesure de tour de taille invalide</string>
+    
+    <!-- Metric Types -->
+    <string name="blood_pressure">Tension artérielle</string>
+    <string name="heart_rate">Fréquence cardiaque</string>
+    <string name="mood">Humeur</string>
+    <string name="sleep_hours">Heures de sommeil</string>
+    <string name="steps">Pas</string>
+    
+    <!-- Units -->
+    <string name="kg">kg</string>
+    <string name="cm">cm</string>
+    <string name="mmHg">mmHg</string>
+    <string name="bpm">bpm</string>
+    <string name="mood_scale">échelle 1-5</string>
+    <string name="hours">heures</string>
+    <string name="steps_unit">pas</string>
+    <string name="units">unités</string>
+    
+    <!-- Export Formats -->
+    <string name="export_csv">CSV</string>
+    <string name="export_json">JSON</string>
+    <string name="export_excel">Excel</string>
+    <string name="exporting_data">Exportation des données au format %1$s...</string>
+    
+    <!-- Metric Types -->
+    <string name="edit_metric_type">Modifier le type de mesure : %1$s</string>
+    <string name="sample_metric">Exemple de mesure</string>
+    <string name="sample_metric_description">Un exemple de type de mesure pour démonstration</string>
+    
+    <!-- Notifications -->
+    <string name="notifications_description">Notifications de Suivi Santé</string>
+    
+    <!-- Health Entry Display -->
+    <string name="weight_display">Poids : %1$s kg</string>
+    <string name="waist_display">Tour de taille : %1$s cm</string>
+    <string name="metric_value_display">%1$s %2$s</string>
+</resources>

@@ -7,6 +7,7 @@ import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.healthtracker.R
 import com.healthtracker.data.HealthEntry
 import com.healthtracker.data.MetricValue
 import com.healthtracker.databinding.ActivityEntryBinding
@@ -53,10 +54,10 @@ class EntryActivity : AppCompatActivity() {
         val entryId = intent.getLongExtra(EXTRA_ENTRY_ID, 0L)
         if (entryId > 0) {
             viewModel.loadEntry(entryId)
-            title = "Edit Health Entry"
+            title = getString(R.string.edit_health_entry)
         } else {
             viewModel.createNewEntry()
-            title = "New Health Entry"
+            title = getString(R.string.new_health_entry)
         }
     }
 
@@ -142,12 +143,12 @@ class EntryActivity : AppCompatActivity() {
 
         // Validate inputs (basic validation)
         if (weightText.isNotEmpty() && weight == null) {
-            binding.weightInputLayout.error = "Invalid weight value"
+            binding.weightInputLayout.error = getString(R.string.invalid_weight)
             return
         }
         
         if (waistText.isNotEmpty() && waist == null) {
-            binding.waistInputLayout.error = "Invalid waist measurement"
+            binding.waistInputLayout.error = getString(R.string.invalid_waist)
             return
         }
         
@@ -199,23 +200,29 @@ class EntryActivity : AppCompatActivity() {
     private fun simulateAddMetric() {
         // This is just a placeholder for demo purposes
         // In a real app, we would show a dialog to select metric type and value
-        val metricTypes = listOf("Blood Pressure", "Heart Rate", "Mood", "Sleep Hours", "Steps")
+        val metricTypes = listOf(
+            getString(R.string.blood_pressure),
+            getString(R.string.heart_rate),
+            getString(R.string.mood),
+            getString(R.string.sleep_hours),
+            getString(R.string.steps)
+        )
         val randomMetric = metricTypes.random()
         val randomValue = when (randomMetric) {
-            "Blood Pressure" -> 120.0 + (Math.random() * 40 - 20)
-            "Heart Rate" -> 60.0 + (Math.random() * 40)
-            "Mood" -> (1.0 + (Math.random() * 4)).toInt().toDouble()
-            "Sleep Hours" -> 5.0 + (Math.random() * 4)
-            "Steps" -> (2000.0 + (Math.random() * 8000)).toInt().toDouble()
+            getString(R.string.blood_pressure) -> 120.0 + (Math.random() * 40 - 20)
+            getString(R.string.heart_rate) -> 60.0 + (Math.random() * 40)
+            getString(R.string.mood) -> (1.0 + (Math.random() * 4)).toInt().toDouble()
+            getString(R.string.sleep_hours) -> 5.0 + (Math.random() * 4)
+            getString(R.string.steps) -> (2000.0 + (Math.random() * 8000)).toInt().toDouble()
             else -> 0.0
         }
         
         val unit = when (randomMetric) {
-            "Blood Pressure" -> "mmHg"
-            "Heart Rate" -> "bpm"
-            "Mood" -> "1-5 scale"
-            "Sleep Hours" -> "hours"
-            "Steps" -> "steps"
+            getString(R.string.blood_pressure) -> getString(R.string.mmHg)
+            getString(R.string.heart_rate) -> getString(R.string.bpm)
+            getString(R.string.mood) -> getString(R.string.mood_scale)
+            getString(R.string.sleep_hours) -> getString(R.string.hours)
+            getString(R.string.steps) -> getString(R.string.steps_unit)
             else -> ""
         }
         
@@ -250,7 +257,7 @@ class MetricValuesAdapter(
 
         fun bind(metricValue: MetricValue) {
             binding.metricTypeText.text = metricValue.metricType
-            binding.metricValueText.text = "${metricValue.value} ${metricValue.unit ?: ""}"
+            binding.metricValueText.text = binding.root.context.getString(R.string.metric_value_display, metricValue.value.toString(), metricValue.unit ?: "")
             binding.deleteMetricButton.setOnClickListener {
                 onDeleteClick(metricValue)
             }

@@ -43,7 +43,7 @@
                     android:layout_height="wrap_content"
                     android:clickable="true"
                     android:focusable="false"
-                    android:hint="Date and Time" />
+                    android:hint="@string/date_and_time" />
 
             </com.google.android.material.textfield.TextInputLayout>
 
@@ -60,7 +60,7 @@
                     android:id="@+id/weightEditText"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:hint="Weight (kg)"
+                    android:hint="@string/weight_kg"
                     android:inputType="numberDecimal" />
 
             </com.google.android.material.textfield.TextInputLayout>
@@ -78,7 +78,7 @@
                     android:id="@+id/waistEditText"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:hint="Waist Measurement (cm)"
+                    android:hint="@string/waist_measurement_cm"
                     android:inputType="numberDecimal" />
 
             </com.google.android.material.textfield.TextInputLayout>
@@ -96,7 +96,7 @@
                     android:id="@+id/notesEditText"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:hint="Notes"
+                    android:hint="@string/notes"
                     android:inputType="textMultiLine"
                     android:minLines="3" />
 
@@ -107,7 +107,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="24dp"
-                android:text="Save"
+                android:text="@string/save"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toBottomOf="@id/notesLayout" />

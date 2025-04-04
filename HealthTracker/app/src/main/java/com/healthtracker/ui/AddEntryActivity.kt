@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.ViewModelProvider
 import com.google.android.material.datepicker.MaterialDatePicker
+import com.healthtracker.R
 import com.healthtracker.databinding.ActivityAddEntryBinding
 import com.healthtracker.ui.HealthTrackerViewModel
 import com.healthtracker.data.HealthEntry
@@ -42,7 +43,7 @@ class AddEntryActivity : AppCompatActivity() {
     private fun setupDatePicker() {
         binding.timestampEditText.setOnClickListener {
             val datePicker = MaterialDatePicker.Builder.datePicker()
-                .setTitleText("Select date")
+                .setTitleText(getString(R.string.date_and_time))
                 .build()
 
             datePicker.addOnPositiveButtonClickListener { selection ->

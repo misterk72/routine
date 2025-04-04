@@ -28,7 +28,7 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         // Set up the Toolbar
-        binding.toolbar.title = "Health Tracker"
+        binding.toolbar.title = getString(R.string.app_name)
         binding.toolbar.inflateMenu(R.menu.menu_main)
         
         // Set up toolbar menu item clicks

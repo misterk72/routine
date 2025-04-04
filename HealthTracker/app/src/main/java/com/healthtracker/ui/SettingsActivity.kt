@@ -8,6 +8,7 @@ import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.healthtracker.R
 import com.healthtracker.data.MetricType
 import com.healthtracker.databinding.ActivitySettingsBinding
 import dagger.hilt.android.AndroidEntryPoint
@@ -27,7 +28,7 @@ class SettingsActivity : AppCompatActivity() {
         setSupportActionBar(binding.toolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         supportActionBar?.setDisplayShowHomeEnabled(true)
-        title = "Settings"
+        title = getString(R.string.settings)
 
         setupMetricTypesAdapter()
         setupExportFormatSpinner()
@@ -42,7 +43,7 @@ class SettingsActivity : AppCompatActivity() {
                 // For demo purposes, we'll just show a toast
                 Toast.makeText(
                     this,
-                    "Edit metric type: ${metricType.name}",
+                    getString(R.string.edit_metric_type, metricType.name),
                     Toast.LENGTH_SHORT
                 ).show()
             },
@@ -57,7 +58,11 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     private fun setupExportFormatSpinner() {
-        val exportFormats = arrayOf("CSV", "JSON", "Excel")
+        val exportFormats = arrayOf(
+            getString(R.string.export_csv),
+            getString(R.string.export_json),
+            getString(R.string.export_excel)
+        )
         val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, exportFormats)
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         binding.exportFormatSpinner.adapter = adapter
@@ -92,7 +97,7 @@ class SettingsActivity : AppCompatActivity() {
             // In a real app, we would start the export process here
             Toast.makeText(
                 this,
-                "Exporting data in $format format...",
+                getString(R.string.exporting_data, format),
                 Toast.LENGTH_SHORT
             ).show()
         }
@@ -162,11 +167,11 @@ class SettingsActivity : AppCompatActivity() {
 
     private fun addSampleMetricType() {
         // This is just a placeholder for demo purposes
-        val metricName = "Sample Metric ${System.currentTimeMillis() % 1000}"
+        val metricName = "${getString(R.string.sample_metric)} ${System.currentTimeMillis() % 1000}"
         viewModel.addMetricType(
             name = metricName,
-            unit = "units",
-            description = "A sample metric type for demonstration",
+            unit = getString(R.string.units),
+            description = getString(R.string.sample_metric_description),
             minValue = 0.0,
             maxValue = 100.0,
             stepSize = 1.0

@@ -48,7 +48,7 @@
                         android:id="@+id/dateTimeLabel"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Date and Time"
+                        android:text="@string/date_and_time"
                         android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1"
                         app:layout_constraintStart_toStartOf="parent"
                         app:layout_constraintTop_toTopOf="parent" />
@@ -68,7 +68,7 @@
                         style="@style/Widget.MaterialComponents.Button.TextButton"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Change"
+                        android:text="@string/change"
                         app:layout_constraintBottom_toBottomOf="@+id/dateTimeValue"
                         app:layout_constraintEnd_toEndOf="parent"
                         app:layout_constraintTop_toTopOf="@+id/dateTimeValue" />
@@ -97,7 +97,7 @@
                         android:id="@+id/basicMetricsLabel"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Basic Metrics"
+                        android:text="@string/basic_metrics"
                         android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1"
                         app:layout_constraintStart_toStartOf="parent"
                         app:layout_constraintTop_toTopOf="parent" />
@@ -109,7 +109,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
                         android:layout_marginEnd="8dp"
-                        android:hint="Weight"
+                        android:hint="@string/weight"
                         app:layout_constraintEnd_toStartOf="@+id/weightUnitText"
                         app:layout_constraintStart_toStartOf="parent"
                         app:layout_constraintTop_toBottomOf="@+id/basicMetricsLabel">
@@ -125,7 +125,7 @@
                         android:id="@+id/weightUnitText"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="kg"
+                        android:text="@string/kg"
                         android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"
                         app:layout_constraintBottom_toBottomOf="@+id/weightInputLayout"
                         app:layout_constraintEnd_toEndOf="parent"
@@ -138,7 +138,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
                         android:layout_marginEnd="8dp"
-                        android:hint="Waist Measurement"
+                        android:hint="@string/waist_measurement"
                         app:layout_constraintEnd_toStartOf="@+id/waistUnitText"
                         app:layout_constraintStart_toStartOf="parent"
                         app:layout_constraintTop_toBottomOf="@+id/weightInputLayout">
@@ -154,7 +154,7 @@
                         android:id="@+id/waistUnitText"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="cm"
+                        android:text="@string/cm"
                         android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"
                         app:layout_constraintBottom_toBottomOf="@+id/waistInputLayout"
                         app:layout_constraintEnd_toEndOf="parent"
@@ -184,7 +184,7 @@
                         android:id="@+id/additionalMetricsLabel"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Additional Metrics"
+                        android:text="@string/additional_metrics"
                         android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1"
                         app:layout_constraintStart_toStartOf="parent"
                         app:layout_constraintTop_toTopOf="parent" />
@@ -204,7 +204,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
-                        android:text="Add Metric"
+                        android:text="@string/add_metric"
                         app:icon="@android:drawable/ic_input_add"
                         app:layout_constraintEnd_toEndOf="parent"
                         app:layout_constraintStart_toStartOf="parent"
@@ -234,7 +234,7 @@
                         android:id="@+id/notesLabel"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Notes"
+                        android:text="@string/notes"
                         android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1"
                         app:layout_constraintStart_toStartOf="parent"
                         app:layout_constraintTop_toTopOf="parent" />
@@ -245,7 +245,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
-                        android:hint="Additional notes"
+                        android:hint="@string/additional_notes"
                         app:layout_constraintEnd_toEndOf="parent"
                         app:layout_constraintStart_toStartOf="parent"
                         app:layout_constraintTop_toBottomOf="@+id/notesLabel">
@@ -276,7 +276,7 @@
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
         android:layout_margin="16dp"
-        android:contentDescription="Save entry"
+        android:contentDescription="@string/save_entry"
         app:srcCompat="@android:drawable/ic_menu_save" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

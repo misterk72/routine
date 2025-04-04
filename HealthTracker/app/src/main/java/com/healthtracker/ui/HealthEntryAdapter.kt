@@ -5,6 +5,7 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import com.healthtracker.R
 import com.healthtracker.data.HealthEntry
 import com.healthtracker.databinding.ItemHealthEntryBinding
 import java.time.LocalDateTime
@@ -54,8 +55,8 @@ class HealthEntryAdapter(private val onEntryClick: (HealthEntry) -> Unit) :
             val formattedDate = formatWithCapitalizedDay(entry.timestamp, "EEEE d MMMM yyyy")
             val formattedTime = entry.timestamp.format(TIME_FORMATTER)
             binding.timestampText.text = "$formattedDate, $formattedTime"
-            binding.weightText.text = entry.weight?.let { "Weight: ${it} kg" }
-            binding.waistText.text = entry.waistMeasurement?.let { "Waist: ${it} cm" }
+            binding.weightText.text = entry.weight?.let { binding.root.context.getString(R.string.weight_display, it.toString()) }
+            binding.waistText.text = entry.waistMeasurement?.let { binding.root.context.getString(R.string.waist_display, it.toString()) }
             binding.notesText.text = entry.notes
         }
     }
