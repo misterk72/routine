@@ -9,8 +9,20 @@ import com.healthtracker.ui.HealthTrackerViewModel
 import com.healthtracker.data.HealthEntry
 import java.time.LocalDateTime
 import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 class AddEntryActivity : AppCompatActivity() {
+    companion object {
+        // French-style date format
+        private val DATE_FORMATTER = DateTimeFormatter.ofPattern("EEEE d MMMM yyyy, HH'h'mm", java.util.Locale.FRENCH)
+        
+        // Custom formatter to capitalize first letter of day name
+        private fun formatWithCapitalizedDay(dateTime: LocalDateTime, pattern: String): String {
+            val formatted = DateTimeFormatter.ofPattern(pattern, java.util.Locale.FRENCH).format(dateTime)
+            // Capitalize first letter of the day name
+            return formatted.replaceFirstChar { if (it.isLowerCase()) it.titlecase(java.util.Locale.FRENCH) else it.toString() }
+        }
+    }
     private lateinit var binding: ActivityAddEntryBinding
     private lateinit var viewModel: HealthTrackerViewModel
 
@@ -38,7 +50,8 @@ class AddEntryActivity : AppCompatActivity() {
                     java.util.Date(selection).toInstant(),
                     ZoneId.systemDefault()
                 )
-                binding.timestampEditText.setText(date.toString())
+                // Display date in user-friendly format with capitalized day name
+                binding.timestampEditText.setText(formatWithCapitalizedDay(date, "EEEE d MMMM yyyy, HH'h'mm"))
             }
 
             datePicker.show(supportFragmentManager, "datePicker")

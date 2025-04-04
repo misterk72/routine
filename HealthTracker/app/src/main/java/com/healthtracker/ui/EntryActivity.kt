@@ -23,9 +23,17 @@ class EntryActivity : AppCompatActivity() {
 
     companion object {
         const val EXTRA_ENTRY_ID = "entry_id"
-        private val DATE_FORMATTER = DateTimeFormatter.ofPattern("MMMM d, yyyy")
-        private val TIME_FORMATTER = DateTimeFormatter.ofPattern("h:mm a")
-        private val DATETIME_FORMATTER = DateTimeFormatter.ofPattern("MMMM d, yyyy 'at' h:mm a")
+        
+        // Custom formatter to capitalize first letter of day name
+        private fun formatWithCapitalizedDay(dateTime: LocalDateTime, pattern: String): String {
+            val formatted = DateTimeFormatter.ofPattern(pattern, java.util.Locale.FRENCH).format(dateTime)
+            // Capitalize first letter of the day name
+            return formatted.replaceFirstChar { if (it.isLowerCase()) it.titlecase(java.util.Locale.FRENCH) else it.toString() }
+        }
+        
+        private val DATE_FORMATTER = DateTimeFormatter.ofPattern("EEEE d MMMM yyyy", java.util.Locale.FRENCH)
+        private val TIME_FORMATTER = DateTimeFormatter.ofPattern("HH'h'mm", java.util.Locale.FRENCH)
+        private val DATETIME_FORMATTER = DateTimeFormatter.ofPattern("EEEE d MMMM yyyy, HH'h'mm", java.util.Locale.FRENCH)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -112,7 +120,8 @@ class EntryActivity : AppCompatActivity() {
     private fun updateUI(entry: HealthEntry?) {
         entry?.let { e ->
             // Update date/time display
-            binding.dateTimeValue.text = e.timestamp.format(DATETIME_FORMATTER)
+            // Format with capitalized day name
+            binding.dateTimeValue.text = formatWithCapitalizedDay(e.timestamp, "EEEE d MMMM yyyy, HH'h'mm")
             
             // Update weight and waist inputs
             e.weight?.let { binding.weightInput.setText(it.toString()) }
@@ -184,7 +193,7 @@ class EntryActivity : AppCompatActivity() {
 
     private fun updateEntryDateTime(newDateTime: LocalDateTime) {
         viewModel.updateEntryDateTime(newDateTime)
-        binding.dateTimeValue.text = newDateTime.format(DATETIME_FORMATTER)
+        binding.dateTimeValue.text = formatWithCapitalizedDay(newDateTime, "EEEE d MMMM yyyy, HH'h'mm")
     }
 
     private fun simulateAddMetric() {
