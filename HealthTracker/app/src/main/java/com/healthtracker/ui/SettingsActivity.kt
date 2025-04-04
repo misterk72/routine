@@ -69,20 +69,6 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     private fun setupListeners() {
-        // Notifications switch
-        binding.notificationsSwitch.setOnCheckedChangeListener { _, isChecked ->
-            viewModel.setNotificationsEnabled(isChecked)
-            // Update UI to enable/disable reminder time selection
-            binding.reminderTimeLabel.isEnabled = isChecked
-            binding.reminderTimeValue.isEnabled = isChecked
-            binding.reminderTimeButton.isEnabled = isChecked
-        }
-
-        // Reminder time button
-        binding.reminderTimeButton.setOnClickListener {
-            showTimePickerDialog()
-        }
-
         // Export button
         binding.exportButton.setOnClickListener {
             val format = binding.exportFormatSpinner.selectedItem.toString()
@@ -104,17 +90,6 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     private fun observeViewModel() {
-        viewModel.notificationsEnabled.observe(this) { enabled ->
-            binding.notificationsSwitch.isChecked = enabled
-            binding.reminderTimeLabel.isEnabled = enabled
-            binding.reminderTimeValue.isEnabled = enabled
-            binding.reminderTimeButton.isEnabled = enabled
-        }
-
-        viewModel.reminderTime.observe(this) { time ->
-            binding.reminderTimeValue.text = time
-        }
-
         viewModel.exportFormat.observe(this) { format ->
             val position = (binding.exportFormatSpinner.adapter as ArrayAdapter<String>)
                 .getPosition(format)
@@ -134,22 +109,7 @@ class SettingsActivity : AppCompatActivity() {
         }
     }
 
-    private fun showTimePickerDialog() {
-        val currentTime = viewModel.reminderTime.value ?: "08:00"
-        val hour = currentTime.split(":")[0].toInt()
-        val minute = currentTime.split(":")[1].toInt()
 
-        TimePickerDialog(
-            this,
-            { _, selectedHour, selectedMinute ->
-                val timeString = String.format("%02d:%02d", selectedHour, selectedMinute)
-                viewModel.setReminderTime(timeString)
-            },
-            hour,
-            minute,
-            true // 24-hour format
-        ).show()
-    }
 
     private fun addSampleMetricType() {
         // This is just a placeholder for demo purposes

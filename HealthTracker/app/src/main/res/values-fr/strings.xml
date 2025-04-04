@@ -17,9 +17,7 @@
     
     <!-- Settings Activity -->
     <string name="settings">Paramètres</string>
-    <string name="notifications">Notifications</string>
-    <string name="enable_reminders">Activer les rappels</string>
-    <string name="reminder_time">Heure de rappel</string>
+
     <string name="data_export">Exportation de données</string>
     <string name="metric_types">Types de mesures</string>
     <string name="add_metric_type">Ajouter un type de mesure</string>
@@ -69,8 +67,6 @@
     <string name="sample_metric">Exemple de mesure</string>
     <string name="sample_metric_description">Un exemple de type de mesure pour démonstration</string>
     
-    <!-- Notifications -->
-    <string name="notifications_description">Notifications de Suivi Santé</string>
     
     <!-- Health Entry Display -->
     <string name="weight_display">Poids : %1$s kg</string>

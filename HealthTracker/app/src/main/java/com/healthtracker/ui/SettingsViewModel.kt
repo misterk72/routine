@@ -22,18 +22,10 @@ class SettingsViewModel @Inject constructor(
 ) : ViewModel() {
 
     companion object {
-        const val PREF_NOTIFICATIONS_ENABLED = "notifications_enabled"
-        const val PREF_REMINDER_TIME = "reminder_time"
         const val PREF_EXPORT_FORMAT = "export_format"
     }
     
     // Settings state
-    private val _notificationsEnabled = MutableLiveData(false)
-    val notificationsEnabled: LiveData<Boolean> = _notificationsEnabled
-    
-    private val _reminderTime = MutableLiveData<String>("08:00")
-    val reminderTime: LiveData<String> = _reminderTime
-    
     private val _exportFormat = MutableLiveData<String>("CSV")
     val exportFormat: LiveData<String> = _exportFormat
     
@@ -57,8 +49,6 @@ class SettingsViewModel @Inject constructor(
      * Load settings from SharedPreferences
      */
     private fun loadSettings() {
-        _notificationsEnabled.value = sharedPreferences.getBoolean(PREF_NOTIFICATIONS_ENABLED, false)
-        _reminderTime.value = sharedPreferences.getString(PREF_REMINDER_TIME, "08:00") ?: "08:00"
         _exportFormat.value = sharedPreferences.getString(PREF_EXPORT_FORMAT, "CSV") ?: "CSV"
     }
     
@@ -73,26 +63,6 @@ class SettingsViewModel @Inject constructor(
         }
     }
     
-    
-    /**
-     * Update notifications setting
-     */
-    fun setNotificationsEnabled(enabled: Boolean) {
-        _notificationsEnabled.value = enabled
-        sharedPreferences.edit()
-            .putBoolean(PREF_NOTIFICATIONS_ENABLED, enabled)
-            .apply()
-    }
-    
-    /**
-     * Update reminder time setting
-     */
-    fun setReminderTime(time: String) {
-        _reminderTime.value = time
-        sharedPreferences.edit()
-            .putString(PREF_REMINDER_TIME, time)
-            .apply()
-    }
     
     /**
      * Update export format setting
