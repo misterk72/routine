@@ -25,10 +25,11 @@
     <!-- Entry Activity -->
     <string name="date_and_time">Date et heure</string>
     <string name="basic_metrics">Mesures de base</string>
-    <string name="weight">Poids</string>
-    <string name="weight_kg">Poids (kg)</string>
+    <string name="weight">Masse</string>
+    <string name="weight_kg">Masse (kg)</string>
     <string name="waist_measurement">Tour de taille</string>
     <string name="waist_measurement_cm">Tour de taille (cm)</string>
+    <string name="body_fat_percent">Masse graisseuse (%)</string>
     <string name="additional_metrics">Mesures supplémentaires</string>
     <string name="add_metric">Ajouter une mesure</string>
     <string name="notes">Notes</string>
@@ -36,8 +37,9 @@
     <string name="save_entry">Enregistrer le suivi</string>
     
     <!-- Error Messages -->
-    <string name="invalid_weight">Valeur de poids invalide</string>
+    <string name="invalid_weight">Valeur de masse invalide</string>
     <string name="invalid_waist">Mesure de tour de taille invalide</string>
+    <string name="invalid_body_fat">Pourcentage de masse graisseuse invalide</string>
     
     <!-- Metric Types -->
     <string name="blood_pressure">Tension artérielle</string>
@@ -45,6 +47,7 @@
     <string name="mood">Humeur</string>
     <string name="sleep_hours">Heures de sommeil</string>
     <string name="steps">Pas</string>
+    <string name="body_fat">Masse graisseuse</string>
     
     <!-- Units -->
     <string name="kg">kg</string>
@@ -55,6 +58,7 @@
     <string name="hours">heures</string>
     <string name="steps_unit">pas</string>
     <string name="units">unités</string>
+    <string name="percent">%</string>
     
     <!-- Export Formats -->
     <string name="export_csv">CSV</string>
@@ -69,7 +73,8 @@
     
     
     <!-- Health Entry Display -->
-    <string name="weight_display">Poids : %1$s kg</string>
+    <string name="weight_display">Masse : %1$s kg</string>
     <string name="waist_display">Tour de taille : %1$s cm</string>
+    <string name="body_fat_display">Masse graisseuse : %1$s %%</string>
     <string name="metric_value_display">%1$s %2$s</string>
 </resources>

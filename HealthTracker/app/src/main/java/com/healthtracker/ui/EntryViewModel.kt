@@ -84,13 +84,15 @@ class EntryViewModel @Inject constructor(
      * Update the current entry with new values
      * @param weight Weight value
      * @param waistMeasurement Waist measurement value
+     * @param bodyFat Body fat percentage value
      * @param notes Optional notes
      */
-    fun updateEntryValues(weight: Float?, waistMeasurement: Float?, notes: String?) {
+    fun updateEntryValues(weight: Float?, waistMeasurement: Float?, bodyFat: Float?, notes: String?) {
         _currentEntry.value?.let { entry ->
             _currentEntry.value = entry.copy(
                 weight = weight,
                 waistMeasurement = waistMeasurement,
+                bodyFat = bodyFat,
                 notes = notes
             )
         }

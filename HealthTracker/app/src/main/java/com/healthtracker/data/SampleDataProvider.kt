@@ -49,7 +49,10 @@ class SampleDataProvider @Inject constructor(
                           minValue = 1.0, maxValue = 5.0, stepSize = 1.0),
                 MetricType(name = "Steps", unit = "count", 
                           description = "Daily step count", 
-                          minValue = 0.0, maxValue = 50000.0, stepSize = 10.0)
+                          minValue = 0.0, maxValue = 50000.0, stepSize = 10.0),
+                MetricType(name = "Body Fat", unit = "%", 
+                          description = "Body fat percentage", 
+                          minValue = 5.0, maxValue = 50.0, stepSize = 0.1)
             )
             
             metricTypes.forEach { metricTypeRepository.insertMetricType(it) }
@@ -62,6 +65,7 @@ class SampleDataProvider @Inject constructor(
                     timestamp = date,
                     weight = 70f + (Math.random() * 2 - 1).toFloat(),
                     waistMeasurement = 80f + (Math.random() * 2 - 1).toFloat(),
+                    bodyFat = 15f + (Math.random() * 5 - 2.5).toFloat(),
                     notes = if (daysAgo % 3 == 0) "Feeling good today" else null
                 )
             }
@@ -125,6 +129,18 @@ class SampleDataProvider @Inject constructor(
                             metricType = "Steps",
                             value = 5000.0 + (Math.random() * 5000),
                             unit = "count"
+                        )
+                    )
+                }
+                
+                // Body Fat (for some entries)
+                if (Math.random() > 0.4) {
+                    metricValues.add(
+                        MetricValue(
+                            entryId = entryId,
+                            metricType = "Body Fat",
+                            value = 15.0 + (Math.random() * 10),
+                            unit = "%"
                         )
                     )
                 }

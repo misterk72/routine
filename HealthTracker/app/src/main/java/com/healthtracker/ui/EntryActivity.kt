@@ -124,9 +124,10 @@ class EntryActivity : AppCompatActivity() {
             // Format with capitalized day name
             binding.dateTimeValue.text = formatWithCapitalizedDay(e.timestamp, "EEEE d MMMM yyyy, HH'h'mm")
             
-            // Update weight and waist inputs
+            // Update weight, waist and body fat inputs
             e.weight?.let { binding.weightInput.setText(it.toString()) }
             e.waistMeasurement?.let { binding.waistInput.setText(it.toString()) }
+            e.bodyFat?.let { binding.bodyFatInput.setText(it.toString()) }
             
             // Update notes
             binding.notesInput.setText(e.notes)
@@ -136,10 +137,12 @@ class EntryActivity : AppCompatActivity() {
     private fun saveEntry() {
         val weightText = binding.weightInput.text.toString()
         val waistText = binding.waistInput.text.toString()
+        val bodyFatText = binding.bodyFatInput.text.toString()
         val notes = binding.notesInput.text.toString().ifEmpty { null }
 
         val weight = if (weightText.isNotEmpty()) weightText.toFloatOrNull() else null
         val waist = if (waistText.isNotEmpty()) waistText.toFloatOrNull() else null
+        val bodyFat = if (bodyFatText.isNotEmpty()) bodyFatText.toFloatOrNull() else null
 
         // Validate inputs (basic validation)
         if (weightText.isNotEmpty() && weight == null) {
@@ -152,12 +155,18 @@ class EntryActivity : AppCompatActivity() {
             return
         }
         
+        if (bodyFatText.isNotEmpty() && bodyFat == null) {
+            binding.bodyFatInputLayout.error = getString(R.string.invalid_body_fat)
+            return
+        }
+        
         // Clear any error messages
         binding.weightInputLayout.error = null
         binding.waistInputLayout.error = null
+        binding.bodyFatInputLayout.error = null
 
         // Update entry with form values
-        viewModel.updateEntryValues(weight, waist, notes)
+        viewModel.updateEntryValues(weight, waist, bodyFat, notes)
         
         // Save entry
         viewModel.saveEntry()

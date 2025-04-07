@@ -65,6 +65,7 @@ class AddEntryActivity : AppCompatActivity() {
                 timestamp = LocalDateTime.now(),
                 weight = binding.weightEditText.text.toString().toFloatOrNull(),
                 waistMeasurement = binding.waistEditText.text.toString().toFloatOrNull(),
+                bodyFat = binding.bodyFatEditText.text.toString().toFloatOrNull(),
                 notes = binding.notesEditText.text.toString()
             )
             viewModel.addEntry(entry)

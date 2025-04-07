@@ -11,5 +11,6 @@ data class HealthEntry(
     val timestamp: LocalDateTime,
     val weight: Float? = null,
     val waistMeasurement: Float? = null,
+    val bodyFat: Float? = null,
     val notes: String? = null
 )

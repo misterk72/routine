@@ -4,7 +4,7 @@
 
 ## Aperçu du Projet
 Une application Android pour suivre les métriques de santé personnelles, notamment :
-- Poids corporel
+- Masse corporelle
 - Tour de taille
 - Remarques/notes de santé
 - Horodatage pour toutes les entrées
@@ -136,7 +136,7 @@ CREATE TABLE workouts (
 
 2. Écran d'Ajout/Modification d'Entrée
    - Sélecteur de date/heure
-   - Champ de saisie du poids
+   - Champ de saisie de la masse
    - Sélection de métrique
    - Saisie de note
    - Sélection de tags
