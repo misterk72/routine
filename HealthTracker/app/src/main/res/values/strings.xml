@@ -9,6 +9,12 @@
     <string name="add">Add</string>
     <string name="delete">Delete</string>
     <string name="export">Export</string>
+    <string name="cancel">Cancel</string>
+    
+    <!-- User Management -->
+    <string name="select_user">Select user</string>
+    <string name="add_new_user">New user</string>
+    <string name="user_name">User name</string>
     
     <!-- Main Activity -->
     <string name="add_new_health_entry">Add new health entry</string>

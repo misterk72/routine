@@ -10,6 +10,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.healthtracker.data.HealthEntry
 import com.healthtracker.databinding.ActivityMainBinding
+import com.healthtracker.ui.AddEntryActivity
 import com.healthtracker.ui.EntryActivity
 import com.healthtracker.ui.HealthEntryAdapter
 import com.healthtracker.ui.HealthTrackerViewModel
@@ -61,8 +62,8 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupFab() {
         binding.fabAddEntry.setOnClickListener {
-            // Launch EntryActivity to create a new entry
-            startActivity(Intent(this, EntryActivity::class.java))
+            // Launch AddEntryActivity to create a new entry
+            startActivity(Intent(this, AddEntryActivity::class.java))
         }
     }
 

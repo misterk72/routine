@@ -9,6 +9,12 @@
     <string name="add">Ajouter</string>
     <string name="delete">Supprimer</string>
     <string name="export">Exporter</string>
+    <string name="cancel">Annuler</string>
+    
+    <!-- User Management -->
+    <string name="select_user">Sélectionner un utilisateur</string>
+    <string name="add_new_user">Nouvel utilisateur</string>
+    <string name="user_name">Nom d\'utilisateur</string>
     
     <!-- Main Activity -->
     <string name="add_new_health_entry">Ajouter un nouveau suivi de santé</string>

@@ -13,9 +13,10 @@ import com.healthtracker.data.converters.DateTimeConverters
     entities = [
         HealthEntry::class,
         MetricValue::class,
-        MetricType::class
+        MetricType::class,
+        User::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 @TypeConverters(DateTimeConverters::class)
@@ -23,6 +24,7 @@ abstract class HealthDatabase : RoomDatabase() {
     abstract fun healthEntryDao(): HealthEntryDao
     abstract fun metricValueDao(): MetricValueDao
     abstract fun metricTypeDao(): MetricTypeDao
+    abstract fun userDao(): UserDao
 
     companion object {
         @Volatile
@@ -35,6 +37,63 @@ abstract class HealthDatabase : RoomDatabase() {
                 database.execSQL("ALTER TABLE HealthEntry ADD COLUMN bodyFat REAL")
             }
         }
+        
+        // Migration de la version 3 à 4 (ajout de la table User et modification de HealthEntry)
+        private val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // Créer la table User
+                database.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS users (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        name TEXT NOT NULL,
+                        isDefault INTEGER NOT NULL DEFAULT 0
+                    )
+                    """
+                )
+                
+                // Insérer un utilisateur par défaut
+                database.execSQL(
+                    """
+                    INSERT INTO users (name, isDefault) 
+                    VALUES ('Utilisateur par défaut', 1)
+                    """
+                )
+                
+                // Créer une table temporaire pour HealthEntry
+                database.execSQL(
+                    """
+                    CREATE TABLE health_entries_temp (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        userId INTEGER NOT NULL,
+                        timestamp TEXT NOT NULL,
+                        weight REAL,
+                        waistMeasurement REAL,
+                        bodyFat REAL,
+                        notes TEXT,
+                        FOREIGN KEY (userId) REFERENCES users (id) ON DELETE CASCADE
+                    )
+                    """
+                )
+                
+                // Copier les données existantes avec l'utilisateur par défaut (id=1)
+                database.execSQL(
+                    """
+                    INSERT INTO health_entries_temp (id, userId, timestamp, weight, waistMeasurement, bodyFat, notes)
+                    SELECT id, 1, timestamp, weight, waistMeasurement, bodyFat, notes FROM health_entries
+                    """
+                )
+                
+                // Supprimer l'ancienne table
+                database.execSQL("DROP TABLE health_entries")
+                
+                // Renommer la table temporaire
+                database.execSQL("ALTER TABLE health_entries_temp RENAME TO health_entries")
+                
+                // Créer un index pour améliorer les performances
+                database.execSQL("CREATE INDEX index_health_entries_userId ON health_entries (userId)")
+            }
+        }
 
         fun getDatabase(context: Context): HealthDatabase {
             return INSTANCE ?: synchronized(this) {
@@ -43,8 +102,8 @@ abstract class HealthDatabase : RoomDatabase() {
                     HealthDatabase::class.java,
                     "health_database"
                 )
-                // Appliquer la migration de 2 à 3
-                .addMigrations(MIGRATION_2_3)
+                // Appliquer les migrations
+                .addMigrations(MIGRATION_2_3, MIGRATION_3_4)
                 // Fallback en cas d'autres migrations
                 .fallbackToDestructiveMigration()
                 // Allow main thread queries for testing

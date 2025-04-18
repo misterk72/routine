@@ -46,7 +46,10 @@ class EntryViewModel @Inject constructor(
      * Create a new blank entry with current timestamp
      */
     fun createNewEntry() {
+        // Utiliser l'ID de l'utilisateur par défaut (1) en attendant que l'utilisateur soit sélectionné
+        // dans l'interface utilisateur
         val entry = HealthEntry(
+            userId = 1L, // ID de l'utilisateur par défaut
             timestamp = LocalDateTime.now()
         )
         _currentEntry.value = entry

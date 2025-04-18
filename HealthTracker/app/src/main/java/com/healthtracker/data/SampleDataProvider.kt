@@ -59,9 +59,13 @@ class SampleDataProvider @Inject constructor(
             
             // Create sample entries for the past week
             val now = LocalDateTime.now()
+            // Récupérer l'utilisateur par défaut ou utiliser l'ID 1 si aucun n'existe
+            val defaultUserId = 1L
+            
             val entries = (0..6).map { daysAgo ->
                 val date = now.minusDays(daysAgo.toLong())
                 HealthEntry(
+                    userId = defaultUserId,
                     timestamp = date,
                     weight = 70f + (Math.random() * 2 - 1).toFloat(),
                     waistMeasurement = 80f + (Math.random() * 2 - 1).toFloat(),

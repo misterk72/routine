@@ -44,5 +44,10 @@
             android:name=".ui.SettingsActivity"
             android:exported="false"
             android:parentActivityName=".MainActivity" />
+            
+        <activity
+            android:name=".ui.AddEntryActivity"
+            android:exported="false"
+            android:parentActivityName=".MainActivity" />
     </application>
 </manifest>

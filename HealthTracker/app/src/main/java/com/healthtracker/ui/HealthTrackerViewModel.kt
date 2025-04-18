@@ -5,9 +5,11 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.healthtracker.data.HealthEntry
+import com.healthtracker.data.User
 import com.healthtracker.data.repository.HealthEntryRepository
 import com.healthtracker.data.repository.MetricRepository
 import com.healthtracker.data.repository.MetricTypeRepository
+import com.healthtracker.data.repository.UserRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -17,7 +19,8 @@ import javax.inject.Inject
 class HealthTrackerViewModel @Inject constructor(
     private val healthEntryRepository: HealthEntryRepository,
     private val metricRepository: MetricRepository,
-    private val metricTypeRepository: MetricTypeRepository
+    private val metricTypeRepository: MetricTypeRepository,
+    private val userRepository: UserRepository
 ) : ViewModel() {
 
     private val _entries = MutableLiveData<List<HealthEntry>>(emptyList())
@@ -25,9 +28,17 @@ class HealthTrackerViewModel @Inject constructor(
     
     private val _isLoading = MutableLiveData<Boolean>(false)
     val isLoading: LiveData<Boolean> = _isLoading
+    
+    private val _users = MutableLiveData<List<User>>(emptyList())
+    val users: LiveData<List<User>> = _users
+    
+    private val _defaultUser = MutableLiveData<User?>(null)
+    val defaultUser: LiveData<User?> = _defaultUser
 
     init {
         loadEntries()
+        loadUsers()
+        loadDefaultUser()
     }
 
     fun loadEntries() {
@@ -69,6 +80,47 @@ class HealthTrackerViewModel @Inject constructor(
             healthEntryRepository.getMostRecentEntry().collectLatest { entry ->
                 // Handle most recent entry if needed
             }
+        }
+    }
+    
+    // Fonctions pour gérer les utilisateurs
+    private fun loadUsers() {
+        viewModelScope.launch {
+            userRepository.getAllUsers().collectLatest { usersList ->
+                _users.value = usersList
+                android.util.Log.d("HealthTrackerViewModel", "Utilisateurs chargés: ${usersList.size}")
+                usersList.forEach { user ->
+                    android.util.Log.d("HealthTrackerViewModel", "Utilisateur: ${user.id} - ${user.name} - Défaut: ${user.isDefault}")
+                }
+            }
+        }
+    }
+    
+    private fun loadDefaultUser() {
+        viewModelScope.launch {
+            userRepository.getDefaultUser().collectLatest { user ->
+                _defaultUser.value = user
+                android.util.Log.d("HealthTrackerViewModel", "Utilisateur par défaut: ${user?.name ?: "Aucun"}")
+            }
+        }
+    }
+    
+    fun addUser(name: String) {
+        viewModelScope.launch {
+            val user = User(name = name)
+            userRepository.insertUser(user)
+        }
+    }
+    
+    fun setDefaultUser(userId: Long) {
+        viewModelScope.launch {
+            userRepository.setDefaultUser(userId)
+        }
+    }
+    
+    fun deleteUser(user: User) {
+        viewModelScope.launch {
+            userRepository.deleteUser(user)
         }
     }
 }
