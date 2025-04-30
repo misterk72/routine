@@ -138,6 +138,9 @@ CREATE TABLE workouts (
 
 2. Écran d'Ajout/Modification d'Entrée
    - Sélecteur de date/heure
+     - Initialisation automatique avec la date et l'heure actuelles à l'ouverture
+     - Sélection en deux étapes : d'abord la date, puis l'heure
+     - Format d'affichage localisé en français
    - Champs de saisie des mesures de base (dans l'ordre) :
      - Masse
      - Masse graisseuse

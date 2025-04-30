@@ -15,6 +15,8 @@ import dagger.hilt.android.AndroidEntryPoint
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.datepicker.MaterialDatePicker
+import com.google.android.material.timepicker.MaterialTimePicker
+import com.google.android.material.timepicker.TimeFormat
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
 import com.healthtracker.R
@@ -68,6 +70,10 @@ class AddEntryActivity : AppCompatActivity() {
 
         setSupportActionBar(toolbar)
 
+        // Initialiser avec la date et l'heure actuelles
+        val currentDateTime = LocalDateTime.now()
+        timestampEditText.setText(formatWithCapitalizedDay(currentDateTime, "EEEE d MMMM yyyy, HH'h'mm"))
+
         setupDatePicker()
         setupUserDropdown()
         setupSaveButton()
@@ -75,19 +81,42 @@ class AddEntryActivity : AppCompatActivity() {
 
     private fun setupDatePicker() {
         timestampEditText.setOnClickListener {
+            // Créer un sélecteur de date
             val datePicker = MaterialDatePicker.Builder.datePicker()
                 .setTitleText(getString(R.string.date_and_time))
                 .build()
 
+            // Lorsque la date est sélectionnée, ouvrir le sélecteur d'heure
             datePicker.addOnPositiveButtonClickListener { selection ->
-                val date = LocalDateTime.ofInstant(
+                val selectedDate = LocalDateTime.ofInstant(
                     java.util.Date(selection).toInstant(),
                     ZoneId.systemDefault()
                 )
-                // Display date in user-friendly format with capitalized day name
-                timestampEditText.setText(formatWithCapitalizedDay(date, "EEEE d MMMM yyyy, HH'h'mm"))
+                
+                // Créer un sélecteur d'heure avec l'heure actuelle comme valeur par défaut
+                val timePicker = MaterialTimePicker.Builder()
+                    .setTimeFormat(TimeFormat.CLOCK_24H)
+                    .setHour(selectedDate.hour)
+                    .setMinute(selectedDate.minute)
+                    .setTitleText(getString(R.string.select_time))
+                    .build()
+                
+                // Lorsque l'heure est sélectionnée, mettre à jour le champ avec la date et l'heure complètes
+                timePicker.addOnPositiveButtonClickListener {
+                    // Combiner la date sélectionnée avec l'heure sélectionnée
+                    val finalDateTime = selectedDate
+                        .withHour(timePicker.hour)
+                        .withMinute(timePicker.minute)
+                    
+                    // Afficher la date et l'heure dans le format souhaité
+                    timestampEditText.setText(formatWithCapitalizedDay(finalDateTime, "EEEE d MMMM yyyy, HH'h'mm"))
+                }
+                
+                // Afficher le sélecteur d'heure après avoir sélectionné la date
+                timePicker.show(supportFragmentManager, "timePicker")
             }
-
+            
+            // Afficher d'abord le sélecteur de date
             datePicker.show(supportFragmentManager, "datePicker")
         }
     }
@@ -157,9 +186,24 @@ class AddEntryActivity : AppCompatActivity() {
     private fun setupSaveButton() {
         saveButton.setOnClickListener {
             if (selectedUserId > 0) {
+                // Utiliser la date et l'heure affichées dans le champ ou la date et l'heure actuelles si vide
+                val timestampText = timestampEditText.text.toString()
+                val timestamp = if (timestampText.isNotEmpty()) {
+                    try {
+                        // Convertir le texte formaté en LocalDateTime
+                        val formatter = DateTimeFormatter.ofPattern("EEEE d MMMM yyyy, HH'h'mm", java.util.Locale.FRENCH)
+                        LocalDateTime.parse(timestampText.toLowerCase(java.util.Locale.FRENCH), formatter)
+                    } catch (e: Exception) {
+                        // En cas d'erreur de parsing, utiliser la date et l'heure actuelles
+                        LocalDateTime.now()
+                    }
+                } else {
+                    LocalDateTime.now()
+                }
+                
                 val entry = HealthEntry(
                     userId = selectedUserId,
-                    timestamp = LocalDateTime.now(),
+                    timestamp = timestamp,
                     weight = weightEditText.text.toString().toFloatOrNull(),
                     waistMeasurement = waistEditText.text.toString().toFloatOrNull(),
                     bodyFat = bodyFatEditText.text.toString().toFloatOrNull(),

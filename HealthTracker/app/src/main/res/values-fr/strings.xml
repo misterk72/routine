@@ -30,6 +30,7 @@
     
     <!-- Entry Activity -->
     <string name="date_and_time">Date et heure</string>
+    <string name="select_time">Sélectionner l\'heure</string>
     <string name="basic_metrics">Mesures de base</string>
     <string name="weight">Masse</string>
     <string name="weight_kg">Masse (kg)</string>

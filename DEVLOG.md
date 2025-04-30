@@ -184,3 +184,12 @@
   - Mis à jour la logique dans EntryActivity.kt pour refléter le nouvel ordre
   - Mis à jour le ViewModel pour maintenir la cohérence des données
 - Testé toutes les modifications sur un appareil Pixel 7a
+
+### April 30, 2025 (suite)
+- Amélioré le champ "Date et heure" dans l'activité de Suivi de Santé
+  - Ajouté l'initialisation automatique avec la date et l'heure actuelles lors de l'ouverture de l'activité
+  - Modifié le sélecteur pour permettre de choisir à la fois la date ET l'heure
+  - Implémenté un flux en deux étapes : d'abord sélection de la date, puis sélection de l'heure
+  - Ajouté les chaînes de ressources nécessaires en français et en anglais
+  - Mis à jour la logique de sauvegarde pour utiliser la date et l'heure sélectionnées
+- Testé les modifications sur un appareil Pixel 7a
