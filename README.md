@@ -5,9 +5,11 @@
 ## Aperçu du Projet
 Une application Android pour suivre les métriques de santé personnelles, notamment :
 - Masse corporelle
+- Masse graisseuse
 - Tour de taille
 - Remarques/notes de santé
 - Horodatage pour toutes les entrées
+- Gestion multi-utilisateurs
 - Base de données SQLite avec conteneur Docker pour le stockage des données
 - Intégration Grafana pour la visualisation des données
 
@@ -130,9 +132,9 @@ CREATE TABLE workouts (
 
 ### 3. Composants UI
 1. Activité Principale
-   - Liste des entrées de santé
+   - Liste des entrées de santé avec date, utilisateur et métriques
+   - Affichage conditionnel des métriques disponibles (masse, masse graisseuse, tour de taille)
    - Bouton d'ajout de nouvelle entrée
-   - Indicateur de statut de synchronisation
 
 2. Écran d'Ajout/Modification d'Entrée
    - Sélecteur de date/heure

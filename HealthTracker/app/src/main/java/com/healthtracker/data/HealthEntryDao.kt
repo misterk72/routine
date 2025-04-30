@@ -25,4 +25,12 @@ interface HealthEntryDao {
     
     @Query("SELECT COUNT(*) FROM health_entries")
     suspend fun getEntryCount(): Int
+    
+    @Transaction
+    @Query("SELECT * FROM health_entries ORDER BY timestamp DESC")
+    fun getAllEntriesWithUser(): Flow<List<HealthEntryWithUser>>
+    
+    @Transaction
+    @Query("SELECT * FROM health_entries WHERE id = :id")
+    fun getEntryWithUserById(id: Long): Flow<HealthEntryWithUser?>
 }

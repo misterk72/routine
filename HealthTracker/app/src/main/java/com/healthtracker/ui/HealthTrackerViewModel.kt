@@ -5,6 +5,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.healthtracker.data.HealthEntry
+import com.healthtracker.data.HealthEntryWithUser
 import com.healthtracker.data.User
 import com.healthtracker.data.repository.HealthEntryRepository
 import com.healthtracker.data.repository.MetricRepository
@@ -26,6 +27,9 @@ class HealthTrackerViewModel @Inject constructor(
     private val _entries = MutableLiveData<List<HealthEntry>>(emptyList())
     val entries: LiveData<List<HealthEntry>> = _entries
     
+    private val _entriesWithUser = MutableLiveData<List<HealthEntryWithUser>>(emptyList())
+    val entriesWithUser: LiveData<List<HealthEntryWithUser>> = _entriesWithUser
+    
     private val _isLoading = MutableLiveData<Boolean>(false)
     val isLoading: LiveData<Boolean> = _isLoading
     
@@ -36,7 +40,7 @@ class HealthTrackerViewModel @Inject constructor(
     val defaultUser: LiveData<User?> = _defaultUser
 
     init {
-        loadEntries()
+        loadEntriesWithUser()
         loadUsers()
         loadDefaultUser()
     }
@@ -50,11 +54,22 @@ class HealthTrackerViewModel @Inject constructor(
             }
         }
     }
+    
+    fun loadEntriesWithUser() {
+        viewModelScope.launch {
+            _isLoading.value = true
+            healthEntryRepository.getAllEntriesWithUser().collectLatest { entriesWithUser ->
+                _entriesWithUser.value = entriesWithUser
+                _isLoading.value = false
+            }
+        }
+    }
 
     fun addEntry(entry: HealthEntry) {
         viewModelScope.launch {
             _isLoading.value = true
             healthEntryRepository.insertEntry(entry)
+            loadEntriesWithUser() // Recharger les entrées avec les utilisateurs après l'ajout
             _isLoading.value = false
         }
     }
@@ -63,6 +78,7 @@ class HealthTrackerViewModel @Inject constructor(
         viewModelScope.launch {
             _isLoading.value = true
             healthEntryRepository.updateEntry(entry)
+            loadEntriesWithUser() // Recharger les entrées avec les utilisateurs après la mise à jour
             _isLoading.value = false
         }
     }
@@ -71,6 +87,7 @@ class HealthTrackerViewModel @Inject constructor(
         viewModelScope.launch {
             _isLoading.value = true
             healthEntryRepository.deleteEntry(entry)
+            loadEntriesWithUser() // Recharger les entrées avec les utilisateurs après la suppression
             _isLoading.value = false
         }
     }

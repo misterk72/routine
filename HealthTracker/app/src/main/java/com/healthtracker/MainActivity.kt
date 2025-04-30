@@ -68,12 +68,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun observeViewModel() {
-        // Observe entries
-        viewModel.entries.observe(this) { entries ->
-            adapter.submitList(entries)
+        // Observe entries with user information
+        viewModel.entriesWithUser.observe(this) { entriesWithUser ->
+            adapter.submitList(entriesWithUser)
             
             // Show empty state if no entries
-            binding.entriesRecyclerView.visibility = if (entries.isEmpty()) View.GONE else View.VISIBLE
+            binding.entriesRecyclerView.visibility = if (entriesWithUser.isEmpty()) View.GONE else View.VISIBLE
             // TODO: Add empty state view and show it when entries.isEmpty()
         }
         
@@ -88,6 +88,6 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         // Refresh entries when returning to this screen
-        viewModel.loadEntries()
+        viewModel.loadEntriesWithUser()
     }
 }

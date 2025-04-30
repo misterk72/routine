@@ -161,3 +161,21 @@
   - Removed appearance section entirely
   - Streamlined the settings interface
 - Tested all changes on Pixel 7a device
+
+### April 30, 2025
+- Amélioré l'affichage des tuiles sur la page principale
+  - Ajouté l'affichage de la date en haut de chaque tuile
+  - Ajouté l'affichage du nom de l'utilisateur sous la date
+  - Ajouté l'affichage conditionnel de la masse (si disponible)
+  - Ajouté l'affichage conditionnel de la masse graisseuse (si disponible)
+  - Ajouté l'affichage conditionnel du tour de taille (si disponible)
+- Implémenté une architecture de données plus robuste
+  - Créé la classe HealthEntryWithUser pour associer les entrées de santé avec les utilisateurs
+  - Mis à jour le DAO pour récupérer les entrées avec les informations des utilisateurs
+  - Mis à jour le Repository pour exposer les nouvelles méthodes
+  - Mis à jour le ViewModel pour gérer les entrées avec les informations des utilisateurs
+- Amélioré l'interface utilisateur
+  - Modifié l'adaptateur pour afficher les informations de manière conditionnelle
+  - Ajouté des styles visuels pour distinguer les différentes informations
+  - Optimisé l'affichage pour masquer les champs vides
+- Testé toutes les modifications sur un appareil Pixel 7a

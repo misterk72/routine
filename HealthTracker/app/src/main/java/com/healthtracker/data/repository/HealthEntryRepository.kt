@@ -2,6 +2,7 @@ package com.healthtracker.data.repository
 
 import com.healthtracker.data.HealthDatabase
 import com.healthtracker.data.HealthEntry
+import com.healthtracker.data.HealthEntryWithUser
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -70,5 +71,22 @@ class HealthEntryRepository @Inject constructor(
      */
     suspend fun getEntryCount(): Int {
         return database.healthEntryDao().getEntryCount()
+    }
+    
+    /**
+     * Get all health entries with user information as a Flow
+     * @return Flow of List of HealthEntryWithUser objects
+     */
+    fun getAllEntriesWithUser(): Flow<List<HealthEntryWithUser>> {
+        return database.healthEntryDao().getAllEntriesWithUser()
+    }
+    
+    /**
+     * Get a specific health entry with user information by ID
+     * @param id The ID of the entry to retrieve
+     * @return The HealthEntryWithUser object wrapped in a Flow
+     */
+    fun getEntryWithUserById(id: Long): Flow<HealthEntryWithUser?> {
+        return database.healthEntryDao().getEntryWithUserById(id)
     }
 }
