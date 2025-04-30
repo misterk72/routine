@@ -94,8 +94,8 @@ class EntryViewModel @Inject constructor(
         _currentEntry.value?.let { entry ->
             _currentEntry.value = entry.copy(
                 weight = weight,
-                waistMeasurement = waistMeasurement,
                 bodyFat = bodyFat,
+                waistMeasurement = waistMeasurement,
                 notes = notes
             )
         }

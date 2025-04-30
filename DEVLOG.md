@@ -178,4 +178,9 @@
   - Modifié l'adaptateur pour afficher les informations de manière conditionnelle
   - Ajouté des styles visuels pour distinguer les différentes informations
   - Optimisé l'affichage pour masquer les champs vides
+- Réorganisé les mesures de base dans l'activité "Modifier le suivi de santé"
+  - Modifié l'ordre des champs pour avoir : Masse, Masse graisseuse, puis tour de taille
+  - Mis à jour le fichier XML de mise en page (activity_entry.xml)
+  - Mis à jour la logique dans EntryActivity.kt pour refléter le nouvel ordre
+  - Mis à jour le ViewModel pour maintenir la cohérence des données
 - Testé toutes les modifications sur un appareil Pixel 7a

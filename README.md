@@ -138,8 +138,10 @@ CREATE TABLE workouts (
 
 2. Écran d'Ajout/Modification d'Entrée
    - Sélecteur de date/heure
-   - Champ de saisie de la masse
-   - Sélection de métrique
+   - Champs de saisie des mesures de base (dans l'ordre) :
+     - Masse
+     - Masse graisseuse
+     - Tour de taille
    - Saisie de note
    - Sélection de tags
 
