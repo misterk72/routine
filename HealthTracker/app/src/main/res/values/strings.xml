@@ -44,6 +44,7 @@
     <string name="waist_measurement">Waist Measurement</string>
     <string name="waist_measurement_cm">Waist Measurement (cm)</string>
     <string name="body_fat_percent">Body Fat (%)</string>
+    <string name="body_fat_kg">Body Fat (kg)</string>
     <string name="additional_metrics">Additional Metrics</string>
     <string name="add_metric">Add Metric</string>
     <string name="notes">Notes</string>
@@ -89,6 +90,6 @@
     <!-- Health Entry Display -->
     <string name="weight_display">Weight: %1$s kg</string>
     <string name="waist_display">Waist: %1$s cm</string>
-    <string name="body_fat_display">Body Fat: %1$s %%</string>
+    <string name="body_fat_display">Body Fat: %1$s kg</string>
     <string name="metric_value_display">%1$s %2$s</string>
 </resources>

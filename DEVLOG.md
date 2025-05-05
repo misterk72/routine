@@ -199,6 +199,14 @@
   - Vérifié que tous les textes de l'interface utilisateur sont correctement traduits
   - Confirmé le bon fonctionnement de l'affichage des métriques avec le format français
   - Validé que tous les messages d'erreur et notifications sont en français
+- Réorganisé l'ordre des mesures de base dans les activités d'ajout et de modification de données
+  - Modifié l'ordre pour avoir : Masse (kg), Masse graisseuse (kg), puis Tour de taille (cm)
+  - Mis à jour les fichiers XML de mise en page (activity_add_entry.xml, activity_add_entry_multi_user.xml, activity_entry.xml)
+  - Assuré la cohérence de l'ordre dans toutes les interfaces utilisateur
+- Changé l'unité de masse graisseuse de pourcentage (%) à kilogrammes (kg)
+  - Ajouté de nouvelles chaînes de ressources pour la masse graisseuse en kg
+  - Mis à jour l'affichage des valeurs de masse graisseuse dans toute l'application
+  - Modifié les étiquettes et les unités dans les interfaces de saisie et d'affichage
 - Confirmé la suppression complète des fonctionnalités non désirées
   - Vérifié l'absence de toute référence au mode sombre dans le code et les ressources
   - Confirmé la suppression de toutes les fonctionnalités de notification

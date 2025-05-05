@@ -44,6 +44,7 @@
     <string name="waist_measurement">Tour de taille</string>
     <string name="waist_measurement_cm">Tour de taille (cm)</string>
     <string name="body_fat_percent">Masse graisseuse (%)</string>
+    <string name="body_fat_kg">Masse graisseuse (kg)</string>
     <string name="additional_metrics">Mesures supplémentaires</string>
     <string name="add_metric">Ajouter une mesure</string>
     <string name="notes">Notes</string>
@@ -89,6 +90,6 @@
     <!-- Health Entry Display -->
     <string name="weight_display">Masse : %1$s kg</string>
     <string name="waist_display">Tour de taille : %1$s cm</string>
-    <string name="body_fat_display">Masse graisseuse : %1$s %%</string>
+    <string name="body_fat_display">Masse graisseuse : %1$s kg</string>
     <string name="metric_value_display">%1$s %2$s</string>
 </resources>

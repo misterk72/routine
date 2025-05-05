@@ -4,9 +4,9 @@
 
 ## Aperçu du Projet
 Une application Android pour suivre les métriques de santé personnelles, notamment :
-- Masse corporelle
-- Masse graisseuse
-- Tour de taille
+- Masse corporelle (kg)
+- Masse graisseuse (kg)
+- Tour de taille (cm)
 - Remarques/notes de santé
 - Horodatage pour toutes les entrées
 - Gestion multi-utilisateurs
@@ -142,9 +142,9 @@ CREATE TABLE workouts (
      - Sélection en deux étapes : d'abord la date, puis l'heure
      - Format d'affichage localisé en français
    - Champs de saisie des mesures de base (dans l'ordre) :
-     - Masse
-     - Masse graisseuse
-     - Tour de taille
+     - Masse (kg)
+     - Masse graisseuse (kg)
+     - Tour de taille (cm)
    - Saisie de note
    - Sélection de tags
 

@@ -154,7 +154,7 @@
                         android:id="@+id/bodyFatUnitText"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="@string/percent"
+                        android:text="@string/kg"
                         android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"
                         app:layout_constraintBottom_toBottomOf="@+id/bodyFatInputLayout"
                         app:layout_constraintEnd_toEndOf="parent"
