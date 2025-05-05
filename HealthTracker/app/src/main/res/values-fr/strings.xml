@@ -35,6 +35,13 @@
     <string name="metric_types">Types de mesures</string>
     <string name="add_metric_type">Ajouter un type de mesure</string>
     
+    <!-- Synchronisation -->
+    <string name="sync_data">Synchroniser</string>
+    <string name="sync_in_progress">Synchronisation en cours...</string>
+    <string name="sync_success">Synchronisation réussie</string>
+    <string name="sync_error">Erreur de synchronisation</string>
+    <string name="sync_scheduled">Synchronisation planifiée</string>
+    
     <!-- Entry Activity -->
     <string name="date_and_time">Date et heure</string>
     <string name="select_time">Sélectionner l\'heure</string>

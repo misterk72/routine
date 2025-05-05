@@ -16,7 +16,7 @@ import com.healthtracker.data.converters.DateTimeConverters
         MetricType::class,
         User::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 @TypeConverters(DateTimeConverters::class)
@@ -94,6 +94,17 @@ abstract class HealthDatabase : RoomDatabase() {
                 database.execSQL("CREATE INDEX index_health_entries_userId ON health_entries (userId)")
             }
         }
+        
+        // Migration de la version 4 à 5 (ajout des champs synced et serverEntryId pour la synchronisation)
+        private val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // Ajouter la colonne synced à la table health_entries
+                database.execSQL("ALTER TABLE health_entries ADD COLUMN synced INTEGER NOT NULL DEFAULT 0")
+                
+                // Ajouter la colonne serverEntryId à la table health_entries
+                database.execSQL("ALTER TABLE health_entries ADD COLUMN serverEntryId INTEGER")
+            }
+        }
 
         fun getDatabase(context: Context): HealthDatabase {
             return INSTANCE ?: synchronized(this) {
@@ -103,7 +114,7 @@ abstract class HealthDatabase : RoomDatabase() {
                     "health_database"
                 )
                 // Appliquer les migrations
-                .addMigrations(MIGRATION_2_3, MIGRATION_3_4)
+                .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                 // Fallback en cas d'autres migrations
                 .fallbackToDestructiveMigration()
                 // Allow main thread queries for testing

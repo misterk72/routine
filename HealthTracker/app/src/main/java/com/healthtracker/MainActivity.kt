@@ -5,23 +5,31 @@ import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
+import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.work.WorkInfo
+import androidx.work.WorkManager
 import com.healthtracker.data.HealthEntry
 import com.healthtracker.databinding.ActivityMainBinding
+import com.healthtracker.sync.SyncManager
 import com.healthtracker.ui.AddEntryActivity
 import com.healthtracker.ui.EntryActivity
 import com.healthtracker.ui.HealthEntryAdapter
 import com.healthtracker.ui.HealthTrackerViewModel
 import com.healthtracker.ui.SettingsActivity
 import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private val viewModel: HealthTrackerViewModel by viewModels()
     private lateinit var adapter: HealthEntryAdapter
+    
+    @Inject
+    lateinit var syncManager: SyncManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -39,9 +47,16 @@ class MainActivity : AppCompatActivity() {
                     startActivity(Intent(this, SettingsActivity::class.java))
                     true
                 }
+                R.id.action_sync -> {
+                    synchronizeData()
+                    true
+                }
                 else -> false
             }
         }
+        
+        // Planifier la synchronisation périodique
+        syncManager.scheduleSyncWork()
 
         setupRecyclerView()
         setupFab()
@@ -89,5 +104,33 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         // Refresh entries when returning to this screen
         viewModel.loadEntriesWithUser()
+    }
+    
+    /**
+     * Déclenche la synchronisation des données avec le serveur MariaDB
+     */
+    private fun synchronizeData() {
+        Toast.makeText(this, R.string.sync_in_progress, Toast.LENGTH_SHORT).show()
+        
+        // Déclencher la synchronisation immédiate
+        syncManager.syncNow()
+        
+        // Observer le statut de la synchronisation
+        WorkManager.getInstance(this)
+            .getWorkInfosForUniqueWorkLiveData(SyncManager.SYNC_WORK_NAME)
+            .observe(this) { workInfoList ->
+                val workInfo = workInfoList?.firstOrNull()
+                when (workInfo?.state) {
+                    WorkInfo.State.SUCCEEDED -> {
+                        Toast.makeText(this, R.string.sync_success, Toast.LENGTH_SHORT).show()
+                        // Rafraîchir les données après synchronisation
+                        viewModel.loadEntriesWithUser()
+                    }
+                    WorkInfo.State.FAILED -> {
+                        Toast.makeText(this, R.string.sync_error, Toast.LENGTH_SHORT).show()
+                    }
+                    else -> { /* États intermédiaires, ne rien faire */ }
+                }
+            }
     }
 }

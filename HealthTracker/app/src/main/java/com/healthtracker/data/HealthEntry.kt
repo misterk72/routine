@@ -26,5 +26,7 @@ data class HealthEntry(
     val weight: Float? = null,
     val waistMeasurement: Float? = null,
     val bodyFat: Float? = null,
-    val notes: String? = null
+    val notes: String? = null,
+    val synced: Boolean = false, // Indique si l'entrée a été synchronisée avec le serveur
+    val serverEntryId: Long? = null // ID de l'entrée sur le serveur
 )
