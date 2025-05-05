@@ -1,21 +1,26 @@
 version: '3'
 services:
-  sqlite:
-    build: .
+  db:
+    image: mariadb:10.6
     volumes:
-      - ./data:/data
+      - ./mysql-data:/var/lib/mysql
+    ports:
+      - "3306:3306"
     environment:
-      - SQLITE_DATABASE=health.db
+      - MYSQL_ROOT_PASSWORD=rootpassword
+      - MYSQL_DATABASE=healthtracker
+      - MYSQL_USER=healthuser
+      - MYSQL_PASSWORD=healthpassword
     restart: always
 
-  sqlite-web:
-    image: coleifer/sqlite-web
-    volumes:
-      - ./data:/data
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
     ports:
-      - "8080:8080"
+      - "8080:80"
     environment:
-      - SQLITE_DATABASE=health.db
+      - PMA_HOST=db
+      - PMA_USER=root
+      - PMA_PASSWORD=rootpassword
     depends_on:
-      - sqlite
+      - db
     restart: always
