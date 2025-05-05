@@ -25,3 +25,15 @@ services:
     depends_on:
       - db
     restart: always
+    
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    volumes:
+      - ./api:/var/www/html
+    ports:
+      - "5001:80"
+    depends_on:
+      - db
+    restart: always
