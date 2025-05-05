@@ -1,6 +1,6 @@
 # Suivi Santé - Application Android
 
-*Note: L'application est entièrement en français*
+*Note: L'application est entièrement en français et optimisée pour une utilisation en France*
 
 ## Aperçu du Projet
 Une application Android pour suivre les métriques de santé personnelles, notamment :

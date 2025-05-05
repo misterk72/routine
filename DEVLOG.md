@@ -193,3 +193,17 @@
   - Ajouté les chaînes de ressources nécessaires en français et en anglais
   - Mis à jour la logique de sauvegarde pour utiliser la date et l'heure sélectionnées
 - Testé les modifications sur un appareil Pixel 7a
+
+### May 5, 2025
+- Finalisé la localisation française de l'application
+  - Vérifié que tous les textes de l'interface utilisateur sont correctement traduits
+  - Confirmé le bon fonctionnement de l'affichage des métriques avec le format français
+  - Validé que tous les messages d'erreur et notifications sont en français
+- Confirmé la suppression complète des fonctionnalités non désirées
+  - Vérifié l'absence de toute référence au mode sombre dans le code et les ressources
+  - Confirmé la suppression de toutes les fonctionnalités de notification
+  - Validé que l'interface utilisateur ne contient plus d'options pour ces fonctionnalités
+- Effectué des tests finaux sur un appareil Pixel 7a
+  - Testé le flux complet d'ajout et de modification des entrées de santé
+  - Vérifié l'affichage correct des données utilisateur et des métriques
+  - Confirmé le bon fonctionnement du sélecteur de date et d'heure

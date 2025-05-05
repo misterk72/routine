@@ -15,6 +15,13 @@
     <string name="select_user">Sélectionner un utilisateur</string>
     <string name="add_new_user">Nouvel utilisateur</string>
     <string name="user_name">Nom d\'utilisateur</string>
+    <string name="user_management">Gestion des utilisateurs</string>
+    <string name="edit_user">Modifier l\'utilisateur</string>
+    <string name="update_user">Mettre à jour</string>
+    <string name="default_user">Par défaut</string>
+    <string name="user_updated">Utilisateur mis à jour avec succès</string>
+    <string name="user_added">Utilisateur ajouté avec succès</string>
+    <string name="error_empty_name">Le nom d\'utilisateur ne peut pas être vide</string>
     
     <!-- Main Activity -->
     <string name="add_new_health_entry">Ajouter un nouveau suivi de santé</string>

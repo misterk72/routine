@@ -3,13 +3,18 @@ package com.healthtracker.ui
 import android.app.TimePickerDialog
 import android.os.Bundle
 import android.view.MenuItem
+import android.view.LayoutInflater
 import android.widget.ArrayAdapter
+import android.widget.EditText
 import android.widget.Toast
 import androidx.activity.viewModels
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.healthtracker.R
 import com.healthtracker.data.MetricType
+import com.healthtracker.data.User
 import com.healthtracker.databinding.ActivitySettingsBinding
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -18,7 +23,9 @@ class SettingsActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivitySettingsBinding
     private val viewModel: SettingsViewModel by viewModels()
+    private val healthTrackerViewModel: HealthTrackerViewModel by viewModels()
     private lateinit var metricTypesAdapter: MetricTypesAdapter
+    private lateinit var usersAdapter: UsersAdapter
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -31,6 +38,7 @@ class SettingsActivity : AppCompatActivity() {
         title = getString(R.string.settings)
 
         setupMetricTypesAdapter()
+        setupUsersAdapter()
         setupExportFormatSpinner()
         setupListeners()
         observeViewModel()
@@ -89,6 +97,70 @@ class SettingsActivity : AppCompatActivity() {
         }
     }
 
+    private fun setupUsersAdapter() {
+        usersAdapter = UsersAdapter(
+            onEditClick = { user ->
+                showEditUserDialog(user)
+            },
+            onDefaultChanged = { user, isDefault ->
+                if (isDefault) {
+                    healthTrackerViewModel.setDefaultUser(user.id)
+                }
+            }
+        )
+        
+        binding.usersRecyclerView.apply {
+            layoutManager = LinearLayoutManager(this@SettingsActivity)
+            adapter = usersAdapter
+        }
+        
+        binding.addUserButton.setOnClickListener {
+            showAddUserDialog()
+        }
+    }
+    
+    private fun showEditUserDialog(user: User) {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_edit_user, null)
+        val userNameEditText = dialogView.findViewById<EditText>(R.id.userNameEditText)
+        
+        userNameEditText.setText(user.name)
+        
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.edit_user)
+            .setView(dialogView)
+            .setPositiveButton(R.string.update_user) { _, _ ->
+                val newName = userNameEditText.text.toString()
+                if (newName.isNotEmpty()) {
+                    healthTrackerViewModel.updateUserName(user.id, newName)
+                    Toast.makeText(this, getString(R.string.user_updated), Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(this, getString(R.string.error_empty_name), Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+    }
+    
+    private fun showAddUserDialog() {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_edit_user, null)
+        val userNameEditText = dialogView.findViewById<EditText>(R.id.userNameEditText)
+        
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.add_new_user)
+            .setView(dialogView)
+            .setPositiveButton(R.string.add) { _, _ ->
+                val name = userNameEditText.text.toString()
+                if (name.isNotEmpty()) {
+                    healthTrackerViewModel.addUser(name)
+                    Toast.makeText(this, getString(R.string.user_added), Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(this, getString(R.string.error_empty_name), Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+    }
+
     private fun observeViewModel() {
         viewModel.exportFormat.observe(this) { format ->
             val position = (binding.exportFormatSpinner.adapter as ArrayAdapter<String>)
@@ -106,6 +178,10 @@ class SettingsActivity : AppCompatActivity() {
             errorMessage?.let {
                 Toast.makeText(this, it, Toast.LENGTH_LONG).show()
             }
+        }
+        
+        healthTrackerViewModel.users.observe(this) { users ->
+            usersAdapter.submitList(users)
         }
     }
 

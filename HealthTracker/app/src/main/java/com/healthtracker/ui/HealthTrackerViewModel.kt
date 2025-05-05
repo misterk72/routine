@@ -140,4 +140,17 @@ class HealthTrackerViewModel @Inject constructor(
             userRepository.deleteUser(user)
         }
     }
+    
+    fun updateUserName(userId: Long, newName: String) {
+        viewModelScope.launch {
+            // Récupérer l'utilisateur actuel
+            val currentUser = _users.value?.find { it.id == userId } ?: return@launch
+            
+            // Créer un nouvel objet User avec le nom mis à jour
+            val updatedUser = currentUser.copy(name = newName)
+            
+            // Mettre à jour l'utilisateur dans la base de données
+            userRepository.updateUser(updatedUser)
+        }
+    }
 }
