@@ -4,8 +4,18 @@ services:
     build: .
     volumes:
       - ./data:/data
-    ports:
-      - "3306:3306"
     environment:
       - SQLITE_DATABASE=health.db
+    restart: always
+
+  sqlite-web:
+    image: coleifer/sqlite-web
+    volumes:
+      - ./data:/data
+    ports:
+      - "8080:8080"
+    environment:
+      - SQLITE_DATABASE=health.db
+    depends_on:
+      - sqlite
     restart: always
