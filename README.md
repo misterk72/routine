@@ -10,7 +10,8 @@ Une application Android pour suivre les métriques de santé personnelles, notam
 - Remarques/notes de santé
 - Horodatage pour toutes les entrées
 - Gestion multi-utilisateurs
-- Base de données SQLite avec conteneur Docker pour le stockage des données
+- Base de données SQLite locale avec synchronisation vers MariaDB
+- Conteneur Docker pour le serveur MariaDB et l'API PHP
 - Intégration Grafana pour la visualisation des données
 
 ## Exigences Techniques
@@ -40,17 +41,31 @@ dependencies {
     // ViewModel and LiveData
     implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.7.0'
     implementation 'androidx.lifecycle:lifecycle-livedata-ktx:2.7.0'
+    
+    // WorkManager pour les tâches en arrière-plan
+    implementation 'androidx.work:work-runtime-ktx:2.9.0'
+    
+    // Bibliothèques pour la synchronisation HTTP
+    implementation 'com.squareup.okhttp3:okhttp:4.10.0'
+    implementation 'com.google.code.gson:gson:2.10.1'
+    
+    // Hilt pour l'injection de dépendances
+    implementation 'com.google.dagger:hilt-android:2.50'
+    kapt 'com.google.dagger:hilt-android-compiler:2.50'
 }
 ```
 
 ## Architecture Backend
 
 ### Structure de la Base de Données
-- SQLite database with Docker container
+- Base de données SQLite locale sur l'appareil Android
+- Base de données MariaDB sur serveur pour la synchronisation
+- API PHP pour la communication entre l'application et MariaDB
 - Structured schema for workouts with flexible fields
 - JSON support for custom data
 - Tag-based categorization
 - Free-form notes
+- Suivi de l'état de synchronisation des entrées
 
 ### Schéma de la Base de Données
 ```sql
@@ -82,9 +97,13 @@ CREATE TABLE workouts (
 
 ### Flux de Données
 1. L'application Android collecte les données de santé
-2. Les données sont synchronisées avec la base de données SQLite
-3. Grafana se connecte à SQLite pour la visualisation
-4. Les données peuvent être exportées pour analyse
+2. Les données sont stockées localement dans la base de données SQLite
+3. L'application synchronise les données avec le serveur MariaDB via l'API PHP
+   - Les entrées non synchronisées sont envoyées au serveur
+   - Les nouvelles entrées du serveur sont récupérées
+   - Les entrées sont marquées comme synchronisées dans la base locale
+4. Grafana se connecte à MariaDB pour la visualisation
+5. Les données peuvent être exportées pour analyse
 
 ## Structure du Projet
 
@@ -157,19 +176,34 @@ CREATE TABLE workouts (
 
 ## Instructions d'Installation
 
-1. Clone the repository
-2. Build the Docker container:
+1. Cloner le dépôt
+2. Construire et démarrer les conteneurs Docker :
    ```bash
    cd docker-sqlite
    docker-compose build
    docker-compose up -d
    ```
-3. Import existing data (if any):
+   Cela démarrera :
+   - Le serveur MariaDB sur le port 3306
+   - phpMyAdmin sur le port 8080
+   - L'API PHP sur le port 5001
+
+3. Vérifier que l'API est accessible :
+   ```bash
+   curl http://localhost:5001/sync.php
+   ```
+   Vous devriez voir une réponse JSON comme `{"entries":[]}`
+
+4. Importer des données existantes (si nécessaire) :
    ```bash
    python import_data.py
    ```
-4. Open the project in Android Studio
-5. Run the app on your device or emulator
+
+5. Ouvrir le projet dans Android Studio
+
+6. Mettre à jour l'adresse IP du serveur dans `SyncManager.kt` avec l'adresse IP de votre machine
+
+7. Exécuter l'application sur votre appareil ou émulateur
 
 ## Tests
 

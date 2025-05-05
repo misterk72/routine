@@ -62,8 +62,9 @@ dependencies {
     // WorkManager
     implementation 'androidx.work:work-runtime-ktx:2.9.0'
     
-    // MariaDB pour la synchronisation
-    implementation 'org.mariadb.jdbc:mariadb-java-client:3.1.4'
+    // Bibliothèques pour la synchronisation HTTP
+    implementation 'com.squareup.okhttp3:okhttp:4.10.0'
+    implementation 'com.google.code.gson:gson:2.10.1'
     
     // Hilt
     implementation 'com.google.dagger:hilt-android:2.50'

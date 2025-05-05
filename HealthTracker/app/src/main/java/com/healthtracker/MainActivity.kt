@@ -107,19 +107,18 @@ class MainActivity : AppCompatActivity() {
     }
     
     /**
-     * Déclenche la synchronisation des données avec le serveur MariaDB
+     * Déclenche la synchronisation des données avec le serveur via HTTP
      */
     private fun synchronizeData() {
         Toast.makeText(this, R.string.sync_in_progress, Toast.LENGTH_SHORT).show()
         
-        // Déclencher la synchronisation immédiate
-        syncManager.syncNow()
+        // Déclencher la synchronisation immédiate et récupérer l'UUID
+        val syncWorkId = syncManager.syncNow()
         
-        // Observer le statut de la synchronisation
+        // Observer le statut de la synchronisation spécifique
         WorkManager.getInstance(this)
-            .getWorkInfosForUniqueWorkLiveData(SyncManager.SYNC_WORK_NAME)
-            .observe(this) { workInfoList ->
-                val workInfo = workInfoList?.firstOrNull()
+            .getWorkInfoByIdLiveData(syncWorkId)
+            .observe(this) { workInfo ->
                 when (workInfo?.state) {
                     WorkInfo.State.SUCCEEDED -> {
                         Toast.makeText(this, R.string.sync_success, Toast.LENGTH_SHORT).show()

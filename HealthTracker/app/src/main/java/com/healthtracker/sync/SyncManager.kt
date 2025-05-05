@@ -1,38 +1,46 @@
 package com.healthtracker.sync
 
 import android.content.Context
+import android.util.Log
 import androidx.work.*
+import com.google.gson.Gson
+import com.google.gson.GsonBuilder
+import com.google.gson.JsonObject
+import com.google.gson.reflect.TypeToken
 import com.healthtracker.data.HealthDatabase
 import com.healthtracker.data.HealthEntry
-import com.healthtracker.data.User
+import com.healthtracker.data.converters.DateTimeConverters
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.sql.Connection
-import java.sql.DriverManager
-import java.sql.PreparedStatement
-import java.sql.ResultSet
-import java.sql.Timestamp
+import okhttp3.*
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.RequestBody.Companion.toRequestBody
+import java.io.IOException
 import java.time.LocalDateTime
-import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.util.UUID
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Gestionnaire de synchronisation entre la base de données locale SQLite et la base de données distante MariaDB
+ * Gestionnaire de synchronisation pour synchroniser les données entre la base de données locale
+ * et le serveur via HTTP.
  */
 @Singleton
-class SyncManager @Inject constructor(private val context: Context) {
-    
+class SyncManager @Inject constructor(
+    @ApplicationContext private val context: Context,
+    private val workManager: WorkManager
+) {
     companion object {
-        const val SYNC_WORK_NAME = "health_data_sync"
-        private const val SERVER_URL = "jdbc:mariadb://192.168.0.103:3306/healthtracker"
-        private const val USERNAME = "healthuser"
-        private const val PASSWORD = "healthpassword"
-        
-        // Clé pour les préférences partagées
-        private const val PREF_NAME = "sync_preferences"
+        const val SYNC_WORK_NAME = "com.healthtracker.sync.SyncWorker"
+        private const val PREFS_NAME = "sync_prefs"
         private const val LAST_SYNC_KEY = "last_sync_timestamp"
+        
+        // Configuration de la connexion au serveur API
+        private const val API_URL = "http://192.168.0.103:5001/sync.php"
+        private const val TAG = "SyncManager"
     }
     
     /**
@@ -50,7 +58,7 @@ class SyncManager @Inject constructor(private val context: Context) {
             .setConstraints(constraints)
             .build()
             
-        WorkManager.getInstance(context).enqueueUniquePeriodicWork(
+        workManager.enqueueUniquePeriodicWork(
             SYNC_WORK_NAME,
             ExistingPeriodicWorkPolicy.KEEP,  // Garder le travail existant s'il y en a un
             syncRequest
@@ -59,8 +67,9 @@ class SyncManager @Inject constructor(private val context: Context) {
     
     /**
      * Déclenche une synchronisation immédiate
+     * @return WorkInfo.Id pour suivre l'état de la synchronisation
      */
-    fun syncNow() {
+    fun syncNow(): UUID {
         val constraints = Constraints.Builder()
             .setRequiredNetworkType(NetworkType.CONNECTED)
             .build()
@@ -69,14 +78,15 @@ class SyncManager @Inject constructor(private val context: Context) {
             .setConstraints(constraints)
             .build()
             
-        WorkManager.getInstance(context).enqueue(syncRequest)
+        workManager.enqueue(syncRequest)
+        return syncRequest.id
     }
     
     /**
      * Sauvegarde le timestamp de la dernière synchronisation
      */
     fun saveLastSyncTimestamp(timestamp: Long) {
-        context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             .edit()
             .putLong(LAST_SYNC_KEY, timestamp)
             .apply()
@@ -86,22 +96,8 @@ class SyncManager @Inject constructor(private val context: Context) {
      * Récupère le timestamp de la dernière synchronisation
      */
     fun getLastSyncTimestamp(): Long {
-        return context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+        return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             .getLong(LAST_SYNC_KEY, 0)
-    }
-    
-    /**
-     * Convertit un LocalDateTime en Timestamp pour SQL
-     */
-    private fun LocalDateTime.toSqlTimestamp(): Timestamp {
-        return Timestamp.valueOf(this.toString())
-    }
-    
-    /**
-     * Convertit un Timestamp SQL en LocalDateTime
-     */
-    private fun Timestamp.toLocalDateTime(): LocalDateTime {
-        return this.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime()
     }
     
     /**
@@ -110,7 +106,9 @@ class SyncManager @Inject constructor(private val context: Context) {
     class SyncWorker(appContext: Context, workerParams: WorkerParameters) : 
         CoroutineWorker(appContext, workerParams) {
         
-        private val syncManager = SyncManager(applicationContext)
+        private val httpClient = OkHttpClient()
+        private val gson = GsonBuilder().setDateFormat("yyyy-MM-dd HH:mm:ss").create()
+        private val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
         
         override suspend fun doWork(): Result {
             return withContext(Dispatchers.IO) {
@@ -118,26 +116,16 @@ class SyncManager @Inject constructor(private val context: Context) {
                     // Obtenir la base de données locale
                     val database = HealthDatabase.getDatabase(applicationContext)
                     
-                    // Établir une connexion à MariaDB
-                    Class.forName("org.mariadb.jdbc.Driver")
-                    val connection = DriverManager.getConnection(
-                        SERVER_URL, 
-                        USERNAME, 
-                        PASSWORD
-                    )
-                    
                     // Synchroniser les données
-                    synchronizeData(connection, database)
+                    synchronizeData(database)
                     
                     // Mettre à jour le timestamp de dernière synchronisation
+                    val syncManager = SyncManager(applicationContext, WorkManager.getInstance(applicationContext))
                     syncManager.saveLastSyncTimestamp(System.currentTimeMillis())
-                    
-                    // Fermer la connexion
-                    connection.close()
                     
                     Result.success()
                 } catch (e: Exception) {
-                    e.printStackTrace()
+                    Log.e(TAG, "Erreur lors de la synchronisation", e)
                     Result.retry()
                 }
             }
@@ -146,136 +134,132 @@ class SyncManager @Inject constructor(private val context: Context) {
         /**
          * Synchronise les données entre la base de données locale et le serveur
          */
-        private suspend fun synchronizeData(connection: Connection, database: HealthDatabase) {
+        private suspend fun synchronizeData(database: HealthDatabase) {
             // 1. Envoyer les entrées non synchronisées au serveur
-            uploadUnsyncedEntries(connection, database)
+            uploadUnsyncedEntries(database)
             
             // 2. Récupérer les nouvelles entrées du serveur
-            downloadNewEntries(connection, database)
+            downloadNewEntries(database)
         }
         
         /**
          * Envoie les entrées non synchronisées au serveur
          */
-        private suspend fun uploadUnsyncedEntries(connection: Connection, database: HealthDatabase) {
+        private suspend fun uploadUnsyncedEntries(database: HealthDatabase) {
             // Récupérer les entrées non synchronisées
             val unsyncedEntries = database.healthEntryDao().getUnsyncedEntries()
             
-            if (unsyncedEntries.isEmpty()) return
+            if (unsyncedEntries.isEmpty()) {
+                Log.d(TAG, "Aucune entrée à synchroniser")
+                return
+            }
             
-            // Préparer la requête d'insertion
-            val insertStatement = connection.prepareStatement("""
-                INSERT INTO health_entries (user_id, timestamp, weight, waist_measurement, body_fat, notes, client_id)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-                ON DUPLICATE KEY UPDATE
-                weight = VALUES(weight),
-                waist_measurement = VALUES(waist_measurement),
-                body_fat = VALUES(body_fat),
-                notes = VALUES(notes)
-            """, PreparedStatement.RETURN_GENERATED_KEYS)
+            Log.d(TAG, "Envoi de ${unsyncedEntries.size} entrées au serveur")
             
-            // Insérer chaque entrée
-            for (entry in unsyncedEntries) {
-                insertStatement.setLong(1, entry.userId)
-                insertStatement.setTimestamp(2, Timestamp.valueOf(entry.timestamp.toString()))
-                entry.weight?.let { insertStatement.setFloat(3, it) } ?: insertStatement.setNull(3, java.sql.Types.FLOAT)
-                entry.waistMeasurement?.let { insertStatement.setFloat(4, it) } ?: insertStatement.setNull(4, java.sql.Types.FLOAT)
-                entry.bodyFat?.let { insertStatement.setFloat(5, it) } ?: insertStatement.setNull(5, java.sql.Types.FLOAT)
-                entry.notes?.let { insertStatement.setString(6, it) } ?: insertStatement.setNull(6, java.sql.Types.VARCHAR)
-                insertStatement.setLong(7, entry.id)
+            // Convertir les entrées en JSON
+            val entriesJson = gson.toJson(mapOf("entries" to unsyncedEntries.map { entry ->
+                mapOf(
+                    "id" to entry.id,
+                    "userId" to entry.userId,
+                    "timestamp" to entry.timestamp.format(dateFormatter),
+                    "weight" to entry.weight,
+                    "waistMeasurement" to entry.waistMeasurement,
+                    "bodyFat" to entry.bodyFat,
+                    "notes" to entry.notes
+                )
+            }))
+            
+            // Créer la requête HTTP
+            val requestBody = entriesJson.toRequestBody("application/json".toMediaType())
+            val request = Request.Builder()
+                .url(API_URL)
+                .post(requestBody)
+                .build()
+            
+            // Exécuter la requête
+            httpClient.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) {
+                    throw IOException("Erreur lors de l'envoi des données: ${response.code}")
+                }
                 
-                insertStatement.addBatch()
+                // Analyser la réponse
+                val responseBody = response.body?.string()
+                val jsonResponse = gson.fromJson(responseBody, JsonObject::class.java)
+                
+                if (jsonResponse.get("success")?.asBoolean == true) {
+                    // Marquer les entrées comme synchronisées
+                    val entryIds = unsyncedEntries.map { it.id }
+                    database.healthEntryDao().markAllAsSynced(entryIds)
+                    Log.d(TAG, "${jsonResponse.get("processed")?.asInt ?: 0} entrées synchronisées avec succès")
+                } else {
+                    Log.e(TAG, "Erreur lors de la synchronisation: ${jsonResponse.get("error")?.asString}")
+                }
             }
-            
-            // Exécuter le batch
-            insertStatement.executeBatch()
-            
-            // Récupérer les IDs générés
-            val generatedKeys = insertStatement.generatedKeys
-            val entryIds = unsyncedEntries.map { it.id }
-            
-            // Mettre à jour les entrées locales avec les IDs du serveur
-            var i = 0
-            while (generatedKeys.next() && i < entryIds.size) {
-                val serverEntryId = generatedKeys.getLong(1)
-                database.healthEntryDao().markAsSynced(entryIds[i], serverEntryId)
-                i++
-            }
-            
-            insertStatement.close()
         }
         
         /**
          * Télécharge les nouvelles entrées du serveur
          */
-        private suspend fun downloadNewEntries(connection: Connection, database: HealthDatabase) {
+        private suspend fun downloadNewEntries(database: HealthDatabase) {
             // Récupérer le timestamp de la dernière synchronisation
+            val syncManager = SyncManager(applicationContext, WorkManager.getInstance(applicationContext))
             val lastSyncTimestamp = syncManager.getLastSyncTimestamp()
-            val lastSyncDateTime = if (lastSyncTimestamp > 0) {
-                LocalDateTime.ofInstant(
-                    java.time.Instant.ofEpochMilli(lastSyncTimestamp),
-                    ZoneId.systemDefault()
-                )
-            } else {
-                LocalDateTime.of(2000, 1, 1, 0, 0) // Date par défaut si jamais synchronisé
-            }
             
-            // Convertir en String pour la requête SQL
-            val lastSyncDateTimeString = lastSyncDateTime.toString()
+            Log.d(TAG, "Récupération des entrées depuis $lastSyncTimestamp")
             
-            // Préparer la requête pour récupérer les nouvelles entrées
-            val selectStatement = connection.prepareStatement("""
-                SELECT id, user_id, timestamp, weight, waist_measurement, body_fat, notes, client_id
-                FROM health_entries
-                WHERE last_modified > ? AND (client_id IS NULL OR client_id NOT IN 
-                    (SELECT id FROM health_entries WHERE synced = 1))
-            """)
-            
-            selectStatement.setTimestamp(1, Timestamp.valueOf(lastSyncDateTime.toString()))
+            // Créer la requête HTTP
+            val request = Request.Builder()
+                .url("${API_URL}?since=$lastSyncTimestamp")
+                .get()
+                .build()
             
             // Exécuter la requête
-            val resultSet = selectStatement.executeQuery()
-            
-            // Convertir les résultats en objets HealthEntry
-            val newEntries = mutableListOf<HealthEntry>()
-            
-            while (resultSet.next()) {
-                newEntries.add(createHealthEntryFromResultSet(resultSet))
+            httpClient.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) {
+                    throw IOException("Erreur lors de la récupération des données: ${response.code}")
+                }
+                
+                // Analyser la réponse
+                val responseBody = response.body?.string()
+                val responseType = object : TypeToken<Map<String, List<Map<String, Any?>>>>() {}.type
+                val jsonResponse = gson.fromJson<Map<String, List<Map<String, Any?>>>>(responseBody, responseType)
+                
+                val entries = jsonResponse["entries"] ?: emptyList()
+                
+                if (entries.isNotEmpty()) {
+                    Log.d(TAG, "${entries.size} nouvelles entrées récupérées du serveur")
+                    
+                    // Convertir les entrées JSON en objets HealthEntry
+                    val newEntries = entries.map { entryMap ->
+                        createHealthEntryFromMap(entryMap)
+                    }
+                    
+                    // Insérer les nouvelles entrées dans la base de données locale
+                    database.healthEntryDao().insertOrUpdateEntries(newEntries)
+                } else {
+                    Log.d(TAG, "Aucune nouvelle entrée sur le serveur")
+                }
             }
-            
-            // Insérer les nouvelles entrées dans la base de données locale
-            if (newEntries.isNotEmpty()) {
-                database.healthEntryDao().insertOrUpdateEntries(newEntries)
-            }
-            
-            selectStatement.close()
         }
         
         /**
-         * Crée un objet HealthEntry à partir d'un ResultSet
+         * Crée un objet HealthEntry à partir d'une Map
          */
-        private fun createHealthEntryFromResultSet(resultSet: ResultSet): HealthEntry {
-            val serverEntryId = resultSet.getLong("id")
-            val userId = resultSet.getLong("user_id")
-            val timestamp = LocalDateTime.ofInstant(
-                resultSet.getTimestamp("timestamp").toInstant(),
-                ZoneId.systemDefault()
-            )
+        private fun createHealthEntryFromMap(entryMap: Map<String, Any?>): HealthEntry {
+            val id = (entryMap["id"] as? Double)?.toLong() ?: 0L
+            val userId = (entryMap["userId"] as? Double)?.toLong() ?: 1L
             
-            val weight = if (resultSet.getObject("weight") != null) resultSet.getFloat("weight") else null
-            val waistMeasurement = if (resultSet.getObject("waist_measurement") != null) resultSet.getFloat("waist_measurement") else null
-            val bodyFat = if (resultSet.getObject("body_fat") != null) resultSet.getFloat("body_fat") else null
-            val notes = resultSet.getString("notes")
+            // Convertir la chaîne de date en LocalDateTime
+            val timestampStr = entryMap["timestamp"] as String
+            val timestamp = LocalDateTime.parse(timestampStr, dateFormatter)
             
-            // Récupérer l'ID client s'il existe
-            val clientId = if (!resultSet.getObject("client_id").equals(null)) {
-                resultSet.getLong("client_id")
-            } else {
-                0L // Nouvel ID local sera généré
-            }
+            val weight = (entryMap["weight"] as? Double)?.toFloat()
+            val waistMeasurement = (entryMap["waistMeasurement"] as? Double)?.toFloat()
+            val bodyFat = (entryMap["bodyFat"] as? Double)?.toFloat()
+            val notes = entryMap["notes"] as? String
             
             return HealthEntry(
-                id = clientId,
+                id = 0, // ID local généré automatiquement
                 userId = userId,
                 timestamp = timestamp,
                 weight = weight,
@@ -283,7 +267,7 @@ class SyncManager @Inject constructor(private val context: Context) {
                 bodyFat = bodyFat,
                 notes = notes,
                 synced = true,
-                serverEntryId = serverEntryId
+                serverEntryId = id
             )
         }
     }

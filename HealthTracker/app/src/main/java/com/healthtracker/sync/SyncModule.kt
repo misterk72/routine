@@ -1,6 +1,7 @@
 package com.healthtracker.sync
 
 import android.content.Context
+import androidx.work.WorkManager
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -14,7 +15,16 @@ object SyncModule {
     
     @Provides
     @Singleton
-    fun provideSyncManager(@ApplicationContext context: Context): SyncManager {
-        return SyncManager(context)
+    fun provideSyncManager(
+        @ApplicationContext context: Context,
+        workManager: WorkManager
+    ): SyncManager {
+        return SyncManager(context, workManager)
+    }
+    
+    @Provides
+    @Singleton
+    fun provideWorkManager(@ApplicationContext context: Context): WorkManager {
+        return WorkManager.getInstance(context)
     }
 }

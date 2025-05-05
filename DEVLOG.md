@@ -199,6 +199,15 @@
   - Vérifié que tous les textes de l'interface utilisateur sont correctement traduits
   - Confirmé le bon fonctionnement de l'affichage des métriques avec le format français
   - Validé que tous les messages d'erreur et notifications sont en français
+- Implémenté la synchronisation avec MariaDB
+  - Remplacé SQLite par MariaDB dans la configuration Docker
+  - Créé une API PHP simple pour servir d'intermédiaire entre l'application Android et MariaDB
+  - Ajouté les champs `synced` et `serverEntryId` à la classe `HealthEntry`
+  - Implémenté la classe `SyncManager` pour gérer la synchronisation avec OkHttp et Gson
+  - Utilisé WorkManager pour exécuter la synchronisation en arrière-plan
+  - Ajouté un bouton de synchronisation dans la barre d'outils principale
+  - Résolu les problèmes de compatibilité du pilote JDBC MariaDB avec Android
+  - Configuré la sécurité réseau pour autoriser le trafic HTTP non sécurisé vers le serveur local
 - Réorganisé l'ordre des mesures de base dans les activités d'ajout et de modification de données
   - Modifié l'ordre pour avoir : Masse (kg), Masse graisseuse (kg), puis Tour de taille (cm)
   - Mis à jour les fichiers XML de mise en page (activity_add_entry.xml, activity_add_entry_multi_user.xml, activity_entry.xml)
