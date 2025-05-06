@@ -49,4 +49,7 @@ interface HealthEntryDao {
     
     @Query("SELECT * FROM health_entries WHERE timestamp > :timestamp")
     suspend fun getEntriesNewerThan(timestamp: String): List<HealthEntry>
+    
+    @Query("SELECT * FROM health_entries WHERE serverEntryId IN (:serverIds)")
+    suspend fun getEntriesByServerIds(serverIds: List<Long>): List<HealthEntry>
 }

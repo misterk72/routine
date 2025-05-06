@@ -91,7 +91,8 @@ function createTablesIfNotExist($pdo) {
         notes TEXT,
         client_id BIGINT,
         last_modified TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        UNIQUE KEY (client_id)
     )");
     
     // Vérifier s'il y a un utilisateur par défaut, sinon le créer
@@ -168,12 +169,14 @@ function ensureUserExists($pdo, $userId) {
 function getEntriesSince($pdo, $timestamp) {
     $date = date('Y-m-d H:i:s', $timestamp / 1000);
     
+    // Récupérer uniquement les entrées qui ont été modifiées après le timestamp
+    // et qui n'ont pas été créées par le client (client_id IS NULL)
     $stmt = $pdo->prepare("SELECT 
         e.id, e.user_id, e.timestamp, e.weight, e.waist_measurement, e.body_fat, e.notes, e.client_id,
         u.name as user_name
         FROM health_entries e
         JOIN users u ON e.user_id = u.id
-        WHERE e.last_modified > ?");
+        WHERE e.last_modified > ? AND (e.client_id IS NULL)");
     $stmt->execute([$date]);
     
     $entries = [];

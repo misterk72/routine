@@ -39,7 +39,7 @@ class SyncManager @Inject constructor(
         private const val LAST_SYNC_KEY = "last_sync_timestamp"
         
         // Configuration de la connexion au serveur API
-        private const val API_URL = "http://192.168.0.103:5001/sync.php"
+        private const val API_URL = "http://192.168.0.13:5001/sync.php"
         private const val TAG = "SyncManager"
     }
     
@@ -229,13 +229,30 @@ class SyncManager @Inject constructor(
                 if (entries.isNotEmpty()) {
                     Log.d(TAG, "${entries.size} nouvelles entrées récupérées du serveur")
                     
-                    // Convertir les entrées JSON en objets HealthEntry
-                    val newEntries = entries.map { entryMap ->
-                        createHealthEntryFromMap(entryMap)
+                    // Filtrer les entrées qui ont déjà un serverEntryId correspondant
+                    val serverIds = entries.mapNotNull { (it["id"] as? Double)?.toLong() }
+                    val existingEntries = database.healthEntryDao().getEntriesByServerIds(serverIds)
+                    val existingServerIds = existingEntries.mapNotNull { it.serverEntryId }.toSet()
+                    
+                    // Ne conserver que les entrées qui n'existent pas déjà localement
+                    val newServerEntries = entries.filter { entryMap -> 
+                        val serverId = (entryMap["id"] as? Double)?.toLong()
+                        serverId == null || serverId !in existingServerIds
                     }
                     
-                    // Insérer les nouvelles entrées dans la base de données locale
-                    database.healthEntryDao().insertOrUpdateEntries(newEntries)
+                    if (newServerEntries.isNotEmpty()) {
+                        Log.d(TAG, "${newServerEntries.size} nouvelles entrées à ajouter localement")
+                        
+                        // Convertir les entrées JSON en objets HealthEntry
+                        val newEntries = newServerEntries.map { entryMap ->
+                            createHealthEntryFromMap(entryMap)
+                        }
+                        
+                        // Insérer les nouvelles entrées dans la base de données locale
+                        database.healthEntryDao().insertOrUpdateEntries(newEntries)
+                    } else {
+                        Log.d(TAG, "Toutes les entrées du serveur existent déjà localement")
+                    }
                 } else {
                     Log.d(TAG, "Aucune nouvelle entrée sur le serveur")
                 }
