@@ -38,6 +38,9 @@ class EntryViewModel @Inject constructor(
 
     private val _saveComplete = MutableLiveData(false)
     val saveComplete: LiveData<Boolean> = _saveComplete
+    
+    private val _deleteComplete = MutableLiveData(false)
+    val deleteComplete: LiveData<Boolean> = _deleteComplete
 
     private val _error = MutableLiveData<String?>(null)
     val error: LiveData<String?> = _error
@@ -191,13 +194,14 @@ class EntryViewModel @Inject constructor(
         viewModelScope.launch {
             _isSaving.value = true
             _error.value = null
+            _deleteComplete.value = false
             
             try {
                 val entry = _currentEntry.value
                 if (entry != null && entry.id != 0L) {
                     // Repository will cascade delete related metric values
                     healthEntryRepository.deleteEntry(entry)
-                    _saveComplete.value = true
+                    _deleteComplete.value = true
                 }
             } catch (e: Exception) {
                 _error.value = "Error deleting entry: ${e.message}"

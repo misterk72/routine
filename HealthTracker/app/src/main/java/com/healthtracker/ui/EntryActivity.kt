@@ -5,6 +5,7 @@ import android.app.TimePickerDialog
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.viewModels
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.healthtracker.R
@@ -82,6 +83,11 @@ class EntryActivity : AppCompatActivity() {
         binding.fabSaveEntry.setOnClickListener {
             saveEntry()
         }
+        
+        // Delete button
+        binding.fabDeleteEntry.setOnClickListener {
+            confirmDeleteEntry()
+        }
 
         // Add metric button
         binding.addMetricButton.setOnClickListener {
@@ -103,11 +109,19 @@ class EntryActivity : AppCompatActivity() {
         viewModel.isSaving.observe(this) { isSaving ->
             // Could show a progress indicator here
             binding.fabSaveEntry.isEnabled = !isSaving
+            binding.fabDeleteEntry.isEnabled = !isSaving
         }
 
         viewModel.saveComplete.observe(this) { isComplete ->
             if (isComplete) {
                 finish() // Return to previous screen after saving
+            }
+        }
+        
+        viewModel.deleteComplete.observe(this) { isComplete ->
+            if (isComplete) {
+                Toast.makeText(this, R.string.entry_deleted, Toast.LENGTH_SHORT).show()
+                finish() // Return to previous screen after deleting
             }
         }
 
@@ -241,6 +255,27 @@ class EntryActivity : AppCompatActivity() {
     override fun onSupportNavigateUp(): Boolean {
         onBackPressed()
         return true
+    }
+    
+    /**
+     * Affiche une boîte de dialogue de confirmation avant de supprimer l'entrée
+     */
+    private fun confirmDeleteEntry() {
+        val entryId = intent.getLongExtra(EXTRA_ENTRY_ID, 0L)
+        if (entryId <= 0) {
+            // Si c'est une nouvelle entrée qui n'a pas encore été sauvegardée, on revient simplement en arrière
+            finish()
+            return
+        }
+        
+        AlertDialog.Builder(this)
+            .setTitle(R.string.delete_entry)
+            .setMessage(R.string.confirm_delete_entry)
+            .setPositiveButton(R.string.delete) { _, _ ->
+                viewModel.deleteEntry()
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
     }
 }
 

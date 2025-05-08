@@ -16,7 +16,7 @@ import com.healthtracker.data.converters.DateTimeConverters
         MetricType::class,
         User::class
     ],
-    version = 5,
+    version = 6,
     exportSchema = false
 )
 @TypeConverters(DateTimeConverters::class)
@@ -105,6 +105,14 @@ abstract class HealthDatabase : RoomDatabase() {
                 database.execSQL("ALTER TABLE health_entries ADD COLUMN serverEntryId INTEGER")
             }
         }
+        
+        // Migration de la version 5 à 6 (ajout du champ deleted pour la suppression logique)
+        private val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // Ajouter la colonne deleted à la table health_entries
+                database.execSQL("ALTER TABLE health_entries ADD COLUMN deleted INTEGER NOT NULL DEFAULT 0")
+            }
+        }
 
         fun getDatabase(context: Context): HealthDatabase {
             return INSTANCE ?: synchronized(this) {
@@ -114,7 +122,7 @@ abstract class HealthDatabase : RoomDatabase() {
                     "health_database"
                 )
                 // Appliquer les migrations
-                .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+                .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
                 // Fallback en cas d'autres migrations
                 .fallbackToDestructiveMigration()
                 // Allow main thread queries for testing

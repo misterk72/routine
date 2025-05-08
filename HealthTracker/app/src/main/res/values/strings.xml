@@ -99,4 +99,9 @@
     <string name="waist_display">Waist: %1$s cm</string>
     <string name="body_fat_display">Body Fat: %1$s kg</string>
     <string name="metric_value_display">%1$s %2$s</string>
+    
+    <!-- Delete Entry -->
+    <string name="delete_entry">Delete this entry</string>
+    <string name="confirm_delete_entry">Are you sure you want to delete this entry?</string>
+    <string name="entry_deleted">Entry successfully deleted</string>
 </resources>

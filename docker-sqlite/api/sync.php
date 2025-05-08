@@ -1,4 +1,6 @@
 <?php
+// Supprimer les avertissements PHP pour éviter de corrompre la réponse JSON
+error_reporting(0);
 header('Content-Type: application/json');
 
 // Configuration de la base de données
@@ -42,9 +44,15 @@ switch ($method) {
         
         // Traiter les entrées de santé
         if (isset($data['entries']) && is_array($data['entries'])) {
+            // Log pour débogage
+            error_log("DEBUG - Nombre d'entrées reçues: " . count($data['entries']));
+            error_log("DEBUG - Données reçues: " . json_encode($data));
+            
             $result = processEntries($pdo, $data['entries']);
+            error_log("DEBUG - Résultat du traitement: " . json_encode($result));
             echo json_encode($result);
         } else {
+            error_log("DEBUG - Format de données invalide");
             echo json_encode(['error' => 'Format de données invalide']);
         }
         break;
@@ -71,16 +79,15 @@ switch ($method) {
 
 // Fonction pour créer les tables si elles n'existent pas
 function createTablesIfNotExist($pdo) {
-    // Table des utilisateurs
+    // Créer la table des utilisateurs si elle n'existe pas
     $pdo->exec("CREATE TABLE IF NOT EXISTS users (
         id BIGINT PRIMARY KEY AUTO_INCREMENT,
         name VARCHAR(255) NOT NULL,
-        is_default BOOLEAN NOT NULL DEFAULT FALSE,
-        client_id BIGINT,
+        is_default BOOLEAN DEFAULT 0,
         last_modified TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
     )");
     
-    // Table des entrées de santé
+    // Créer la table des entrées de santé si elle n'existe pas
     $pdo->exec("CREATE TABLE IF NOT EXISTS health_entries (
         id BIGINT PRIMARY KEY AUTO_INCREMENT,
         user_id BIGINT NOT NULL,
@@ -90,10 +97,21 @@ function createTablesIfNotExist($pdo) {
         body_fat FLOAT,
         notes TEXT,
         client_id BIGINT,
+        deleted BOOLEAN DEFAULT 0,
         last_modified TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
         UNIQUE KEY (client_id)
     )");
+    
+    // Vérifier si la colonne 'deleted' existe dans la table health_entries
+    $tableInfo = $pdo->query("DESCRIBE health_entries");
+    $columns = $tableInfo->fetchAll(PDO::FETCH_COLUMN);
+    
+    // Si la colonne 'deleted' n'existe pas, l'ajouter
+    if (!in_array('deleted', $columns)) {
+        error_log("Ajout de la colonne 'deleted' à la table health_entries");
+        $pdo->exec("ALTER TABLE health_entries ADD COLUMN deleted BOOLEAN DEFAULT 0");
+    }
     
     // Vérifier s'il y a un utilisateur par défaut, sinon le créer
     $stmt = $pdo->query("SELECT COUNT(*) FROM users WHERE is_default = 1");
@@ -107,20 +125,31 @@ function processEntries($pdo, $entries) {
     $processed = 0;
     $errors = [];
     
+    error_log("DEBUG - processEntries: Traitement de " . count($entries) . " entrées");
+    
+    // Traiter toutes les entrées (normales et supprimées)
     foreach ($entries as $entry) {
         try {
+            error_log("DEBUG - Traitement de l'entrée: " . json_encode($entry));
+            
             // Vérifier si l'utilisateur existe
             $userId = ensureUserExists($pdo, $entry['userId']);
+            error_log("DEBUG - Utilisateur ID: $userId");
+            
+            // Vérifier si l'entrée est marquée comme supprimée
+            $deleted = isset($entry['deleted']) && $entry['deleted'] ? 1 : 0;
+            error_log("DEBUG - Entrée supprimée: $deleted");
             
             // Préparer la requête d'insertion/mise à jour
             $stmt = $pdo->prepare("INSERT INTO health_entries 
-                (user_id, timestamp, weight, waist_measurement, body_fat, notes, client_id)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                (user_id, timestamp, weight, waist_measurement, body_fat, notes, client_id, deleted)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 ON DUPLICATE KEY UPDATE
                 weight = VALUES(weight),
                 waist_measurement = VALUES(waist_measurement),
                 body_fat = VALUES(body_fat),
-                notes = VALUES(notes)");
+                notes = VALUES(notes),
+                deleted = VALUES(deleted)");
                 
             // Exécuter la requête
             $stmt->execute([
@@ -130,7 +159,8 @@ function processEntries($pdo, $entries) {
                 $entry['waistMeasurement'],
                 $entry['bodyFat'],
                 $entry['notes'],
-                $entry['id']
+                $entry['id'],
+                $deleted
             ]);
             
             $processed++;
@@ -171,12 +201,13 @@ function getEntriesSince($pdo, $timestamp) {
     
     // Récupérer uniquement les entrées qui ont été modifiées après le timestamp
     // et qui n'ont pas été créées par le client (client_id IS NULL)
+    // et qui ne sont pas marquées comme supprimées
     $stmt = $pdo->prepare("SELECT 
-        e.id, e.user_id, e.timestamp, e.weight, e.waist_measurement, e.body_fat, e.notes, e.client_id,
+        e.id, e.user_id, e.timestamp, e.weight, e.waist_measurement, e.body_fat, e.notes, e.client_id, e.deleted,
         u.name as user_name
         FROM health_entries e
         JOIN users u ON e.user_id = u.id
-        WHERE e.last_modified > ? AND (e.client_id IS NULL)");
+        WHERE e.last_modified > ? AND (e.client_id IS NULL) AND (e.deleted = 0)");
     $stmt->execute([$date]);
     
     $entries = [];

@@ -99,4 +99,9 @@
     <string name="waist_display">Tour de taille : %1$s cm</string>
     <string name="body_fat_display">Masse graisseuse : %1$s kg</string>
     <string name="metric_value_display">%1$s %2$s</string>
+    
+    <!-- Delete Entry -->
+    <string name="delete_entry">Supprimer cette entrée</string>
+    <string name="confirm_delete_entry">Êtes-vous sûr de vouloir supprimer cette entrée ?</string>
+    <string name="entry_deleted">Entrée supprimée avec succès</string>
 </resources>

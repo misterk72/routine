@@ -39,7 +39,7 @@ class SyncManager @Inject constructor(
         private const val LAST_SYNC_KEY = "last_sync_timestamp"
         
         // Configuration de la connexion au serveur API
-        private const val API_URL = "http://192.168.0.13:5001/sync.php"
+        private const val API_URL = "http://192.168.0.103:5001/sync.php"
         private const val TAG = "SyncManager"
     }
     
@@ -146,18 +146,32 @@ class SyncManager @Inject constructor(
          * Envoie les entrées non synchronisées au serveur
          */
         private suspend fun uploadUnsyncedEntries(database: HealthDatabase) {
-            // Récupérer les entrées non synchronisées
+            // Récupérer les entrées non synchronisées (modifiées et supprimées)
             val unsyncedEntries = database.healthEntryDao().getUnsyncedEntries()
+            val deletedEntries = database.healthEntryDao().getDeletedUnsyncedEntries()
             
-            if (unsyncedEntries.isEmpty()) {
+            Log.d(TAG, "DEBUG - Entrées non synchronisées: ${unsyncedEntries.size}")
+            for (entry in unsyncedEntries) {
+                Log.d(TAG, "DEBUG - Entrée non synchronisée: id=${entry.id}, timestamp=${entry.timestamp}, deleted=${entry.deleted}")
+            }
+            
+            Log.d(TAG, "DEBUG - Entrées supprimées non synchronisées: ${deletedEntries.size}")
+            for (entry in deletedEntries) {
+                Log.d(TAG, "DEBUG - Entrée supprimée: id=${entry.id}, timestamp=${entry.timestamp}, deleted=${entry.deleted}")
+            }
+            
+            if (unsyncedEntries.isEmpty() && deletedEntries.isEmpty()) {
                 Log.d(TAG, "Aucune entrée à synchroniser")
                 return
             }
             
-            Log.d(TAG, "Envoi de ${unsyncedEntries.size} entrées au serveur")
+            val totalEntries = unsyncedEntries.size + deletedEntries.size
+            Log.d(TAG, "Envoi de $totalEntries entrées au serveur (${deletedEntries.size} supprimées)")
             
             // Convertir les entrées en JSON
-            val entriesJson = gson.toJson(mapOf("entries" to unsyncedEntries.map { entry ->
+            // Inclure toutes les entrées (modifiées et supprimées) dans un seul tableau
+            val allEntries = unsyncedEntries + deletedEntries
+            val entriesJson = gson.toJson(mapOf("entries" to allEntries.map { entry ->
                 mapOf(
                     "id" to entry.id,
                     "userId" to entry.userId,
@@ -165,7 +179,8 @@ class SyncManager @Inject constructor(
                     "weight" to entry.weight,
                     "waistMeasurement" to entry.waistMeasurement,
                     "bodyFat" to entry.bodyFat,
-                    "notes" to entry.notes
+                    "notes" to entry.notes,
+                    "deleted" to entry.deleted
                 )
             }))
             
@@ -184,13 +199,27 @@ class SyncManager @Inject constructor(
                 
                 // Analyser la réponse
                 val responseBody = response.body?.string()
+                Log.d(TAG, "DEBUG - Réponse du serveur: $responseBody")
+                
                 val jsonResponse = gson.fromJson(responseBody, JsonObject::class.java)
                 
                 if (jsonResponse.get("success")?.asBoolean == true) {
-                    // Marquer les entrées comme synchronisées
-                    val entryIds = unsyncedEntries.map { it.id }
-                    database.healthEntryDao().markAllAsSynced(entryIds)
-                    Log.d(TAG, "${jsonResponse.get("processed")?.asInt ?: 0} entrées synchronisées avec succès")
+                    // Marquer toutes les entrées comme synchronisées
+                    val allEntryIds = allEntries.map { it.id }
+                    Log.d(TAG, "DEBUG - Marquage de ${allEntryIds.size} entrées comme synchronisées: $allEntryIds")
+                    database.healthEntryDao().markAllAsSynced(allEntryIds)
+                    
+                    // Supprimer physiquement les entrées qui ont été marquées comme supprimées et synchronisées
+                    // Cette étape est optionnelle, mais permet de nettoyer la base de données locale
+                    if (deletedEntries.isNotEmpty()) {
+                        Log.d(TAG, "DEBUG - Suppression physique de ${deletedEntries.size} entrées")
+                        for (entry in deletedEntries) {
+                            Log.d(TAG, "DEBUG - Suppression physique de l'entrée id=${entry.id}")
+                            database.healthEntryDao().hardDeleteEntry(entry)
+                        }
+                    }
+                    
+                    Log.d(TAG, "${jsonResponse.get("processed")?.asInt ?: 0} entrées synchronisées avec succès (dont ${deletedEntries.size} supprimées)")
                 } else {
                     Log.e(TAG, "Erreur lors de la synchronisation: ${jsonResponse.get("error")?.asString}")
                 }
@@ -201,11 +230,12 @@ class SyncManager @Inject constructor(
          * Télécharge les nouvelles entrées du serveur
          */
         private suspend fun downloadNewEntries(database: HealthDatabase) {
-            // Récupérer le timestamp de la dernière synchronisation
-            val syncManager = SyncManager(applicationContext, WorkManager.getInstance(applicationContext))
-            val lastSyncTimestamp = syncManager.getLastSyncTimestamp()
-            
-            Log.d(TAG, "Récupération des entrées depuis $lastSyncTimestamp")
+        // Récupérer le timestamp de la dernière synchronisation
+        val syncManager = SyncManager(applicationContext, WorkManager.getInstance(applicationContext))
+        val lastSyncTimestamp = syncManager.getLastSyncTimestamp()
+        
+        Log.d(TAG, "DEBUG - Récupération des entrées depuis $lastSyncTimestamp")
+        Log.d(TAG, "DEBUG - URL API: $API_URL")
             
             // Créer la requête HTTP
             val request = Request.Builder()

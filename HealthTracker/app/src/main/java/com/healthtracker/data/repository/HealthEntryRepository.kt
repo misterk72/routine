@@ -50,11 +50,21 @@ class HealthEntryRepository @Inject constructor(
     }
     
     /**
-     * Delete a health entry
+     * Delete a health entry (soft delete)
      * @param entry The HealthEntry to delete
      */
     suspend fun deleteEntry(entry: HealthEntry) {
-        database.healthEntryDao().deleteEntry(entry)
+        if (entry.id > 0) {
+            database.healthEntryDao().markEntryAsDeleted(entry.id)
+        }
+    }
+    
+    /**
+     * Hard delete a health entry (physical deletion, used only internally)
+     * @param entry The HealthEntry to physically delete
+     */
+    suspend fun hardDeleteEntry(entry: HealthEntry) {
+        database.healthEntryDao().hardDeleteEntry(entry)
     }
     
     /**
