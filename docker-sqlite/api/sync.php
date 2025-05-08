@@ -140,28 +140,47 @@ function processEntries($pdo, $entries) {
             $deleted = isset($entry['deleted']) && $entry['deleted'] ? 1 : 0;
             error_log("DEBUG - Entrée supprimée: $deleted");
             
-            // Préparer la requête d'insertion/mise à jour
-            $stmt = $pdo->prepare("INSERT INTO health_entries 
-                (user_id, timestamp, weight, waist_measurement, body_fat, notes, client_id, deleted)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                ON DUPLICATE KEY UPDATE
-                weight = VALUES(weight),
-                waist_measurement = VALUES(waist_measurement),
-                body_fat = VALUES(body_fat),
-                notes = VALUES(notes),
-                deleted = VALUES(deleted)");
+            // Vérifier d'abord si une entrée avec ce client_id existe déjà
+            $checkStmt = $pdo->prepare("SELECT id FROM health_entries WHERE client_id = ?");
+            $checkStmt->execute([$entry['id']]);
+            $existingEntry = $checkStmt->fetch(PDO::FETCH_ASSOC);
+            
+            if ($existingEntry) {
+                // Mise à jour d'une entrée existante
+                error_log("DEBUG - Mise à jour de l'entrée existante avec client_id = {$entry['id']}");
+                $stmt = $pdo->prepare("UPDATE health_entries 
+                    SET user_id = ?, timestamp = ?, weight = ?, waist_measurement = ?, 
+                    body_fat = ?, notes = ?, deleted = ?
+                    WHERE client_id = ?");
                 
-            // Exécuter la requête
-            $stmt->execute([
-                $userId,
-                $entry['timestamp'],
-                $entry['weight'],
-                $entry['waistMeasurement'],
-                $entry['bodyFat'],
-                $entry['notes'],
-                $entry['id'],
-                $deleted
-            ]);
+                $stmt->execute([
+                    $userId,
+                    $entry['timestamp'],
+                    $entry['weight'],
+                    $entry['waistMeasurement'],
+                    $entry['bodyFat'],
+                    $entry['notes'],
+                    $deleted,
+                    $entry['id']
+                ]);
+            } else {
+                // Insertion d'une nouvelle entrée
+                error_log("DEBUG - Insertion d'une nouvelle entrée avec client_id = {$entry['id']}");
+                $stmt = $pdo->prepare("INSERT INTO health_entries 
+                    (user_id, timestamp, weight, waist_measurement, body_fat, notes, client_id, deleted)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+                
+                $stmt->execute([
+                    $userId,
+                    $entry['timestamp'],
+                    $entry['weight'],
+                    $entry['waistMeasurement'],
+                    $entry['bodyFat'],
+                    $entry['notes'],
+                    $entry['id'],
+                    $deleted
+                ]);
+            }
             
             $processed++;
         } catch (Exception $e) {
