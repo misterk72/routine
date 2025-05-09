@@ -8,8 +8,26 @@ interface HealthEntryDao {
     @Insert
     suspend fun insertEntry(entry: HealthEntry): Long
 
-    @Update
-    suspend fun updateEntry(entry: HealthEntry)
+    /**
+     * Met à jour une entrée existante
+     * Note: N'utilise pas l'annotation @Update standard car nous devons aussi mettre à jour le flag synced
+     */
+    @Query("UPDATE health_entries SET timestamp = :timestamp, weight = :weight, waistMeasurement = :waistMeasurement, bodyFat = :bodyFat, notes = :notes, synced = 0 WHERE id = :id")
+    suspend fun updateEntry(id: Long, timestamp: String, weight: Float?, waistMeasurement: Float?, bodyFat: Float?, notes: String?)
+    
+    /**
+     * Met à jour une entrée existante et la marque comme non synchronisée
+     */
+    suspend fun updateEntry(entry: HealthEntry) {
+        updateEntry(
+            id = entry.id,
+            timestamp = entry.timestamp.toString(),
+            weight = entry.weight,
+            waistMeasurement = entry.waistMeasurement,
+            bodyFat = entry.bodyFat,
+            notes = entry.notes
+        )
+    }
 
     /**
      * Suppression physique d'une entrée (utilisé uniquement en interne)

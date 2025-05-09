@@ -152,12 +152,12 @@ class SyncManager @Inject constructor(
             
             Log.d(TAG, "DEBUG - Entrées non synchronisées: ${unsyncedEntries.size}")
             for (entry in unsyncedEntries) {
-                Log.d(TAG, "DEBUG - Entrée non synchronisée: id=${entry.id}, timestamp=${entry.timestamp}, deleted=${entry.deleted}")
+                Log.d(TAG, "DEBUG - Entrée non synchronisée: id=${entry.id}, timestamp=${entry.timestamp}, deleted=${entry.deleted}, synced=${entry.synced}")
             }
             
             Log.d(TAG, "DEBUG - Entrées supprimées non synchronisées: ${deletedEntries.size}")
             for (entry in deletedEntries) {
-                Log.d(TAG, "DEBUG - Entrée supprimée: id=${entry.id}, timestamp=${entry.timestamp}, deleted=${entry.deleted}")
+                Log.d(TAG, "DEBUG - Entrée supprimée: id=${entry.id}, timestamp=${entry.timestamp}, deleted=${entry.deleted}, synced=${entry.synced}")
             }
             
             if (unsyncedEntries.isEmpty() && deletedEntries.isEmpty()) {

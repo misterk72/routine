@@ -217,6 +217,25 @@
   - Mis à jour l'affichage des valeurs de masse graisseuse dans toute l'application
   - Modifié les étiquettes et les unités dans les interfaces de saisie et d'affichage
 - Confirmé la suppression complète des fonctionnalités non désirées
+
+### 8-9 Mai 2025 - Implémentation de la suppression d'entrées et amélioration de la synchronisation
+- Implémenté la fonctionnalité de suppression d'entrées
+  - Ajout d'un bouton de suppression dans l'interface de détail d'entrée
+  - Implémenté une boîte de dialogue de confirmation pour la suppression
+  - Ajouté des chaînes de ressources pour les messages de suppression en français
+- Implémenté la suppression logique (soft delete) plutôt que physique
+  - Ajout d'une colonne `deleted` à la table `health_entries`
+  - Modification des requêtes pour filtrer les entrées supprimées
+  - Création d'une migration de base de données (version 5 à 6)
+- Amélioré la synchronisation avec le serveur
+  - Ajout de la synchronisation des entrées supprimées
+  - Correction du problème de synchronisation des entrées modifiées
+  - Modification du script PHP pour éviter les entrées en double
+  - Ajout de la vérification et création automatique de la colonne `deleted` sur le serveur
+  - Correction de la récupération des entrées depuis le serveur
+- Configuration pour le serveur de production
+  - Ajout du support pour le serveur de production à l'adresse 192.168.0.103
+  - Mise à jour de la configuration de sécurité réseau pour autoriser les connexions au serveur de production
   - Vérifié l'absence de toute référence au mode sombre dans le code et les ressources
   - Confirmé la suppression de toutes les fonctionnalités de notification
   - Validé que l'interface utilisateur ne contient plus d'options pour ces fonctionnalités

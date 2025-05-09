@@ -100,8 +100,11 @@ CREATE TABLE workouts (
 2. Les données sont stockées localement dans la base de données SQLite
 3. L'application synchronise les données avec le serveur MariaDB via l'API PHP
    - Les entrées non synchronisées sont envoyées au serveur
+   - Les entrées modifiées sont automatiquement marquées pour synchronisation
+   - Les entrées supprimées sont synchronisées avec le serveur (suppression logique)
    - Les nouvelles entrées du serveur sont récupérées
    - Les entrées sont marquées comme synchronisées dans la base locale
+   - Support pour serveur de développement local et serveur de production
 4. Grafana se connecte à MariaDB pour la visualisation
 5. Les données peuvent être exportées pour analyse
 

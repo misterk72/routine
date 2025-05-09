@@ -218,15 +218,15 @@ function ensureUserExists($pdo, $userId) {
 function getEntriesSince($pdo, $timestamp) {
     $date = date('Y-m-d H:i:s', $timestamp / 1000);
     
-    // Récupérer uniquement les entrées qui ont été modifiées après le timestamp
-    // et qui n'ont pas été créées par le client (client_id IS NULL)
+    // Récupérer toutes les entrées qui ont été modifiées après le timestamp
     // et qui ne sont pas marquées comme supprimées
+    // NOTE: On récupère maintenant toutes les entrées, qu'elles aient un client_id ou non
     $stmt = $pdo->prepare("SELECT 
         e.id, e.user_id, e.timestamp, e.weight, e.waist_measurement, e.body_fat, e.notes, e.client_id, e.deleted,
         u.name as user_name
         FROM health_entries e
         JOIN users u ON e.user_id = u.id
-        WHERE e.last_modified > ? AND (e.client_id IS NULL) AND (e.deleted = 0)");
+        WHERE e.last_modified > ? AND (e.deleted = 0)");
     $stmt->execute([$date]);
     
     $entries = [];
