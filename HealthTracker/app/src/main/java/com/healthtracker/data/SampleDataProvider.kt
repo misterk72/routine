@@ -1,8 +1,10 @@
 package com.healthtracker.data
 
 import com.healthtracker.data.repository.HealthEntryRepository
+import com.healthtracker.data.repository.LocationRepository
 import com.healthtracker.data.repository.MetricRepository
 import com.healthtracker.data.repository.MetricTypeRepository
+import com.healthtracker.data.repository.UserRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -17,7 +19,9 @@ import javax.inject.Singleton
 class SampleDataProvider @Inject constructor(
     private val healthEntryRepository: HealthEntryRepository,
     private val metricRepository: MetricRepository,
-    private val metricTypeRepository: MetricTypeRepository
+    private val metricTypeRepository: MetricTypeRepository,
+    private val userRepository: UserRepository,
+    private val locationRepository: LocationRepository
 ) {
     
     private val coroutineScope = CoroutineScope(Dispatchers.IO)
@@ -33,7 +37,41 @@ class SampleDataProvider @Inject constructor(
                 return@launch
             }
             
-            // Create sample metric types
+            // 1. Créer un utilisateur par défaut
+            val defaultUser = User(
+                name = "Utilisateur par défaut",
+                isDefault = true
+            )
+            val defaultUserId = userRepository.insertUser(defaultUser)
+            
+            // 2. Créer des localisations par défaut
+            val defaultLocations = listOf(
+                Location(
+                    name = "Domène",
+                    latitude = 45.2028,
+                    longitude = 5.8417,
+                    radius = 100f,
+                    isDefault = true
+                ),
+                Location(
+                    name = "Avon",
+                    latitude = 48.4167,
+                    longitude = 2.7333,
+                    radius = 100f,
+                    isDefault = false
+                ),
+                Location(
+                    name = "La Roche-de-Glun",
+                    latitude = 45.0167,
+                    longitude = 4.8333,
+                    radius = 100f,
+                    isDefault = false
+                )
+            )
+            
+            val locationIds = defaultLocations.map { locationRepository.insertLocation(it) }
+            
+            // 3. Create sample metric types
             val metricTypes = listOf(
                 MetricType(name = "Blood Pressure", unit = "mmHg", 
                           description = "Systolic blood pressure", 
@@ -59,8 +97,6 @@ class SampleDataProvider @Inject constructor(
             
             // Create sample entries for the past week
             val now = LocalDateTime.now()
-            // Récupérer l'utilisateur par défaut ou utiliser l'ID 1 si aucun n'existe
-            val defaultUserId = 1L
             
             val entries = (0..6).map { daysAgo ->
                 val date = now.minusDays(daysAgo.toLong())
@@ -70,7 +106,8 @@ class SampleDataProvider @Inject constructor(
                     weight = 70f + (Math.random() * 2 - 1).toFloat(),
                     waistMeasurement = 80f + (Math.random() * 2 - 1).toFloat(),
                     bodyFat = 15f + (Math.random() * 5 - 2.5).toFloat(),
-                    notes = if (daysAgo % 3 == 0) "Feeling good today" else null
+                    notes = if (daysAgo % 3 == 0) "Je me sens bien aujourd'hui" else null,
+                    locationId = if (daysAgo % 3 == 0) locationIds[0] else if (daysAgo % 3 == 1) locationIds[1] else locationIds[2]
                 )
             }
             

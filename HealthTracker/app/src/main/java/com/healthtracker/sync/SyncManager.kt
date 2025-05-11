@@ -39,8 +39,8 @@ class SyncManager @Inject constructor(
         private const val LAST_SYNC_KEY = "last_sync_timestamp"
         
         // Configuration de la connexion au serveur API
-        private const val API_URL = "http://192.168.0.103:5001/sync.php"
-        private const val TAG = "SyncManager"
+        private val API_URL = com.healthtracker.BuildConfig.API_BASE_URL + "sync.php"
+        private const val TAG = "HT_SYNC_MANAGER"
     }
     
     /**
@@ -70,15 +70,27 @@ class SyncManager @Inject constructor(
      * @return WorkInfo.Id pour suivre l'état de la synchronisation
      */
     fun syncNow(): UUID {
+        Log.d(TAG, "Déclenchement d'une synchronisation immédiate")
+        
         val constraints = Constraints.Builder()
             .setRequiredNetworkType(NetworkType.CONNECTED)
             .build()
             
         val syncRequest = OneTimeWorkRequestBuilder<SyncWorker>()
             .setConstraints(constraints)
+            .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST) // Exécution prioritaire
             .build()
             
+        Log.d(TAG, "Enqueue de la requête de synchronisation avec l'ID: ${syncRequest.id}")
         workManager.enqueue(syncRequest)
+        
+        // Observer l'état de la synchronisation
+        workManager.getWorkInfoByIdLiveData(syncRequest.id).observeForever { workInfo ->
+            if (workInfo != null) {
+                Log.d(TAG, "État de la synchronisation ${syncRequest.id}: ${workInfo.state}")
+            }
+        }
+        
         return syncRequest.id
     }
     
@@ -230,63 +242,86 @@ class SyncManager @Inject constructor(
          * Télécharge les nouvelles entrées du serveur
          */
         private suspend fun downloadNewEntries(database: HealthDatabase) {
-        // Récupérer le timestamp de la dernière synchronisation
-        val syncManager = SyncManager(applicationContext, WorkManager.getInstance(applicationContext))
-        val lastSyncTimestamp = syncManager.getLastSyncTimestamp()
-        
-        Log.d(TAG, "DEBUG - Récupération des entrées depuis $lastSyncTimestamp")
-        Log.d(TAG, "DEBUG - URL API: $API_URL")
+        try {
+            // Récupérer le timestamp de la dernière synchronisation
+            val syncManager = SyncManager(applicationContext, WorkManager.getInstance(applicationContext))
+            val lastSyncTimestamp = syncManager.getLastSyncTimestamp()
             
+            // Convertir le timestamp de millisecondes en secondes pour le serveur
+            val timestampInSeconds = lastSyncTimestamp / 1000
+            
+            Log.d(TAG, "DEBUG - Récupération des entrées depuis $lastSyncTimestamp (en secondes: $timestampInSeconds)")
+            Log.d(TAG, "DEBUG - URL API: $API_URL")
+                
             // Créer la requête HTTP
+            val url = "${API_URL}?since=$timestampInSeconds"
+            Log.d(TAG, "DEBUG - URL complète: $url")
+            
             val request = Request.Builder()
-                .url("${API_URL}?since=$lastSyncTimestamp")
+                .url(url)
                 .get()
                 .build()
             
             // Exécuter la requête
             httpClient.newCall(request).execute().use { response ->
                 if (!response.isSuccessful) {
+                    Log.e(TAG, "Erreur lors de la récupération des données: ${response.code}")
                     throw IOException("Erreur lors de la récupération des données: ${response.code}")
                 }
                 
                 // Analyser la réponse
                 val responseBody = response.body?.string()
-                val responseType = object : TypeToken<Map<String, List<Map<String, Any?>>>>() {}.type
-                val jsonResponse = gson.fromJson<Map<String, List<Map<String, Any?>>>>(responseBody, responseType)
+                Log.d(TAG, "DEBUG - Réponse du serveur (download): $responseBody")
                 
-                val entries = jsonResponse["entries"] ?: emptyList()
-                
-                if (entries.isNotEmpty()) {
-                    Log.d(TAG, "${entries.size} nouvelles entrées récupérées du serveur")
+                try {
+                    val responseType = object : TypeToken<Map<String, List<Map<String, Any?>>>>() {}.type
+                    val jsonResponse = gson.fromJson<Map<String, List<Map<String, Any?>>>>(responseBody, responseType)
                     
-                    // Filtrer les entrées qui ont déjà un serverEntryId correspondant
-                    val serverIds = entries.mapNotNull { (it["id"] as? Double)?.toLong() }
-                    val existingEntries = database.healthEntryDao().getEntriesByServerIds(serverIds)
-                    val existingServerIds = existingEntries.mapNotNull { it.serverEntryId }.toSet()
+                    val entries = jsonResponse["entries"] ?: emptyList()
                     
-                    // Ne conserver que les entrées qui n'existent pas déjà localement
-                    val newServerEntries = entries.filter { entryMap -> 
-                        val serverId = (entryMap["id"] as? Double)?.toLong()
-                        serverId == null || serverId !in existingServerIds
-                    }
-                    
-                    if (newServerEntries.isNotEmpty()) {
-                        Log.d(TAG, "${newServerEntries.size} nouvelles entrées à ajouter localement")
+                    if (entries.isNotEmpty()) {
+                        Log.d(TAG, "${entries.size} nouvelles entrées récupérées du serveur")
                         
-                        // Convertir les entrées JSON en objets HealthEntry
-                        val newEntries = newServerEntries.map { entryMap ->
-                            createHealthEntryFromMap(entryMap)
+                        // Filtrer les entrées qui ont déjà un serverEntryId correspondant
+                        val serverIds = entries.mapNotNull { (it["id"] as? Double)?.toLong() }
+                        Log.d(TAG, "DEBUG - IDs serveur: $serverIds")
+                        
+                        val existingEntries = database.healthEntryDao().getEntriesByServerIds(serverIds)
+                        Log.d(TAG, "DEBUG - Entrées existantes: ${existingEntries.size}")
+                        
+                        val existingServerIds = existingEntries.mapNotNull { it.serverEntryId }.toSet()
+                        Log.d(TAG, "DEBUG - IDs serveur existants: $existingServerIds")
+                        
+                        // Ne conserver que les entrées qui n'existent pas déjà localement
+                        val newServerEntries = entries.filter { entryMap -> 
+                            val serverId = (entryMap["id"] as? Double)?.toLong()
+                            serverId == null || serverId !in existingServerIds
                         }
                         
-                        // Insérer les nouvelles entrées dans la base de données locale
-                        database.healthEntryDao().insertOrUpdateEntries(newEntries)
+                        if (newServerEntries.isNotEmpty()) {
+                            Log.d(TAG, "${newServerEntries.size} nouvelles entrées à ajouter localement")
+                            
+                            // Convertir les entrées JSON en objets HealthEntry
+                            val newEntries = newServerEntries.map { entryMap ->
+                                createHealthEntryFromMap(entryMap)
+                            }
+                            
+                            // Insérer les nouvelles entrées dans la base de données locale
+                            database.healthEntryDao().insertOrUpdateEntries(newEntries)
+                            Log.d(TAG, "DEBUG - ${newEntries.size} entrées insérées dans la base de données locale")
+                        } else {
+                            Log.d(TAG, "Toutes les entrées du serveur existent déjà localement")
+                        }
                     } else {
-                        Log.d(TAG, "Toutes les entrées du serveur existent déjà localement")
+                        Log.d(TAG, "Aucune nouvelle entrée sur le serveur")
                     }
-                } else {
-                    Log.d(TAG, "Aucune nouvelle entrée sur le serveur")
+                } catch (e: Exception) {
+                    Log.e(TAG, "Erreur lors du parsing de la réponse JSON: ${e.message}", e)
                 }
             }
+        } catch (e: Exception) {
+            Log.e(TAG, "Erreur lors de la synchronisation des données: ${e.message}", e)
+        }
         }
         
         /**
@@ -298,12 +333,26 @@ class SyncManager @Inject constructor(
             
             // Convertir la chaîne de date en LocalDateTime
             val timestampStr = entryMap["timestamp"] as String
-            val timestamp = LocalDateTime.parse(timestampStr, dateFormatter)
+            // Gérer les deux formats possibles de date
+            val timestamp = try {
+                LocalDateTime.parse(timestampStr, dateFormatter)
+            } catch (e: Exception) {
+                try {
+                    // Essayer un autre format si le premier échoue
+                    LocalDateTime.parse(timestampStr, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
+                } catch (e2: Exception) {
+                    Log.e(TAG, "Erreur de parsing de la date: $timestampStr", e2)
+                    LocalDateTime.now() // Fallback en cas d'erreur
+                }
+            }
             
             val weight = (entryMap["weight"] as? Double)?.toFloat()
             val waistMeasurement = (entryMap["waistMeasurement"] as? Double)?.toFloat()
             val bodyFat = (entryMap["bodyFat"] as? Double)?.toFloat()
             val notes = entryMap["notes"] as? String
+            val deleted = (entryMap["deleted"] as? Boolean) ?: false
+            
+            Log.d(TAG, "DEBUG - Création d'une entrée depuis le serveur: id=$id, timestamp=$timestamp, weight=$weight, deleted=$deleted")
             
             return HealthEntry(
                 id = 0, // ID local généré automatiquement
@@ -314,7 +363,8 @@ class SyncManager @Inject constructor(
                 bodyFat = bodyFat,
                 notes = notes,
                 synced = true,
-                serverEntryId = id
+                serverEntryId = id,
+                deleted = deleted
             )
         }
     }

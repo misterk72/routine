@@ -37,7 +37,11 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         // Set up the Toolbar
-        binding.toolbar.title = getString(R.string.app_name)
+        var title = getString(R.string.app_name)
+        if (com.healthtracker.BuildConfig.FLAVOR == "dev") {
+            title += " [DEV]"
+        }
+        binding.toolbar.title = title
         binding.toolbar.inflateMenu(R.menu.menu_main)
         
         // Set up toolbar menu item clicks

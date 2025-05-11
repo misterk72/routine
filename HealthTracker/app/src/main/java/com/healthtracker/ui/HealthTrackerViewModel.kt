@@ -6,8 +6,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.healthtracker.data.HealthEntry
 import com.healthtracker.data.HealthEntryWithUser
+import com.healthtracker.data.Location
 import com.healthtracker.data.User
 import com.healthtracker.data.repository.HealthEntryRepository
+import com.healthtracker.data.repository.LocationRepository
 import com.healthtracker.data.repository.MetricRepository
 import com.healthtracker.data.repository.MetricTypeRepository
 import com.healthtracker.data.repository.UserRepository
@@ -21,7 +23,8 @@ class HealthTrackerViewModel @Inject constructor(
     private val healthEntryRepository: HealthEntryRepository,
     private val metricRepository: MetricRepository,
     private val metricTypeRepository: MetricTypeRepository,
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val locationRepository: LocationRepository
 ) : ViewModel() {
 
     private val _entries = MutableLiveData<List<HealthEntry>>(emptyList())
@@ -38,11 +41,15 @@ class HealthTrackerViewModel @Inject constructor(
     
     private val _defaultUser = MutableLiveData<User?>(null)
     val defaultUser: LiveData<User?> = _defaultUser
+    
+    private val _locations = MutableLiveData<List<Location>>(emptyList())
+    val locations: LiveData<List<Location>> = _locations
 
     init {
         loadEntriesWithUser()
         loadUsers()
         loadDefaultUser()
+        loadLocations()
     }
 
     fun loadEntries() {
@@ -151,6 +158,36 @@ class HealthTrackerViewModel @Inject constructor(
             
             // Mettre à jour l'utilisateur dans la base de données
             userRepository.updateUser(updatedUser)
+        }
+    }
+    
+    // Fonctions pour gérer les localisations
+    private fun loadLocations() {
+        // Pas besoin de viewModelScope.launch car allLocations est déjà un LiveData
+        locationRepository.allLocations.observeForever { locationsList ->
+            _locations.value = locationsList
+            android.util.Log.d("HealthTrackerViewModel", "Localisations chargées: ${locationsList.size}")
+        }
+    }
+    
+    fun addLocation(location: Location) {
+        viewModelScope.launch {
+            val locationId = locationRepository.insertLocation(location)
+            loadLocations() // Recharger les localisations après l'ajout
+        }
+    }
+    
+    fun updateLocation(location: Location) {
+        viewModelScope.launch {
+            locationRepository.updateLocation(location)
+            loadLocations() // Recharger les localisations après la mise à jour
+        }
+    }
+    
+    fun deleteLocation(location: Location) {
+        viewModelScope.launch {
+            locationRepository.deleteLocation(location)
+            loadLocations() // Recharger les localisations après la suppression
         }
     }
 }

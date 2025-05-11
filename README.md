@@ -1,41 +1,5 @@
-# Suivi Santé - Application Android
 
-*Note: L'application est entièrement en français et optimisée pour une utilisation en France*
-
-## Aperçu du Projet
-Une application Android pour suivre les métriques de santé personnelles, notamment :
-- Masse corporelle (kg)
-- Masse graisseuse (kg)
-- Tour de taille (cm)
-- Remarques/notes de santé
-- Horodatage pour toutes les entrées
-- Gestion multi-utilisateurs
-- Base de données SQLite locale avec synchronisation vers MariaDB
-- Conteneur Docker pour le serveur MariaDB et l'API PHP
-- Intégration Grafana pour la visualisation des données
-
-## Exigences Techniques
-
-### Environnement de Développement
-- Android Studio (latest version)
-- Minimum Android SDK: API 24 (Android 7.0)
-- Target Android SDK: API 34 (Android 14)
-- Kotlin programming language
-
-### Dépendances
-```gradle
-dependencies {
-    // Android Core Libraries
-    implementation 'androidx.core:core-ktx:1.12.0'
-    implementation 'androidx.appcompat:appcompat:1.6.1'
-    implementation 'com.google.android.material:material:1.11.0'
-    
-    // Room Database for local storage
-    implementation 'androidx.room:room-runtime:2.6.1'
-    implementation 'androidx.room:room-ktx:2.6.1'
-    kapt 'androidx.room:room-compiler:2.6.1'
-    
-    // Coroutines for async operations
+fatal : cannot exec '/mnt/nas_Media/Download/W
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
     
     // ViewModel and LiveData

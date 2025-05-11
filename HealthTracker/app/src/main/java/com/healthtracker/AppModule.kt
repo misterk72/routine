@@ -3,8 +3,11 @@ package com.healthtracker
 import android.content.Context
 import androidx.room.Room
 import com.healthtracker.data.HealthDatabase
+import com.healthtracker.data.LocationDao
 import com.healthtracker.data.UserDao
+import com.healthtracker.data.repository.LocationRepository
 import com.healthtracker.data.repository.UserRepository
+import com.healthtracker.location.LocationService
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -31,5 +34,26 @@ object AppModule {
     @Singleton
     fun provideUserRepository(database: HealthDatabase): UserRepository {
         return UserRepository(database)
+    }
+    
+    @Provides
+    @Singleton
+    fun provideLocationDao(database: HealthDatabase): LocationDao {
+        return database.locationDao()
+    }
+    
+    @Provides
+    @Singleton
+    fun provideLocationRepository(locationDao: LocationDao): LocationRepository {
+        return LocationRepository(locationDao)
+    }
+    
+    @Provides
+    @Singleton
+    fun provideLocationService(
+        @ApplicationContext context: Context,
+        locationRepository: LocationRepository
+    ): LocationService {
+        return LocationService(context, locationRepository)
     }
 }

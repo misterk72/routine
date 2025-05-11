@@ -14,9 +14,10 @@ import com.healthtracker.data.converters.DateTimeConverters
         HealthEntry::class,
         MetricValue::class,
         MetricType::class,
-        User::class
+        User::class,
+        Location::class
     ],
-    version = 6,
+    version = 7,
     exportSchema = false
 )
 @TypeConverters(DateTimeConverters::class)
@@ -25,6 +26,7 @@ abstract class HealthDatabase : RoomDatabase() {
     abstract fun metricValueDao(): MetricValueDao
     abstract fun metricTypeDao(): MetricTypeDao
     abstract fun userDao(): UserDao
+    abstract fun locationDao(): LocationDao
 
     companion object {
         @Volatile
@@ -113,17 +115,114 @@ abstract class HealthDatabase : RoomDatabase() {
                 database.execSQL("ALTER TABLE health_entries ADD COLUMN deleted INTEGER NOT NULL DEFAULT 0")
             }
         }
+        
+        // Migration de la version 6 à 7 (ajout de la table Location et du champ locationId dans HealthEntry)
+        private val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // 1. Créer la table locations
+                database.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS locations (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        name TEXT NOT NULL,
+                        latitude REAL NOT NULL,
+                        longitude REAL NOT NULL,
+                        radius REAL NOT NULL DEFAULT 100,
+                        isDefault INTEGER NOT NULL DEFAULT 0
+                    )
+                    """
+                )
+                
+                // 2. Ajouter quelques localisations par défaut
+                database.execSQL(
+                    """
+                    INSERT INTO locations (name, latitude, longitude, isDefault) 
+                    VALUES ('Domène', 45.2028, 5.8417, 0)
+                    """
+                )
+                database.execSQL(
+                    """
+                    INSERT INTO locations (name, latitude, longitude, isDefault) 
+                    VALUES ('Avon', 48.4167, 2.7333, 0)
+                    """
+                )
+                database.execSQL(
+                    """
+                    INSERT INTO locations (name, latitude, longitude, isDefault) 
+                    VALUES ('La Roche-de-Glun', 45.0167, 4.8333, 0)
+                    """
+                )
+                
+                // 3. Vérifier si la colonne locationId existe déjà dans health_entries
+                try {
+                    database.execSQL("SELECT locationId FROM health_entries LIMIT 1")
+                } catch (e: Exception) {
+                    // La colonne n'existe pas, on l'ajoute
+                    database.execSQL("ALTER TABLE health_entries ADD COLUMN locationId INTEGER")
+                }
+                
+                // 4. Obtenir la structure actuelle de la table health_entries
+                val tableInfo = database.query("PRAGMA table_info(health_entries)")
+                val columnNames = mutableListOf<String>()
+                while (tableInfo.moveToNext()) {
+                    columnNames.add(tableInfo.getString(1)) // Le nom de la colonne est à l'index 1
+                }
+                tableInfo.close()
+                
+                // 5. Créer une table temporaire avec la structure complète incluant la contrainte de clé étrangère
+                database.execSQL(
+                    """
+                    CREATE TABLE health_entries_temp (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        userId INTEGER NOT NULL,
+                        timestamp TEXT NOT NULL,
+                        weight REAL,
+                        waistMeasurement REAL,
+                        bodyFat REAL,
+                        notes TEXT,
+                        locationId INTEGER,
+                        synced INTEGER NOT NULL DEFAULT 0,
+                        serverEntryId INTEGER,
+                        deleted INTEGER NOT NULL DEFAULT 0,
+                        FOREIGN KEY (userId) REFERENCES users (id) ON DELETE CASCADE,
+                        FOREIGN KEY (locationId) REFERENCES locations (id) ON DELETE SET NULL
+                    )
+                    """
+                )
+                
+                // 6. Construire la requête d'insertion en fonction des colonnes existantes
+                val selectColumns = columnNames.joinToString(", ")
+                
+                // 7. Copier les données de l'ancienne table vers la nouvelle
+                database.execSQL(
+                    """
+                    INSERT INTO health_entries_temp (${selectColumns})
+                    SELECT ${selectColumns} FROM health_entries
+                    """
+                )
+                
+                // 8. Supprimer l'ancienne table
+                database.execSQL("DROP TABLE health_entries")
+                
+                // 9. Renommer la table temporaire
+                database.execSQL("ALTER TABLE health_entries_temp RENAME TO health_entries")
+                
+                // 10. Recréer les index nécessaires
+                database.execSQL("CREATE INDEX index_health_entries_userId ON health_entries (userId)")
+                database.execSQL("CREATE INDEX index_health_entries_locationId ON health_entries (locationId)")
+            }
+        }
 
         fun getDatabase(context: Context): HealthDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
                     HealthDatabase::class.java,
-                    "health_database"
+                    com.healthtracker.BuildConfig.DATABASE_NAME
                 )
                 // Appliquer les migrations
-                .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
-                // Fallback en cas d'autres migrations
+                .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
+                // Fallback en cas d'autres migrations non gérées
                 .fallbackToDestructiveMigration()
                 // Allow main thread queries for testing
                 .allowMainThreadQueries()
