@@ -32,6 +32,23 @@ android {
             excludes += ['/META-INF/AL2.0', '/META-INF/LGPL2.1']
         }
     }
+    
+    // Configuration des build flavors pour dev et prod
+    flavorDimensions "environment"
+    productFlavors {
+        dev {
+            dimension "environment"
+            applicationIdSuffix ".dev"
+            versionNameSuffix "-dev"
+            buildConfigField "String", "API_BASE_URL", "\"http://192.168.0.13:5001/\""
+            buildConfigField "String", "DATABASE_NAME", "\"health_database_dev\""
+        }
+        prod {
+            dimension "environment"
+            buildConfigField "String", "API_BASE_URL", "\"http://192.168.0.103:5001/\""
+            buildConfigField "String", "DATABASE_NAME", "\"health_database\""
+        }
+    }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
@@ -41,6 +58,7 @@ android {
     }
     buildFeatures {
         viewBinding true
+        buildConfig true
     }
     repositories {
         google()
@@ -83,6 +101,9 @@ dependencies {
     
     // Startup
     implementation 'androidx.startup:startup-runtime:1.1.1'
+    
+    // Location Services
+    implementation 'com.google.android.gms:play-services-location:21.0.1'
 
     // Test dependencies
     testImplementation 'junit:junit:4.13.2'
