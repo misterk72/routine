@@ -27,4 +27,7 @@ interface LocationDao {
            "(ABS(latitude - :lat) < :latDelta) AND " +
            "(ABS(longitude - :lng) < :lngDelta)")
     suspend fun getNearbyLocations(lat: Double, lng: Double, latDelta: Double, lngDelta: Double): List<Location>
+    
+    @Query("SELECT COUNT(*) FROM locations")
+    suspend fun getLocationCount(): Int
 }

@@ -7,7 +7,7 @@ import android.os.Build
 import android.os.StrictMode
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration as WorkConfiguration
-import com.healthtracker.data.SampleDataProvider
+import com.healthtracker.data.DefaultLocationsProvider
 import dagger.hilt.android.HiltAndroidApp
 import java.util.Locale
 import javax.inject.Inject
@@ -21,7 +21,7 @@ class HealthTrackerApp : Application(), WorkConfiguration.Provider {
     lateinit var workerFactory: HiltWorkerFactory
     
     @Inject
-    lateinit var sampleDataProvider: SampleDataProvider
+    lateinit var defaultLocationsProvider: DefaultLocationsProvider
     
     override fun onCreate() {
         super.onCreate()
@@ -40,8 +40,8 @@ class HealthTrackerApp : Application(), WorkConfiguration.Provider {
             StrictMode.setVmPolicy(policy)
         }
         
-        // Insert sample data for testing
-        sampleDataProvider.insertSampleDataIfNeeded()
+        // Insertion uniquement des localisations par défaut
+        defaultLocationsProvider.insertDefaultLocationsIfNeeded()
     }
     
     private fun setLocale() {

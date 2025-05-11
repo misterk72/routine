@@ -243,3 +243,13 @@
   - Testé le flux complet d'ajout et de modification des entrées de santé
   - Vérifié l'affichage correct des données utilisateur et des métriques
   - Confirmé le bon fonctionnement du sélecteur de date et d'heure
+
+### 11 Mai 2025 - Suppression des données de test
+- Suppression du `SampleDataProvider` qui insérait des données de test (utilisateurs, entrées de santé, métriques)
+- Création d'un nouveau `DefaultLocationsProvider` qui ne conserve que les localisations par défaut (Domène, Avon, La Roche-de-Glun)
+- Ajout de la méthode `getLocationCount()` dans `LocationDao` et `LocationRepository`
+- Mise à jour de `HealthTrackerApp.kt` pour utiliser le nouveau `DefaultLocationsProvider`
+- Correction des problèmes de compilation liés aux dépendances manquantes (Google Play Services Location)
+- Ajout des constantes nécessaires dans le BuildConfig (DATABASE_NAME, API_BASE_URL, FLAVOR)
+- Test sur l'appareil de développement : vérification que les données de test sont supprimées mais que les localisations par défaut sont conservées
+- Création d'un fichier README.md pour documenter l'application

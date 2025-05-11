@@ -51,4 +51,10 @@ class LocationRepository @Inject constructor(
             locationDao.getNearbyLocations(latitude, longitude, radiusDelta, radiusDelta)
         }
     }
+    
+    suspend fun getLocationCount(): Int {
+        return withContext(Dispatchers.IO) {
+            locationDao.getLocationCount()
+        }
+    }
 }

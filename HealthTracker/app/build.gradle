@@ -24,6 +24,11 @@ android {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
+        debug {
+            buildConfigField "String", "DATABASE_NAME", "\"health_tracker.db\""
+            buildConfigField "String", "API_BASE_URL", "\"https://api.healthtracker.com/\""
+            buildConfigField "String", "FLAVOR", "\"dev\""
+        }
     }
     
     // Configuration pour résoudre les conflits de fichiers META-INF
@@ -41,6 +46,7 @@ android {
     }
     buildFeatures {
         viewBinding true
+        buildConfig true
     }
     repositories {
         google()
@@ -83,6 +89,9 @@ dependencies {
     
     // Startup
     implementation 'androidx.startup:startup-runtime:1.1.1'
+    
+    // Google Play Services - Location
+    implementation 'com.google.android.gms:play-services-location:21.0.1'
 
     // Test dependencies
     testImplementation 'junit:junit:4.13.2'
