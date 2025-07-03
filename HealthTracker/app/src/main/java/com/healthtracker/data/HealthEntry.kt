@@ -37,4 +37,6 @@ data class HealthEntry(
     val synced: Boolean = false, // Indique si l'entrée a été synchronisée avec le serveur
     val serverEntryId: Long? = null, // ID de l'entrée sur le serveur
     val deleted: Boolean = false // Indique si l'entrée a été supprimée (soft delete)
-)
+) {
+
+}

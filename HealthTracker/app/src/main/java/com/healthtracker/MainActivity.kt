@@ -2,12 +2,14 @@ package com.healthtracker
 
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
@@ -20,6 +22,7 @@ import com.healthtracker.ui.HealthEntryAdapter
 import com.healthtracker.ui.HealthTrackerViewModel
 import com.healthtracker.ui.SettingsActivity
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -83,6 +86,22 @@ class MainActivity : AppCompatActivity() {
         binding.fabAddEntry.setOnClickListener {
             // Launch AddEntryActivity to create a new entry
             startActivity(Intent(this, AddEntryActivity::class.java))
+        }
+
+        // Temporary button
+        val resyncButton: View = binding.inspectServerButton
+        resyncButton.setOnClickListener {
+            lifecycleScope.launch {
+                try {
+                    Log.d("MainActivity", "Bouton de resynchronisation cliqué. Lancement de la resynchronisation complète...")
+                    Toast.makeText(this@MainActivity, "Lancement de la resynchronisation complète...", Toast.LENGTH_SHORT).show()
+                    syncManager.performFullResynchronization()
+                    Toast.makeText(this@MainActivity, "Resynchronisation complète terminée.", Toast.LENGTH_LONG).show()
+                } catch (e: Exception) {
+                    Log.e("MainActivity", "Erreur lors de la resynchronisation complète", e)
+                    Toast.makeText(this@MainActivity, "Erreur de resync: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
+            }
         }
     }
 

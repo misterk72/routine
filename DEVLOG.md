@@ -199,6 +199,22 @@
   - Vérifié que tous les textes de l'interface utilisateur sont correctement traduits
   - Confirmé le bon fonctionnement de l'affichage des métriques avec le format français
   - Validé que tous les messages d'erreur et notifications sont en français
+
+### July 3, 2025
+- **Correction du Bug de Duplication des Données de Santé**
+  - Diagnostiqué un problème de duplication des entrées lors de la synchronisation avec le serveur.
+  - Corrigé la logique dans `SyncManager.kt` pour utiliser un `clientId` afin d'identifier de manière unique les entrées et d'éviter les doublons.
+  - Remplacé l'ancienne logique de synchronisation basée sur le timestamp par une correspondance d'ID client plus fiable.
+- **Implémentation de la Resynchronisation Complète**
+  - Ajouté une nouvelle fonction `performFullResynchronization` dans `SyncManager.kt`.
+  - Ce processus en trois étapes (upload des non-synchronisés, suppression locale, téléchargement complet) garantit la cohérence des données entre le client et le serveur.
+  - Ajouté un bouton temporaire "Resync Complet" sur l'écran principal pour déclencher manuellement cette action à des fins de test sur la version `dev`.
+- **Résolution des Erreurs de Build**
+  - Nettoyé et corrigé le fichier `SyncManager.kt` qui était corrompu par du code dupliqué et mal placé, provoquant des échecs de compilation.
+  - Ajouté les imports manquants (`android.util.Log`) dans `MainActivity.kt` pour finaliser la correction du build.
+- **Validation**
+  - Compilé et installé avec succès la variante `devDebug` sur un appareil de test.
+  - Testé la fonctionnalité de resynchronisation complète, confirmant la résolution du problème de duplication.
 - Implémenté la synchronisation avec MariaDB
   - Remplacé SQLite par MariaDB dans la configuration Docker
   - Créé une API PHP simple pour servir d'intermédiaire entre l'application Android et MariaDB

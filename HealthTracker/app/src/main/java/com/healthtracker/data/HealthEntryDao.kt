@@ -46,6 +46,9 @@ interface HealthEntryDao {
 
     @Query("SELECT * FROM health_entries WHERE id = :id AND deleted = 0")
     fun getEntryById(id: Long): Flow<HealthEntry?>
+
+    @Query("SELECT * FROM health_entries WHERE id = :id AND deleted = 0")
+    suspend fun getEntryByIdSuspend(id: Long): HealthEntry?
     
     @Query("SELECT * FROM health_entries WHERE deleted = 0 ORDER BY timestamp DESC LIMIT 1")
     fun getMostRecentEntry(): Flow<HealthEntry?>
@@ -70,6 +73,13 @@ interface HealthEntryDao {
      */
     @Query("SELECT * FROM health_entries WHERE deleted = 1 AND synced = 0")
     suspend fun getDeletedUnsyncedEntries(): List<HealthEntry>
+
+    /**
+     * Récupère les entrées qui ont été marquées comme synchronisées mais n'ont pas encore de serverEntryId.
+     * C'est un état transitoire qui se produit après un téléversement réussi mais avant le téléchargement de confirmation.
+     */
+    @Query("SELECT * FROM health_entries WHERE synced = 1 AND serverEntryId IS NULL AND deleted = 0")
+    suspend fun getSyncedEntriesWithoutServerId(): List<HealthEntry>
     
     @Query("UPDATE health_entries SET synced = 1, serverEntryId = :serverEntryId WHERE id = :id")
     suspend fun markAsSynced(id: Long, serverEntryId: Long)
@@ -85,4 +95,7 @@ interface HealthEntryDao {
     
     @Query("SELECT * FROM health_entries WHERE serverEntryId IN (:serverIds)")
     suspend fun getEntriesByServerIds(serverIds: List<Long>): List<HealthEntry>
+
+    @Query("DELETE FROM health_entries")
+    suspend fun deleteAllEntries()
 }

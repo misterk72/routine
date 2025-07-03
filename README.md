@@ -32,31 +32,24 @@ fatal : cannot exec '/mnt/nas_Media/Download/W
 - Suivi de l'état de synchronisation des entrées
 
 ### Schéma de la Base de Données
-```sql
-CREATE TABLE workouts (
-    id INTEGER PRIMARY KEY,
-    date_time DATETIME NOT NULL,
-    program TEXT,
-    duration_minutes INTEGER,
-    average_speed REAL,
-    distance_km REAL,
-    calories INTEGER,
-    calories_per_km REAL,
-    average_heart_rate INTEGER,
-    max_heart_rate INTEGER,
-    min_heart_rate INTEGER,
-    weight_kg REAL,
-    fat_mass_kg REAL,
-    fat_percentage REAL,
-    waist_circumference_cm REAL,
-    background_music TEXT,
-    observations TEXT,
-    custom_data JSON,
-    tags TEXT,
-    notes TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-);
+
+Le schéma de la base de données locale (Room) est défini par l'entité `HealthEntry`.
+
+```kotlin
+@Entity(tableName = "health_entries")
+data class HealthEntry(
+    @PrimaryKey(autoGenerate = true)
+    val id: Long = 0,
+    val userId: Long,
+    val timestamp: LocalDateTime,
+    val weight: Float? = null,
+    val waistMeasurement: Float? = null,
+    val bodyFat: Float? = null,
+    val notes: String? = null,
+    val synced: Boolean = false,
+    val serverEntryId: Long? = null,
+    val deleted: Boolean = false
+)
 ```
 
 ### Flux de Données
@@ -74,41 +67,32 @@ CREATE TABLE workouts (
 
 ## Structure du Projet
 
-### 1. Modèles de Données
-- Create flexible data classes for health metrics:
+### 1. Modèle de Données
+- L'application utilise un modèle de données simple et robuste centré sur la classe `HealthEntry`.
+
   ```kotlin
-  // Main entry that stores timestamp and metadata
   data class HealthEntry(
-      val id: Long,
-      val timestamp: Long,
-      val syncStatus: Boolean,
-      val note: String? = null
+      @PrimaryKey(autoGenerate = true)
+      val id: Long = 0,
+      val userId: Long, // Référence à l'utilisateur
+      val timestamp: LocalDateTime,
+      val weight: Float? = null,
+      val waistMeasurement: Float? = null,
+      val bodyFat: Float? = null,
+      val notes: String? = null,
+      val synced: Boolean = false, // Indique si l'entrée a été synchronisée
+      val serverEntryId: Long? = null, // ID de l'entrée sur le serveur
+      val deleted: Boolean = false // Pour la suppression logique (soft delete)
   )
-
-  // Flexible metric value storage
-  data class MetricValue(
-      val id: Long,
-      val entryId: Long,  // References HealthEntry
-      val metricType: String,  // e.g., "weight", "waist", "blood_pressure", etc.
-      val value: String,  // Store as string to support various formats
-      val unit: String?  // e.g., "kg", "cm", "mmHg", etc.
-  )
-
-  // Metric type definition for UI and validation
-  data class MetricType(
-      val name: String,  // e.g., "weight", "waist", etc.
-      val displayName: String,  // e.g., "Body Weight", "Waist Circumference"
-      val valueType: ValueType,  // NUMBER, TEXT, BOOLEAN
-      val defaultUnit: String?,
-      val validationRules: List<ValidationRule>? = null
-  )
-
-  enum class ValueType {
-      NUMBER,
-      TEXT,
-      BOOLEAN
-  }
   ```
+
+### 5. Synchronisation et Correction des Données
+- **Correction des Doublons** : Implémentation d'une logique de synchronisation avancée pour éliminer les doublons de données en se basant sur un `clientId` unique.
+- **Resynchronisation Complète** : Ajout d'une fonctionnalité de resynchronisation complète qui permet de :
+  1. Envoyer les entrées locales non synchronisées au serveur.
+  2. Supprimer toutes les données de la base de données locale.
+  3. Télécharger à nouveau toutes les entrées depuis le serveur.
+  Cette fonctionnalité est accessible via un bouton temporaire dans l'interface pour les tests en `dev`.
 
 ### 2. Couche Base de Données
 - Use Room database for local storage

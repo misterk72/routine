@@ -44,7 +44,8 @@ class SyncBroadcastReceiver : BroadcastReceiver() {
     private fun testServerConnection(context: Context) {
         Thread {
             try {
-                val url = "http://192.168.0.13:5001/sync.php?since=1746936175"
+                val baseUrl = com.healthtracker.BuildConfig.API_BASE_URL
+                val url = "${baseUrl}sync.php?since=1746936175"
                 Log.d(TAG, "Test de connexion au serveur: $url")
                 
                 val connection = java.net.URL(url).openConnection() as java.net.HttpURLConnection

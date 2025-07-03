@@ -23,11 +23,27 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            buildConfigField "String", "DATABASE_NAME", "\"health_tracker.db\""
         }
         debug {
             buildConfigField "String", "DATABASE_NAME", "\"health_tracker.db\""
-            buildConfigField "String", "API_BASE_URL", "\"https://api.healthtracker.com/\""
+        }
+    }
+    
+    flavorDimensions "environment"
+    
+    productFlavors {
+        dev {
+            dimension "environment"
+            versionNameSuffix "-dev"
+            buildConfigField "String", "API_BASE_URL", "\"http://192.168.0.13:5001/\""
             buildConfigField "String", "FLAVOR", "\"dev\""
+        }
+        
+        prod {
+            dimension "environment"
+            buildConfigField "String", "API_BASE_URL", "\"http://192.168.0.103:5001/\""
+            buildConfigField "String", "FLAVOR", "\"prod\""
         }
     }
     

@@ -18,6 +18,14 @@
 
     </com.google.android.material.appbar.AppBarLayout>
 
+    <Button
+        android:id="@+id/inspectServerButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Resync Complet"
+        android:layout_gravity="bottom|center_horizontal"
+        android:layout_margin="16dp" />
+
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/entriesRecyclerView"
         android:layout_width="match_parent"
