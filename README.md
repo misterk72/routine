@@ -1,5 +1,54 @@
 
-fatal : cannot exec '/mnt/nas_Media/Download/W
+# HealthTracker
+
+## Aperçu du Projet
+
+HealthTracker est une application Android conçue pour suivre les données de santé personnelles de manière simple et efficace. Elle permet aux utilisateurs d'enregistrer des mesures telles que le poids, le tour de taille et le pourcentage de graisse corporelle, et de synchroniser ces données avec un serveur pour une visualisation et une analyse à long terme.
+
+## Fonctionnalités Clés
+
+- **Saisie de Données Simplifiée** : Interface utilisateur intuitive pour ajouter rapidement des entrées de santé.
+- **Synchronisation Automatique** : Synchronisation des données en arrière-plan avec un serveur distant pour la sauvegarde et l'analyse.
+- **Stockage Local** : Utilisation de la base de données Room pour une expérience hors ligne fluide.
+- **Visualisation des Données** : Intégration avec Grafana pour créer des tableaux de bord interactifs.
+- **Gestion des Données** : Logique de suppression douce (`soft delete`) et détection des doublons pour maintenir la cohérence des données.
+- **Export de Données** : Exportation des données aux formats CSV, JSON et Excel.
+
+## Technologies Utilisées
+
+### Application Android
+- **Langage** : Kotlin
+- **Architecture** : MVVM (Model-View-ViewModel)
+- **UI** : Jetpack Compose
+- **Base de Données Locale** : Room
+- **Asynchronisme** : Coroutines et Flow
+- **Injection de Dépendances** : Hilt
+- **Tâches en Arrière-plan** : WorkManager
+- **Réseau** : OkHttp et Gson
+
+### Backend
+- **Base de Données** : MariaDB
+- **API** : PHP
+- **Conteneurisation** : Docker
+- **Visualisation** : Grafana
+
+## Dépendances Principales (build.gradle.kts)
+
+```kotlin
+dependencies {
+    // Core & UI
+    implementation 'androidx.core:core-ktx:1.12.0'
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'com.google.android.material:material:1.11.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+
+    // Room pour la base de données locale
+    implementation 'androidx.room:room-runtime:2.6.1'
+    kapt 'androidx.room:room-compiler:2.6.1'
+    implementation 'androidx.room:room-ktx:2.6.1'
+
+    // Coroutines pour la gestion des threads
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3'
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
     
     // ViewModel and LiveData
