@@ -6,6 +6,7 @@ import android.content.pm.PackageManager
 import android.location.Location
 import android.os.Looper
 import androidx.core.app.ActivityCompat
+import android.annotation.SuppressLint
 import com.google.android.gms.location.*
 import com.healthtracker.data.repository.LocationRepository
 import kotlinx.coroutines.CoroutineScope
@@ -45,6 +46,7 @@ class LocationService @Inject constructor(
     }
     
     // Démarre les mises à jour de localisation
+    @SuppressLint("MissingPermission")
     fun startLocationUpdates(onLocationDetected: (com.healthtracker.data.Location?) -> Unit) {
         if (!hasLocationPermissions()) {
             onLocationDetected(null)
