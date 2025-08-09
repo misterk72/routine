@@ -81,6 +81,7 @@ class LocationService @Inject constructor(
     }
     
     // Récupère la dernière localisation connue
+    @SuppressLint("MissingPermission")
     fun getLastLocation(onLocationDetected: (com.healthtracker.data.Location?) -> Unit) {
         if (!hasLocationPermissions()) {
             onLocationDetected(null)
