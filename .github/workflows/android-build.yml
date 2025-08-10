@@ -29,6 +29,9 @@ jobs:
       working-directory: HealthTracker
       run: gradle build -x test
 
+    - name: List build outputs
+      run: ls -R HealthTracker/app/build/outputs
+
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
