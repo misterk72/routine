@@ -83,3 +83,4 @@ HealthTracker/error_log.txt
 docker-sqlite/mysql-data
 .venv
 
+samples/Gadgetbridge.db
