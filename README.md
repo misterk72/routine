@@ -1,36 +1,69 @@
+# HealthTracker - Application de Suivi de Santé Personnelle
 
-# HealthTracker
+## Description
+HealthTracker est une application Android conçue pour suivre les données de santé personnelles (poids, tour de taille, masse graisseuse). Les données sont stockées localement puis synchronisées avec un serveur distant pour visualisation et analyse via Grafana.
 
-## Aperçu du Projet
+## Fonctionnalités
+- Saisie de données simple et rapide
+- Synchronisation automatique en arrière-plan (upload + download)
+- Support multi-utilisateurs
+- Stockage local hors ligne via Room (SQLite)
+- Visualisation des données via Grafana (côté serveur)
+- Gestion des suppressions (suppression logique) et détection de doublons
+- Export des données (CSV, JSON, Excel)
 
-HealthTracker est une application Android conçue pour suivre les données de santé personnelles de manière simple et efficace. Elle permet aux utilisateurs d'enregistrer des mesures telles que le poids, le tour de taille et le pourcentage de graisse corporelle, et de synchroniser ces données avec un serveur pour une visualisation et une analyse à long terme.
-
-## Fonctionnalités Clés
-
-- **Saisie de Données Simplifiée** : Interface utilisateur intuitive pour ajouter rapidement des entrées de santé.
-- **Synchronisation Automatique** : Synchronisation des données en arrière-plan avec un serveur distant pour la sauvegarde et l'analyse.
-- **Stockage Local** : Utilisation de la base de données Room pour une expérience hors ligne fluide.
-- **Visualisation des Données** : Intégration avec Grafana pour créer des tableaux de bord interactifs.
-- **Gestion des Données** : Logique de suppression douce (`soft delete`) et détection des doublons pour maintenir la cohérence des données.
-- **Export de Données** : Exportation des données aux formats CSV, JSON et Excel.
-
-## Technologies Utilisées
+## Architecture Technique
 
 ### Application Android
 - **Langage** : Kotlin
 - **Architecture** : MVVM (Model-View-ViewModel)
 - **UI** : Jetpack Compose
-- **Base de Données Locale** : Room
+- **Base de données locale** : Room (SQLite)
 - **Asynchronisme** : Coroutines et Flow
-- **Injection de Dépendances** : Hilt
-- **Tâches en Arrière-plan** : WorkManager
-- **Réseau** : OkHttp et Gson
+- **Injection de dépendances** : Hilt
+- **Tâches en arrière-plan** : WorkManager
+- **Communication réseau** : OkHttp et Gson
 
 ### Backend
-- **Base de Données** : MariaDB
+- **Base de données** : MariaDB
 - **API** : PHP
 - **Conteneurisation** : Docker
 - **Visualisation** : Grafana
+
+## Variantes de Build
+- **dev** : Se connecte au serveur de développement (192.168.0.13:5001)
+- **prod** : Se connecte au serveur de production (192.168.0.103:5001)
+
+## Synchronisation des Données
+L'application utilise WorkManager pour synchroniser périodiquement les données entre la base de données locale et le serveur. La synchronisation comprend :
+
+1. **Upload** : Envoi des entrées non synchronisées au serveur
+2. **Download** : Téléchargement des nouvelles entrées depuis le serveur
+3. **Gestion des utilisateurs** : Création intelligente d'utilisateurs temporaires si nécessaire
+4. **Gestion des suppressions** : Synchronisation des entrées supprimées (suppression logique)
+
+## Modèle de Données
+
+### Entités Principales
+- **User** : Représente un utilisateur avec un identifiant unique et un nom
+- **HealthEntry** : Entrée de données de santé avec référence à l'utilisateur
+
+```kotlin
+@Entity(tableName = "health_entries")
+data class HealthEntry(
+    @PrimaryKey(autoGenerate = true)
+    val id: Long = 0,
+    val userId: Long,  // Clé étrangère vers User.id
+    val timestamp: LocalDateTime,
+    val weight: Float? = null,
+    val waistMeasurement: Float? = null,
+    val bodyFat: Float? = null,
+    val notes: String? = null,
+    val synced: Boolean = false,
+    val serverEntryId: Long? = null,
+    val deleted: Boolean = false
+)
+```
 
 ## Dépendances Principales (build.gradle.kts)
 
@@ -67,6 +100,21 @@ dependencies {
     kapt 'com.google.dagger:hilt-android-compiler:2.50'
 }
 ```
+
+## Dernières Améliorations (Juillet 2025)
+- Correction des problèmes de contrainte de clé étrangère lors de la synchronisation
+- Amélioration de la gestion des utilisateurs pour préserver les noms personnalisés
+- Résolution du problème de sélecteur d'utilisateur manquant dans l'interface
+
+## Installation
+L'application peut être installée via les fichiers APK générés pour les variantes dev et prod :
+```
+adb install -r app/build/outputs/apk/dev/debug/app-dev-debug.apk
+adb install -r app/build/outputs/apk/prod/debug/app-prod-debug.apk
+```
+
+## Documentation
+Consultez le fichier DEVLOG.md pour un historique détaillé du développement du projet.
 
 ## Architecture Backend
 

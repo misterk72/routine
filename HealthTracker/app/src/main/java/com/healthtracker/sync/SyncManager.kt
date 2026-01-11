@@ -7,9 +7,11 @@ import com.google.gson.GsonBuilder
 import com.google.gson.reflect.TypeToken
 import com.healthtracker.data.HealthDatabase
 import com.healthtracker.data.HealthEntry
+import com.healthtracker.data.User
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.flow.first
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -207,108 +209,162 @@ class SyncManager @Inject constructor(
             .post(requestBody)
             .build()
 
-        try {
-            httpClient.newCall(request).execute().use { response ->
-                if (!response.isSuccessful) {
-                    throw IOException("Erreur lors de l'envoi des données: ${response.code}")
-                }
-                val responseBody = response.body?.string()
-                Log.d(TAG, "DEBUG - Réponse du serveur (upload): $responseBody")
-
-                val idsToMarkSynced = allEntries.map { it.id }
-                database.healthEntryDao().markAllAsSynced(idsToMarkSynced)
-                Log.d(TAG, "${idsToMarkSynced.size} entrées marquées comme synchronisées")
+        httpClient.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) {
+                throw IOException("Erreur lors de l'envoi des données: ${response.code}")
             }
-        } catch (e: Exception) {
-            Log.e(TAG, "Erreur lors de l'envoi des données: ${e.message}", e)
+            val responseBody = response.body?.string()
+            Log.d(TAG, "DEBUG - Réponse du serveur (upload): $responseBody")
+
+            val idsToMarkSynced = allEntries.map { it.id }
+            database.healthEntryDao().markAllAsSynced(idsToMarkSynced)
+            Log.d(TAG, "${idsToMarkSynced.size} entrées marquées comme synchronisées")
         }
     }
 
     private suspend fun downloadNewEntries(database: HealthDatabase, fetchAll: Boolean = false) {
         val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-        try {
-            val urlBuilder = API_URL.toHttpUrlOrNull()?.newBuilder() ?: run {
-                Log.e(TAG, "URL API invalide: $API_URL")
-                return
-            }
-            if (!fetchAll) {
-                val lastSyncTimestamp = getLastSyncTimestamp()
-                val timestampInSeconds = lastSyncTimestamp / 1000
-                urlBuilder.addQueryParameter("since", timestampInSeconds.toString())
-            }
-            val url = urlBuilder.build().toString()
-            val request = Request.Builder().url(url).get().build()
+        val urlBuilder = API_URL.toHttpUrlOrNull()?.newBuilder() ?: run {
+            Log.e(TAG, "URL API invalide: $API_URL")
+            return
+        }
+        if (!fetchAll) {
+            val lastSyncTimestamp = getLastSyncTimestamp()
+            val timestampInSeconds = lastSyncTimestamp / 1000
+            urlBuilder.addQueryParameter("since", timestampInSeconds.toString())
+        }
+        val url = urlBuilder.build().toString()
+        val request = Request.Builder().url(url).get().build()
 
-            httpClient.newCall(request).execute().use { response ->
-                if (!response.isSuccessful) throw IOException("Erreur HTTP: ${response.code}")
+        httpClient.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) throw IOException("Erreur HTTP: ${response.code}")
 
-                val responseBody = response.body?.string()
-                if (responseBody.isNullOrEmpty()) {
-                    Log.d(TAG, "Réponse du serveur vide.")
-                    return@use
+            val responseBody = response.body?.string()
+            if (responseBody.isNullOrEmpty()) {
+                Log.d(TAG, "Réponse du serveur vide.")
+                return@use
+            }
+
+            val responseType = object : TypeToken<Map<String, List<Map<String, Any?>>>>() {}.type
+            val jsonResponse = gson.fromJson<Map<String, List<Map<String, Any?>>>>(responseBody, responseType)
+
+            // Étape 1: Synchroniser les utilisateurs
+            val serverUsersMap = jsonResponse["users"]
+            if (serverUsersMap != null) {
+                val usersToInsert = serverUsersMap.mapNotNull { userMap ->
+                    val userId = (userMap["id"] as? Double)?.toLong()
+                    val userName = userMap["name"] as? String
+                    if (userId != null && userName != null) {
+                        User(id = userId, name = userName)
+                    } else {
+                        Log.w(TAG, "Utilisateur serveur ignoré, données invalides: $userMap")
+                        null
+                    }
+                }
+                if (usersToInsert.isNotEmpty()) {
+                    database.userDao().insertOrUpdateUsers(usersToInsert)
+                    Log.d(TAG, "${usersToInsert.size} utilisateurs insérés/mis à jour depuis le serveur.")
+                }
+            }
+
+            // Étape 2: Gérer les utilisateurs manquants de manière plus intelligente
+            val serverEntriesMap = jsonResponse["entries"] ?: emptyList()
+            val userDao = database.userDao()
+            val existingUsers = userDao.getAllUsers().first()
+            val existingUserIds = existingUsers.map { it.id }.toSet()
+            
+            // Récupérer les IDs d'utilisateurs manquants
+            val missingUserIds = serverEntriesMap
+                .mapNotNull { (it["userId"] as? Double)?.toLong() }
+                .filter { it !in existingUserIds }
+                .distinct()
+                
+            // Si nous avons des utilisateurs manquants et qu'il existe au moins un utilisateur par défaut
+            if (missingUserIds.isNotEmpty()) {
+                // Trouver l'utilisateur par défaut ou le premier utilisateur disponible
+                val defaultUser = existingUsers.find { it.isDefault } ?: existingUsers.firstOrNull()
+                
+                if (defaultUser != null) {
+                    // Créer une entrée temporaire dans la table des utilisateurs pour chaque ID manquant
+                    // en utilisant l'ID du serveur mais en préservant le nom de l'utilisateur par défaut
+                    val temporaryUsers = missingUserIds.map { userId ->
+                        User(id = userId, name = defaultUser.name, isDefault = false)
+                    }
+                    
+                    userDao.insertOrUpdateUsers(temporaryUsers)
+                    Log.d(TAG, "${temporaryUsers.size} utilisateurs temporaires créés avec le nom '${defaultUser.name}'")
+                } else {
+                    // Cas de secours: créer un utilisateur par défaut si aucun n'existe
+                    val defaultUserName = "Utilisateur par défaut"
+                    val newDefaultUser = User(id = 1, name = defaultUserName, isDefault = true)
+                    userDao.insert(newDefaultUser)
+                    
+                    // Puis créer les utilisateurs temporaires
+                    val temporaryUsers = missingUserIds.map { userId ->
+                        User(id = userId, name = defaultUserName, isDefault = false)
+                    }
+                    
+                    userDao.insertOrUpdateUsers(temporaryUsers)
+                    Log.d(TAG, "Utilisateur par défaut créé et ${temporaryUsers.size} utilisateurs temporaires ajoutés")
+                }
+            }
+
+            // Étape 3: Synchroniser les entrées
+
+            if (serverEntriesMap.isEmpty()) {
+                Log.d(TAG, "Aucune nouvelle entrée sur le serveur.")
+                // Ne pas retourner ici, car il pourrait y avoir eu des utilisateurs à synchroniser
+            }
+
+            val newEntriesToInsert = mutableListOf<HealthEntry>()
+            val dao = database.healthEntryDao()
+
+            for (entryMap in serverEntriesMap) {
+                val serverId = (entryMap["id"] as? Double)?.toLong()
+                val clientId = (entryMap["clientId"] as? Double)?.toLong()
+
+                if (serverId == null) {
+                    Log.w(TAG, "Entrée serveur ignorée, ID manquant: $entryMap")
+                    continue
                 }
 
-                val responseType = object : TypeToken<Map<String, List<Map<String, Any?>>>>() {}.type
-                val jsonResponse = gson.fromJson<Map<String, List<Map<String, Any?>>>>(responseBody, responseType)
-                val serverEntriesMap = jsonResponse["entries"] ?: emptyList()
-
-                if (serverEntriesMap.isEmpty()) {
-                    Log.d(TAG, "Aucune nouvelle entrée sur le serveur.")
-                    return@use
-                }
-
-                val newEntriesToInsert = mutableListOf<HealthEntry>()
-                val dao = database.healthEntryDao()
-
-                for (entryMap in serverEntriesMap) {
-                    val serverId = (entryMap["id"] as? Double)?.toLong()
-                    val clientId = (entryMap["clientId"] as? Double)?.toLong()
-
-                    if (serverId == null) {
-                        Log.w(TAG, "Entrée serveur ignorée, ID manquant: $entryMap")
+                if (clientId != null && !fetchAll) {
+                    val localEntry = dao.getEntryByIdSuspend(clientId)
+                    if (localEntry != null && localEntry.serverEntryId == null) {
+                        Log.d(TAG, "Correspondance par clientId: id local ${localEntry.id} -> id serveur $serverId")
+                        dao.markAsSynced(localEntry.id, serverId)
                         continue
                     }
-
-                    if (clientId != null && !fetchAll) {
-                        val localEntry = dao.getEntryByIdSuspend(clientId)
-                        if (localEntry != null && localEntry.serverEntryId == null) {
-                            Log.d(TAG, "Correspondance par clientId: id local ${localEntry.id} -> id serveur $serverId")
-                            dao.markAsSynced(localEntry.id, serverId)
-                            continue
-                        }
-                    }
-
-                    val existingEntry = dao.getEntriesByServerIds(listOf(serverId))
-                    if (existingEntry.isNotEmpty()) {
-                        Log.d(TAG, "Entrée avec id serveur $serverId déjà présente localement. Ignorée.")
-                        continue
-                    }
-
-                    val timestamp = LocalDateTime.parse(entryMap["timestamp"] as String, dateFormatter)
-                    val newEntry = HealthEntry(
-                        id = 0, // Room will auto-generate
-                        serverEntryId = serverId,
-                        userId = (entryMap["userId"] as Double).toLong(),
-                        timestamp = timestamp,
-                        weight = (entryMap["weight"] as? Double)?.toFloat(),
-                        waistMeasurement = (entryMap["waistMeasurement"] as? Double)?.toFloat(),
-                        bodyFat = (entryMap["bodyFat"] as? Double)?.toFloat(),
-                        notes = entryMap["notes"] as? String,
-                        synced = true,
-                        deleted = (entryMap["deleted"] as? Double)?.toInt() == 1
-                    )
-                    if (!newEntry.deleted) { // Do not insert entries that are marked as deleted on the server
-                        newEntriesToInsert.add(newEntry)
-                    }
                 }
 
-                if (newEntriesToInsert.isNotEmpty()) {
-                    dao.insertOrUpdateEntries(newEntriesToInsert)
-                    Log.d(TAG, "${newEntriesToInsert.size} nouvelles entrées insérées depuis le serveur.")
+                val existingEntry = dao.getEntriesByServerIds(listOf(serverId))
+                if (existingEntry.isNotEmpty()) {
+                    Log.d(TAG, "Entrée avec id serveur $serverId déjà présente localement. Ignorée.")
+                    continue
+                }
+
+                val timestamp = LocalDateTime.parse(entryMap["timestamp"] as String, dateFormatter)
+                val newEntry = HealthEntry(
+                    id = 0, // Room auto-génère
+                    serverEntryId = serverId,
+                    userId = (entryMap["userId"] as Double).toLong(),
+                    timestamp = timestamp,
+                    weight = (entryMap["weight"] as? Double)?.toFloat(),
+                    waistMeasurement = (entryMap["waistMeasurement"] as? Double)?.toFloat(),
+                    bodyFat = (entryMap["bodyFat"] as? Double)?.toFloat(),
+                    notes = entryMap["notes"] as? String,
+                    synced = true,
+                    deleted = (entryMap["deleted"] as? Double)?.toInt() == 1
+                )
+                if (!newEntry.deleted) {
+                    newEntriesToInsert.add(newEntry)
                 }
             }
-        } catch (e: Exception) {
-            Log.e(TAG, "Erreur lors du téléchargement des nouvelles données: ${e.message}", e)
+
+            if (newEntriesToInsert.isNotEmpty()) {
+                dao.insertOrUpdateEntries(newEntriesToInsert)
+                Log.d(TAG, "${newEntriesToInsert.size} nouvelles entrées insérées depuis le serveur.")
+            }
         }
     }
 
@@ -331,7 +387,7 @@ class SyncManager @Inject constructor(
                     Result.success()
                 } catch (e: Exception) {
                     Log.e(TAG, "Erreur lors de la synchronisation", e)
-                    Result.retry()
+                    Result.failure()
                 }
             }
         }
