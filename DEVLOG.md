@@ -269,3 +269,21 @@
 - Ajout des constantes nécessaires dans le BuildConfig (DATABASE_NAME, API_BASE_URL, FLAVOR)
 - Test sur l'appareil de développement : vérification que les données de test sont supprimées mais que les localisations par défaut sont conservées
 - Création d'un fichier README.md pour documenter l'application
+
+### 4 Juillet 2025 - Correction des problèmes de synchronisation et de sélection d'utilisateurs
+- **Résolution du problème de contrainte de clé étrangère lors de la synchronisation**
+  - Diagnostiqué un problème où les entrées de santé téléchargées référençaient des utilisateurs qui n'existaient pas encore localement
+  - Amélioré la logique dans `SyncManager.kt` pour gérer intelligemment les utilisateurs manquants
+  - Implémenté une approche qui préserve les noms d'utilisateurs existants au lieu de créer des utilisateurs génériques
+- **Correction du problème de sélecteur d'utilisateur manquant**
+  - Résolu le problème où le sélecteur d'utilisateur disparaissait de l'interface lors de l'ajout d'entrées
+  - Modifié la création des utilisateurs temporaires pour utiliser le nom de l'utilisateur par défaut
+  - Évité le remplacement des utilisateurs personnalisés par des utilisateurs génériques
+- **Améliorations de la synchronisation**
+  - Ajouté une logique pour détecter l'utilisateur par défaut et utiliser son nom pour les utilisateurs temporaires
+  - Implémenté une gestion de secours si aucun utilisateur par défaut n'existe
+  - Amélioré la journalisation pour faciliter le débogage des problèmes de synchronisation
+- **Tests et validation**
+  - Compilé et installé avec succès les variantes `devDebug` et `prodDebug` sur un appareil de test
+  - Vérifié que la synchronisation fonctionne correctement sans erreurs de contrainte de clé étrangère
+  - Confirmé que le sélecteur d'utilisateur est visible et fonctionnel dans l'interface
