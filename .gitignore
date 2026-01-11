@@ -81,4 +81,9 @@ google-services.json
 *.hprof
 HealthTracker/error_log.txt
 docker-sqlite/mysql-data
+workout_hr_2025-01-10_device_9.png
+Entrainement vélo elliptique3.xlsx
+Withings_Weight_Data.xlsx
+workout.csv
 .venv
+Gadgetbridge/Gadgetbridge.db
