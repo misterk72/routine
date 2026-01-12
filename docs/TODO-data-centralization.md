@@ -21,25 +21,37 @@
 - [x] Optionnel : `gadgetbridge_samples` (timestamp, heart_rate, steps, device_id).
 
 ## 2. Mapping utilisateurs
-- Renseigner les profils (nom, alias).
-- Associer chaque bracelet/app a un `user_profile_id`.
+- [x] Renseigner les profils (nom, alias).
+- [x] Associer chaque bracelet/app a un `user_profile_id`.
+  - MB5-3 (Vincent) -> Vincent
+  - Note: "ZPERDU" signifie bracelet perdu, les donnees doivent rester associees a l'utilisateur d'origine.
+  - ZHS MB1 -> Christophe (bracelet HS)
+  - MB3-1 -> Christophe (probable)
+  - ZPERDU Antoine - MB3-2 -> Antoine
+  - ZPERDU Antoine - MB5-1 -> Antoine
+  - ZPERDU Antoine - MB5-4 -> Antoine
+  - ZPERDU Vincent - MB5-2 -> Vincent
+  - Christophe - MB4-1 -> Christophe
+  - ZHS Antoine - MB4-2 -> Antoine
+  - Antoine - MB4-3 -> Antoine
+  - Device 11 (alias vide) -> Antoine (donnees faibles, exclure des stats si steps=0)
 
 ## 3. Import Withings
-- Parser `Withings_Weight_Data.xlsx`.
-- Inserer dans `weight_measurements`.
-- Generer `source_uid` unique (ex. `withings:<measure_id>`).
+- [x] Parser `Withings_Weight_Data.xlsx` (script `docker-sqlite/import_withings_mariadb.py`).
+- [x] Inserer dans `weight_measurements` (profil Christophe, 4272 lignes).
+- [x] Generer `source_uid` unique (format `device_id:timestamp`).
 
 ## 4. Import Gadgetbridge
-- Lister les `DEVICE_ID` et alias.
-- Extraire les sessions (BASE_ACTIVITY_SUMMARY).
-- Calculer FC moyenne/min/max via samples.
-- Inserer dans `workouts` avec `source_uid`.
-- Optionnel : inserer les samples dans `gadgetbridge_samples`.
+- [x] Lister les `DEVICE_ID` et alias.
+- [x] Extraire les sessions (BASE_ACTIVITY_SUMMARY).
+- [x] Calculer FC moyenne/min/max via samples.
+- [x] Inserer dans `workouts` avec `source_uid` (305 lignes).
+- [x] Optionnel : inserer les samples dans `gadgetbridge_samples` (5,078,999 lignes).
 
 ## 5. Saisie manuelle
-- Definir un format de saisie minimal (programme, duree, distance, calories).
-- Implementer une petite UI mobile (ou reutiliser HealthTracker).
-- Inserer dans `workouts` avec `source=manual`.
+- [x] Definir un format de saisie minimal (programme, duree, distance, calories).
+- [ ] Implementer une petite UI mobile (ou reutiliser HealthTracker).
+- [x] Inserer dans `workouts` avec `source=manual` (1140 lignes).
 
 ## 6. Fusion et deduplication
 - Regles de priorite (Withings > HealthTracker pour poids).
