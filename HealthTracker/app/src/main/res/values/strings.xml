@@ -27,6 +27,7 @@
     <string name="add_new_health_entry">Add new health entry</string>
     <string name="edit_health_entry">Edit Health Entry</string>
     <string name="new_health_entry">New Health Entry</string>
+    <string name="add_workout_entry">Add workout</string>
     
     <!-- Settings Activity -->
     <string name="settings">Settings</string>
@@ -45,6 +46,12 @@
     <!-- Entry Activity -->
     <string name="date_and_time">Date and Time</string>
     <string name="select_time">Select Time</string>
+    <string name="workout_start_time">Workout start time</string>
+    <string name="workout_program">Program</string>
+    <string name="workout_duration_minutes">Duration (min)</string>
+    <string name="workout_distance_km">Distance (km)</string>
+    <string name="workout_calories">Calories</string>
+    <string name="workout_saved">Workout saved</string>
     <string name="basic_metrics">Basic Metrics</string>
     <string name="weight">Weight</string>
     <string name="weight_kg">Weight (kg)</string>
@@ -62,6 +69,7 @@
     <string name="invalid_weight">Invalid weight value</string>
     <string name="invalid_waist">Invalid waist measurement</string>
     <string name="invalid_body_fat">Invalid body fat percentage</string>
+    <string name="invalid_date">Invalid date</string>
     
     <!-- Metric Types -->
     <string name="blood_pressure">Blood Pressure</string>

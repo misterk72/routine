@@ -50,7 +50,7 @@
 
 ## 5. Saisie manuelle
 - [x] Definir un format de saisie minimal (programme, duree, distance, calories).
-- [ ] Implementer une petite UI mobile (ou reutiliser HealthTracker).
+- [x] Implementer une petite UI mobile (HealthTracker: WorkoutEntry + AddWorkoutActivity).
 - [x] Inserer dans `workouts` avec `source=manual` (1140 lignes).
 
 ## 6. Fusion et deduplication

@@ -27,6 +27,7 @@
     <string name="add_new_health_entry">Ajouter un nouveau suivi de santé</string>
     <string name="edit_health_entry">Modifier le suivi de santé</string>
     <string name="new_health_entry">Nouveau suivi de santé</string>
+    <string name="add_workout_entry">Ajouter une séance</string>
     
     <!-- Settings Activity -->
     <string name="settings">Paramètres</string>
@@ -45,6 +46,12 @@
     <!-- Entry Activity -->
     <string name="date_and_time">Date et heure</string>
     <string name="select_time">Sélectionner l\'heure</string>
+    <string name="workout_start_time">Début de séance</string>
+    <string name="workout_program">Programme</string>
+    <string name="workout_duration_minutes">Durée (min)</string>
+    <string name="workout_distance_km">Distance (km)</string>
+    <string name="workout_calories">Calories</string>
+    <string name="workout_saved">Séance enregistrée</string>
     <string name="basic_metrics">Mesures de base</string>
     <string name="weight">Masse</string>
     <string name="weight_kg">Masse (kg)</string>
@@ -62,6 +69,7 @@
     <string name="invalid_weight">Valeur de masse invalide</string>
     <string name="invalid_waist">Mesure de tour de taille invalide</string>
     <string name="invalid_body_fat">Pourcentage de masse graisseuse invalide</string>
+    <string name="invalid_date">Date invalide</string>
     
     <!-- Metric Types -->
     <string name="blood_pressure">Tension artérielle</string>

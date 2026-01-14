@@ -17,6 +17,7 @@ import com.healthtracker.data.HealthEntry
 import com.healthtracker.databinding.ActivityMainBinding
 import com.healthtracker.sync.SyncManager
 import com.healthtracker.ui.AddEntryActivity
+import com.healthtracker.ui.AddWorkoutActivity
 import com.healthtracker.ui.EntryActivity
 import com.healthtracker.ui.HealthEntryAdapter
 import com.healthtracker.ui.HealthTrackerViewModel
@@ -52,6 +53,10 @@ class MainActivity : AppCompatActivity() {
             when (item.itemId) {
                 R.id.action_settings -> {
                     startActivity(Intent(this, SettingsActivity::class.java))
+                    true
+                }
+                R.id.action_add_workout -> {
+                    startActivity(Intent(this, AddWorkoutActivity::class.java))
                     true
                 }
                 R.id.action_sync -> {
