@@ -32,6 +32,7 @@ import com.healthtracker.data.HealthEntry
 import com.healthtracker.data.Location
 import com.healthtracker.data.User
 import com.healthtracker.location.LocationService
+import com.healthtracker.sync.SyncManager
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -58,6 +59,9 @@ class AddEntryActivity : AppCompatActivity() {
     
     @Inject
     lateinit var locationService: LocationService
+
+    @Inject
+    lateinit var syncManager: SyncManager
     
     // Vues
     private lateinit var toolbar: Toolbar
@@ -349,6 +353,7 @@ class AddEntryActivity : AppCompatActivity() {
                     locationId = selectedLocationId
                 )
                 viewModel.addEntry(entry)
+                syncManager.syncNow()
                 finish()
             }
         }
