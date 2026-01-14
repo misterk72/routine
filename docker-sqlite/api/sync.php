@@ -42,18 +42,28 @@ switch ($method) {
         // Vérifier si les tables existent, sinon les créer
         createTablesIfNotExist($pdo);
         
+        $response = [];
+
         // Traiter les entrées de santé
         if (isset($data['entries']) && is_array($data['entries'])) {
-            // Log pour débogage
             error_log("DEBUG - Nombre d'entrées reçues: " . count($data['entries']));
-            error_log("DEBUG - Données reçues: " . json_encode($data));
-            
             $result = processEntries($pdo, $data['entries']);
-            error_log("DEBUG - Résultat du traitement: " . json_encode($result));
-            echo json_encode($result);
-        } else {
+            $response['entries'] = $result;
+        }
+
+        // Traiter les séances
+        if (isset($data['workouts']) && is_array($data['workouts'])) {
+            error_log("DEBUG - Nombre de séances reçues: " . count($data['workouts']));
+            $result = processWorkouts($pdo, $data['workouts']);
+            $response['workouts'] = $result;
+        }
+
+        if (empty($response)) {
             error_log("DEBUG - Format de données invalide");
             echo json_encode(['error' => 'Format de données invalide']);
+        } else {
+            error_log("DEBUG - Résultat du traitement: " . json_encode($response));
+            echo json_encode($response);
         }
         break;
         
@@ -69,7 +79,8 @@ switch ($method) {
         
         // Récupérer les entrées
         $entries = getEntriesSince($pdo, $timestamp);
-        echo json_encode(['entries' => $entries]);
+        $workouts = getWorkoutsSince($pdo, $timestamp);
+        echo json_encode(['entries' => $entries, 'workouts' => $workouts]);
         break;
         
     default:
@@ -102,6 +113,23 @@ function createTablesIfNotExist($pdo) {
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
         UNIQUE KEY (client_id)
     )");
+
+    // Créer la table des séances si elle n'existe pas
+    $pdo->exec("CREATE TABLE IF NOT EXISTS workout_entries (
+        id BIGINT PRIMARY KEY AUTO_INCREMENT,
+        user_id BIGINT NOT NULL,
+        start_time DATETIME NOT NULL,
+        duration_minutes INTEGER,
+        distance_km FLOAT,
+        calories INTEGER,
+        program TEXT,
+        notes TEXT,
+        client_id BIGINT,
+        deleted BOOLEAN DEFAULT 0,
+        last_modified TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        UNIQUE KEY (client_id)
+    )");
     
     // Vérifier si la colonne 'deleted' existe dans la table health_entries
     $tableInfo = $pdo->query("DESCRIBE health_entries");
@@ -111,6 +139,13 @@ function createTablesIfNotExist($pdo) {
     if (!in_array('deleted', $columns)) {
         error_log("Ajout de la colonne 'deleted' à la table health_entries");
         $pdo->exec("ALTER TABLE health_entries ADD COLUMN deleted BOOLEAN DEFAULT 0");
+    }
+
+    $workoutInfo = $pdo->query("DESCRIBE workout_entries");
+    $workoutColumns = $workoutInfo->fetchAll(PDO::FETCH_COLUMN);
+    if (!in_array('deleted', $workoutColumns)) {
+        error_log("Ajout de la colonne 'deleted' à la table workout_entries");
+        $pdo->exec("ALTER TABLE workout_entries ADD COLUMN deleted BOOLEAN DEFAULT 0");
     }
     
     // Vérifier s'il y a un utilisateur par défaut, sinon le créer
@@ -198,6 +233,69 @@ function processEntries($pdo, $entries) {
     ];
 }
 
+// Fonction pour traiter les séances
+function processWorkouts($pdo, $workouts) {
+    $processed = 0;
+    $errors = [];
+
+    foreach ($workouts as $workout) {
+        try {
+            $userId = ensureUserExists($pdo, $workout['userId']);
+            $deleted = isset($workout['deleted']) && $workout['deleted'] ? 1 : 0;
+
+            $checkStmt = $pdo->prepare("SELECT id FROM workout_entries WHERE client_id = ?");
+            $checkStmt->execute([$workout['id']]);
+            $existingEntry = $checkStmt->fetch(PDO::FETCH_ASSOC);
+
+            if ($existingEntry) {
+                $stmt = $pdo->prepare("UPDATE workout_entries
+                    SET user_id = ?, start_time = ?, duration_minutes = ?, distance_km = ?, calories = ?,
+                    program = ?, notes = ?, deleted = ?
+                    WHERE client_id = ?");
+                $stmt->execute([
+                    $userId,
+                    $workout['startTime'],
+                    $workout['durationMinutes'],
+                    $workout['distanceKm'],
+                    $workout['calories'],
+                    $workout['program'],
+                    $workout['notes'],
+                    $deleted,
+                    $workout['id']
+                ]);
+            } else {
+                $stmt = $pdo->prepare("INSERT INTO workout_entries
+                    (user_id, start_time, duration_minutes, distance_km, calories, program, notes, client_id, deleted)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                $stmt->execute([
+                    $userId,
+                    $workout['startTime'],
+                    $workout['durationMinutes'],
+                    $workout['distanceKm'],
+                    $workout['calories'],
+                    $workout['program'],
+                    $workout['notes'],
+                    $workout['id'],
+                    $deleted
+                ]);
+            }
+
+            $processed++;
+        } catch (Exception $e) {
+            $errors[] = [
+                'workout' => $workout,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    return [
+        'success' => true,
+        'processed' => $processed,
+        'errors' => $errors
+    ];
+}
+
 // Fonction pour s'assurer qu'un utilisateur existe
 function ensureUserExists($pdo, $userId) {
     // Vérifier si l'utilisateur existe
@@ -245,5 +343,36 @@ function getEntriesSince($pdo, $timestamp) {
     }
     
     return $entries;
+}
+
+// Fonction pour récupérer les séances plus récentes qu'un timestamp donné
+function getWorkoutsSince($pdo, $timestamp) {
+    $date = date('Y-m-d H:i:s', $timestamp / 1000);
+    $stmt = $pdo->prepare("SELECT
+        w.id, w.user_id, w.start_time, w.duration_minutes, w.distance_km, w.calories, w.program, w.notes,
+        w.client_id, w.deleted,
+        u.name as user_name
+        FROM workout_entries w
+        JOIN users u ON w.user_id = u.id
+        WHERE w.last_modified > ? AND (w.deleted = 0)");
+    $stmt->execute([$date]);
+
+    $workouts = [];
+    while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+        $workouts[] = [
+            'id' => (int)$row['id'],
+            'userId' => (int)$row['user_id'],
+            'userName' => $row['user_name'],
+            'startTime' => $row['start_time'],
+            'durationMinutes' => $row['duration_minutes'] !== null ? (int)$row['duration_minutes'] : null,
+            'distanceKm' => $row['distance_km'] !== null ? (float)$row['distance_km'] : null,
+            'calories' => $row['calories'] !== null ? (int)$row['calories'] : null,
+            'program' => $row['program'],
+            'notes' => $row['notes'],
+            'clientId' => $row['client_id'] ? (int)$row['client_id'] : null
+        ];
+    }
+
+    return $workouts;
 }
 ?>
