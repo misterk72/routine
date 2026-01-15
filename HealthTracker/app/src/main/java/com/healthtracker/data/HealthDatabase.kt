@@ -15,9 +15,10 @@ import com.healthtracker.data.converters.DateTimeConverters
         MetricValue::class,
         MetricType::class,
         User::class,
-        Location::class
+        Location::class,
+        WorkoutEntry::class
     ],
-    version = 7,
+    version = 8,
     exportSchema = false
 )
 @TypeConverters(DateTimeConverters::class)
@@ -27,6 +28,7 @@ abstract class HealthDatabase : RoomDatabase() {
     abstract fun metricTypeDao(): MetricTypeDao
     abstract fun userDao(): UserDao
     abstract fun locationDao(): LocationDao
+    abstract fun workoutEntryDao(): WorkoutEntryDao
 
     companion object {
         @Volatile
@@ -213,6 +215,31 @@ abstract class HealthDatabase : RoomDatabase() {
             }
         }
 
+        // Migration de la version 7 à 8 (ajout de la table WorkoutEntry)
+        private val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS workout_entries (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        userId INTEGER NOT NULL,
+                        startTime TEXT NOT NULL,
+                        durationMinutes INTEGER,
+                        distanceKm REAL,
+                        calories INTEGER,
+                        program TEXT,
+                        notes TEXT,
+                        synced INTEGER NOT NULL DEFAULT 0,
+                        serverEntryId INTEGER,
+                        deleted INTEGER NOT NULL DEFAULT 0,
+                        FOREIGN KEY (userId) REFERENCES users (id) ON DELETE CASCADE
+                    )
+                    """
+                )
+                database.execSQL("CREATE INDEX index_workout_entries_userId ON workout_entries (userId)")
+            }
+        }
+
         fun getDatabase(context: Context): HealthDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -221,7 +248,14 @@ abstract class HealthDatabase : RoomDatabase() {
                     com.healthtracker.BuildConfig.DATABASE_NAME
                 )
                 // Appliquer les migrations
-                .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
+                .addMigrations(
+                    MIGRATION_2_3,
+                    MIGRATION_3_4,
+                    MIGRATION_4_5,
+                    MIGRATION_5_6,
+                    MIGRATION_6_7,
+                    MIGRATION_7_8
+                )
                 // Fallback en cas d'autres migrations non gérées
                 .fallbackToDestructiveMigration()
                 // Allow main thread queries for testing

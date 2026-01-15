@@ -8,6 +8,7 @@ import com.google.gson.reflect.TypeToken
 import com.healthtracker.data.HealthDatabase
 import com.healthtracker.data.HealthEntry
 import com.healthtracker.data.User
+import com.healthtracker.data.WorkoutEntry
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -163,10 +164,12 @@ class SyncManager @Inject constructor(
             // Step 1: Upload any pending changes
             Log.d(TAG, "Étape 1: Envoi des modifications non synchronisées...")
             uploadUnsyncedEntries(database)
+            uploadUnsyncedWorkouts(database)
 
             // Step 2: Clear local data
             Log.d(TAG, "Étape 2: Suppression des données locales...")
             database.healthEntryDao().deleteAllEntries()
+            database.workoutEntryDao().deleteAllEntries()
             Log.d(TAG, "Toutes les entrées locales ont été supprimées.")
 
             // Step 3: Download all data from server
@@ -219,6 +222,50 @@ class SyncManager @Inject constructor(
             val idsToMarkSynced = allEntries.map { it.id }
             database.healthEntryDao().markAllAsSynced(idsToMarkSynced)
             Log.d(TAG, "${idsToMarkSynced.size} entrées marquées comme synchronisées")
+        }
+    }
+
+    private suspend fun uploadUnsyncedWorkouts(database: HealthDatabase) {
+        val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+        val unsyncedEntries = database.workoutEntryDao().getUnsyncedEntries()
+        val deletedEntries = database.workoutEntryDao().getDeletedUnsyncedEntries()
+
+        if (unsyncedEntries.isEmpty() && deletedEntries.isEmpty()) {
+            Log.d(TAG, "Aucune séance à synchroniser")
+            return
+        }
+
+        val allEntries = unsyncedEntries + deletedEntries
+        val workoutsJson = gson.toJson(mapOf("workouts" to allEntries.map { entry ->
+            mapOf(
+                "id" to entry.id,
+                "userId" to entry.userId,
+                "startTime" to entry.startTime.format(dateFormatter),
+                "durationMinutes" to entry.durationMinutes,
+                "distanceKm" to entry.distanceKm,
+                "calories" to entry.calories,
+                "program" to entry.program,
+                "notes" to entry.notes,
+                "deleted" to entry.deleted
+            )
+        }))
+
+        val requestBody = workoutsJson.toRequestBody("application/json".toMediaType())
+        val request = Request.Builder()
+            .url(API_URL)
+            .post(requestBody)
+            .build()
+
+        httpClient.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) {
+                throw IOException("Erreur lors de l'envoi des séances: ${response.code}")
+            }
+            val responseBody = response.body?.string()
+            Log.d(TAG, "DEBUG - Réponse du serveur (workouts upload): $responseBody")
+
+            val idsToMarkSynced = allEntries.map { it.id }
+            database.workoutEntryDao().markAllAsSynced(idsToMarkSynced)
+            Log.d(TAG, "${idsToMarkSynced.size} séances marquées comme synchronisées")
         }
     }
 
@@ -365,6 +412,63 @@ class SyncManager @Inject constructor(
                 dao.insertOrUpdateEntries(newEntriesToInsert)
                 Log.d(TAG, "${newEntriesToInsert.size} nouvelles entrées insérées depuis le serveur.")
             }
+
+            val serverWorkoutsMap = jsonResponse["workouts"] ?: emptyList()
+            if (serverWorkoutsMap.isEmpty()) {
+                Log.d(TAG, "Aucune nouvelle séance sur le serveur.")
+                return@use
+            }
+
+            val workoutDao = database.workoutEntryDao()
+            val newWorkoutsToInsert = mutableListOf<WorkoutEntry>()
+
+            for (workoutMap in serverWorkoutsMap) {
+                val serverId = (workoutMap["id"] as? Double)?.toLong()
+                val clientId = (workoutMap["clientId"] as? Double)?.toLong()
+
+                if (serverId == null) {
+                    Log.w(TAG, "Séance serveur ignorée, ID manquant: $workoutMap")
+                    continue
+                }
+
+                if (clientId != null && !fetchAll) {
+                    val localEntry = workoutDao.getEntryByIdSuspend(clientId)
+                    if (localEntry != null && localEntry.serverEntryId == null) {
+                        Log.d(TAG, "Correspondance séance par clientId: id local ${localEntry.id} -> id serveur $serverId")
+                        workoutDao.markAsSynced(localEntry.id, serverId)
+                        continue
+                    }
+                }
+
+                val existingEntry = workoutDao.getEntriesByServerIds(listOf(serverId))
+                if (existingEntry.isNotEmpty()) {
+                    Log.d(TAG, "Séance avec id serveur $serverId déjà présente localement. Ignorée.")
+                    continue
+                }
+
+                val startTime = LocalDateTime.parse(workoutMap["startTime"] as String, dateFormatter)
+                val newEntry = WorkoutEntry(
+                    id = 0,
+                    serverEntryId = serverId,
+                    userId = (workoutMap["userId"] as Double).toLong(),
+                    startTime = startTime,
+                    durationMinutes = (workoutMap["durationMinutes"] as? Double)?.toInt(),
+                    distanceKm = (workoutMap["distanceKm"] as? Double)?.toFloat(),
+                    calories = (workoutMap["calories"] as? Double)?.toInt(),
+                    program = workoutMap["program"] as? String,
+                    notes = workoutMap["notes"] as? String,
+                    synced = true,
+                    deleted = (workoutMap["deleted"] as? Double)?.toInt() == 1
+                )
+                if (!newEntry.deleted) {
+                    newWorkoutsToInsert.add(newEntry)
+                }
+            }
+
+            if (newWorkoutsToInsert.isNotEmpty()) {
+                workoutDao.insertOrUpdateEntries(newWorkoutsToInsert)
+                Log.d(TAG, "${newWorkoutsToInsert.size} nouvelles séances insérées depuis le serveur.")
+            }
         }
     }
 
@@ -381,6 +485,7 @@ class SyncManager @Inject constructor(
                     
                     // Regular sync process
                     syncManager.uploadUnsyncedEntries(database)
+                    syncManager.uploadUnsyncedWorkouts(database)
                     syncManager.downloadNewEntries(database)
                     
                     syncManager.saveLastSyncTimestamp(System.currentTimeMillis())

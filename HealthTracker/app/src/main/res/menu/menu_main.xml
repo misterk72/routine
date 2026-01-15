@@ -8,6 +8,11 @@
         android:icon="@android:drawable/ic_popup_sync"
         app:showAsAction="ifRoom" />
     <item
+        android:id="@+id/action_add_workout"
+        android:orderInCategory="95"
+        android:title="@string/add_workout_entry"
+        app:showAsAction="never" />
+    <item
         android:id="@+id/action_settings"
         android:orderInCategory="100"
         android:title="@string/settings"
