@@ -1,0 +1,42 @@
+name: Android CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+
+    - name: Set up Gradle
+      uses: gradle/gradle-build-action@v3
+      with:
+        gradle-version: '8.6'
+
+    - name: Build with Gradle
+      working-directory: HealthTracker
+      run: gradle build -x test
+
+    - name: Upload Dev Debug APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: app-dev-debug
+        path: HealthTracker/app/build/outputs/apk/dev/debug/app-dev-debug.apk
+
+    - name: Upload Prod Debug APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: app-prod-debug
+        path: HealthTracker/app/build/outputs/apk/prod/debug/app-prod-debug.apk
