@@ -121,7 +121,14 @@ function createTablesIfNotExist($pdo) {
         start_time DATETIME NOT NULL,
         duration_minutes INTEGER,
         distance_km FLOAT,
+        avg_speed_kmh FLOAT,
         calories INTEGER,
+        calories_per_km FLOAT,
+        avg_heart_rate INTEGER,
+        min_heart_rate INTEGER,
+        max_heart_rate INTEGER,
+        sleep_heart_rate_avg INTEGER,
+        vo2_max FLOAT,
         program TEXT,
         notes TEXT,
         client_id BIGINT,
@@ -146,6 +153,21 @@ function createTablesIfNotExist($pdo) {
     if (!in_array('deleted', $workoutColumns)) {
         error_log("Ajout de la colonne 'deleted' à la table workout_entries");
         $pdo->exec("ALTER TABLE workout_entries ADD COLUMN deleted BOOLEAN DEFAULT 0");
+    }
+    $workoutColumnDefs = [
+        'avg_speed_kmh' => 'FLOAT',
+        'calories_per_km' => 'FLOAT',
+        'avg_heart_rate' => 'INTEGER',
+        'min_heart_rate' => 'INTEGER',
+        'max_heart_rate' => 'INTEGER',
+        'sleep_heart_rate_avg' => 'INTEGER',
+        'vo2_max' => 'FLOAT',
+    ];
+    foreach ($workoutColumnDefs as $column => $definition) {
+        if (!in_array($column, $workoutColumns)) {
+            error_log("Ajout de la colonne '$column' a la table workout_entries");
+            $pdo->exec("ALTER TABLE workout_entries ADD COLUMN $column $definition");
+        }
     }
     
     // Vérifier s'il y a un utilisateur par défaut, sinon le créer
@@ -249,15 +271,23 @@ function processWorkouts($pdo, $workouts) {
 
             if ($existingEntry) {
                 $stmt = $pdo->prepare("UPDATE workout_entries
-                    SET user_id = ?, start_time = ?, duration_minutes = ?, distance_km = ?, calories = ?,
-                    program = ?, notes = ?, deleted = ?
+                    SET user_id = ?, start_time = ?, duration_minutes = ?, distance_km = ?, avg_speed_kmh = ?,
+                    calories = ?, calories_per_km = ?, avg_heart_rate = ?, min_heart_rate = ?,
+                    max_heart_rate = ?, sleep_heart_rate_avg = ?, vo2_max = ?, program = ?, notes = ?, deleted = ?
                     WHERE client_id = ?");
                 $stmt->execute([
                     $userId,
                     $workout['startTime'],
                     $workout['durationMinutes'],
                     $workout['distanceKm'],
+                    $workout['avgSpeedKmh'] ?? null,
                     $workout['calories'],
+                    $workout['caloriesPerKm'] ?? null,
+                    $workout['avgHeartRate'] ?? null,
+                    $workout['minHeartRate'] ?? null,
+                    $workout['maxHeartRate'] ?? null,
+                    $workout['sleepHeartRateAvg'] ?? null,
+                    $workout['vo2Max'] ?? null,
                     $workout['program'],
                     $workout['notes'],
                     $deleted,
@@ -265,14 +295,23 @@ function processWorkouts($pdo, $workouts) {
                 ]);
             } else {
                 $stmt = $pdo->prepare("INSERT INTO workout_entries
-                    (user_id, start_time, duration_minutes, distance_km, calories, program, notes, client_id, deleted)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                    (user_id, start_time, duration_minutes, distance_km, avg_speed_kmh, calories,
+                    calories_per_km, avg_heart_rate, min_heart_rate, max_heart_rate,
+                    sleep_heart_rate_avg, vo2_max, program, notes, client_id, deleted)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
                 $stmt->execute([
                     $userId,
                     $workout['startTime'],
                     $workout['durationMinutes'],
                     $workout['distanceKm'],
+                    $workout['avgSpeedKmh'] ?? null,
                     $workout['calories'],
+                    $workout['caloriesPerKm'] ?? null,
+                    $workout['avgHeartRate'] ?? null,
+                    $workout['minHeartRate'] ?? null,
+                    $workout['maxHeartRate'] ?? null,
+                    $workout['sleepHeartRateAvg'] ?? null,
+                    $workout['vo2Max'] ?? null,
                     $workout['program'],
                     $workout['notes'],
                     $workout['id'],
@@ -349,7 +388,9 @@ function getEntriesSince($pdo, $timestamp) {
 function getWorkoutsSince($pdo, $timestamp) {
     $date = date('Y-m-d H:i:s', $timestamp / 1000);
     $stmt = $pdo->prepare("SELECT
-        w.id, w.user_id, w.start_time, w.duration_minutes, w.distance_km, w.calories, w.program, w.notes,
+        w.id, w.user_id, w.start_time, w.duration_minutes, w.distance_km, w.avg_speed_kmh,
+        w.calories, w.calories_per_km, w.avg_heart_rate, w.min_heart_rate, w.max_heart_rate,
+        w.sleep_heart_rate_avg, w.vo2_max, w.program, w.notes,
         w.client_id, w.deleted,
         u.name as user_name
         FROM workout_entries w
@@ -366,7 +407,14 @@ function getWorkoutsSince($pdo, $timestamp) {
             'startTime' => $row['start_time'],
             'durationMinutes' => $row['duration_minutes'] !== null ? (int)$row['duration_minutes'] : null,
             'distanceKm' => $row['distance_km'] !== null ? (float)$row['distance_km'] : null,
+            'avgSpeedKmh' => $row['avg_speed_kmh'] !== null ? (float)$row['avg_speed_kmh'] : null,
             'calories' => $row['calories'] !== null ? (int)$row['calories'] : null,
+            'caloriesPerKm' => $row['calories_per_km'] !== null ? (float)$row['calories_per_km'] : null,
+            'avgHeartRate' => $row['avg_heart_rate'] !== null ? (int)$row['avg_heart_rate'] : null,
+            'minHeartRate' => $row['min_heart_rate'] !== null ? (int)$row['min_heart_rate'] : null,
+            'maxHeartRate' => $row['max_heart_rate'] !== null ? (int)$row['max_heart_rate'] : null,
+            'sleepHeartRateAvg' => $row['sleep_heart_rate_avg'] !== null ? (int)$row['sleep_heart_rate_avg'] : null,
+            'vo2Max' => $row['vo2_max'] !== null ? (float)$row['vo2_max'] : null,
             'program' => $row['program'],
             'notes' => $row['notes'],
             'clientId' => $row['client_id'] ? (int)$row['client_id'] : null

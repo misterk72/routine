@@ -199,10 +199,18 @@ def build_inserts(
             avg_speed = _float_or_none(row[col_index.get("Vitesse Moyenne (km/h)", -1)])
             distance = _float_or_none(row[col_index.get("Distance parcourue (km)", -1)])
             calories = _float_or_none(row[col_index.get("Calories", -1)])
+            calories_per_km = _float_or_none(row[col_index.get("Calories/km", -1)])
             avg_hr = _float_or_none(row[col_index.get("Moyenne pulsations/min", -1)])
             max_hr = _float_or_none(row[col_index.get("Max pulsations/min", -1)])
             min_hr = _float_or_none(row[col_index.get("Min pulsations/min", -1)])
-            notes = row[col_index.get("Observations", -1)] if "Observations" in col_index else ""
+            sleep_hr_avg = _float_or_none(row[col_index.get("FC Repos pulsations/min", -1)])
+            vo2_max = _float_or_none(row[col_index.get("VO2", -1)])
+            if "Observations" in col_index:
+                notes = row[col_index.get("Observations", -1)]
+            elif "Fond sonore" in col_index:
+                notes = row[col_index.get("Fond sonore", -1)]
+            else:
+                notes = ""
 
             source_uid = f"{sheet_name}:{start_time}"
             if source_uid in seen:
@@ -216,12 +224,14 @@ def build_inserts(
             stmt = (
                 insert_prefix
                 + "(user_profile_id, source_id, source_uid, start_time, "
-                "duration_minutes, program, distance_km, avg_speed_kmh, calories, "
-                "avg_heart_rate, min_heart_rate, max_heart_rate, notes, raw_json) VALUES ("
+                "duration_minutes, program, distance_km, avg_speed_kmh, calories, calories_per_km, "
+                "avg_heart_rate, min_heart_rate, max_heart_rate, sleep_heart_rate_avg, vo2_max, "
+                "notes, raw_json) VALUES ("
                 f"{_sql_value(user_profile_id)}, {source_id}, {_sql_value(source_uid)}, "
                 f"{_sql_value(start_time)}, {_sql_value(duration)}, {_sql_value(program)}, "
                 f"{_sql_value(distance)}, {_sql_value(avg_speed)}, {_sql_value(calories)}, "
-                f"{_sql_value(avg_hr)}, {_sql_value(min_hr)}, {_sql_value(max_hr)}, "
+                f"{_sql_value(calories_per_km)}, {_sql_value(avg_hr)}, {_sql_value(min_hr)}, "
+                f"{_sql_value(max_hr)}, {_sql_value(sleep_hr_avg)}, {_sql_value(vo2_max)}, "
                 f"{_sql_value(notes)}, {_sql_value(raw_json)});"
             )
             statements.append(stmt)

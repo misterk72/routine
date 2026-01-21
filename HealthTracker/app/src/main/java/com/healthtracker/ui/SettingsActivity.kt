@@ -1,21 +1,24 @@
 package com.healthtracker.ui
 
-import android.app.TimePickerDialog
+import android.net.Uri
 import android.os.Bundle
 import android.view.MenuItem
 import android.view.LayoutInflater
 import android.widget.ArrayAdapter
 import android.widget.EditText
 import android.widget.Toast
+import android.content.Intent
 import androidx.activity.viewModels
-import androidx.appcompat.app.AlertDialog
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.widget.doAfterTextChanged
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.healthtracker.R
 import com.healthtracker.data.MetricType
 import com.healthtracker.data.User
 import com.healthtracker.databinding.ActivitySettingsBinding
+import com.healthtracker.gadgetbridge.GadgetbridgeImportConfig
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -26,6 +29,18 @@ class SettingsActivity : AppCompatActivity() {
     private val healthTrackerViewModel: HealthTrackerViewModel by viewModels()
     private lateinit var metricTypesAdapter: MetricTypesAdapter
     private lateinit var usersAdapter: UsersAdapter
+    private lateinit var gadgetbridgeConfig: GadgetbridgeImportConfig
+
+    private val selectGadgetbridgeExport = registerForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri == null) {
+            return@registerForActivityResult
+        }
+        persistUriPermission(uri)
+        gadgetbridgeConfig.setExportUri(uri)
+        binding.gadgetbridgeExportEditText.setText(uri.toString())
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -37,9 +52,12 @@ class SettingsActivity : AppCompatActivity() {
         supportActionBar?.setDisplayShowHomeEnabled(true)
         title = getString(R.string.settings)
 
+        gadgetbridgeConfig = GadgetbridgeImportConfig(this)
+
         setupMetricTypesAdapter()
         setupUsersAdapter()
         setupExportFormatSpinner()
+        setupGadgetbridgeConfig()
         setupListeners()
         observeViewModel()
     }
@@ -94,6 +112,20 @@ class SettingsActivity : AppCompatActivity() {
             // In a real implementation, show a dialog to add a new metric type
             // For demo purposes, we'll add a hardcoded one
             addSampleMetricType()
+        }
+    }
+
+    private fun setupGadgetbridgeConfig() {
+        val exportUri = gadgetbridgeConfig.getExportUri()
+        if (exportUri != null) {
+            binding.gadgetbridgeExportEditText.setText(exportUri.toString())
+        }
+        binding.gadgetbridgePickButton.setOnClickListener {
+            selectGadgetbridgeExport.launch(arrayOf("*/*"))
+        }
+        binding.gadgetbridgeDeviceEditText.setText(gadgetbridgeConfig.getDeviceMatch().orEmpty())
+        binding.gadgetbridgeDeviceEditText.doAfterTextChanged { editable ->
+            gadgetbridgeConfig.setDeviceMatch(editable?.toString())
         }
     }
 
@@ -182,6 +214,15 @@ class SettingsActivity : AppCompatActivity() {
         
         healthTrackerViewModel.users.observe(this) { users ->
             usersAdapter.submitList(users)
+        }
+    }
+
+    private fun persistUriPermission(uri: Uri) {
+        val flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
+        try {
+            contentResolver.takePersistableUriPermission(uri, flags)
+        } catch (_: SecurityException) {
+            // Ignore if we can't persist; we will still try to read with a one-time grant.
         }
     }
 
