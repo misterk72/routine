@@ -5,6 +5,7 @@ import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -59,6 +60,14 @@ interface WorkoutEntryDao {
 
     @Query("SELECT * FROM workout_entries WHERE deleted = 0 ORDER BY startTime DESC")
     fun getAllEntries(): Flow<List<WorkoutEntry>>
+
+    @Transaction
+    @Query("SELECT * FROM workout_entries WHERE deleted = 0 ORDER BY startTime DESC")
+    fun getAllEntriesWithUser(): Flow<List<WorkoutEntryWithUser>>
+
+    @Transaction
+    @Query("SELECT * FROM workout_entries WHERE id = :id AND deleted = 0")
+    fun getEntryWithUserById(id: Long): Flow<WorkoutEntryWithUser?>
 
     @Query("SELECT * FROM workout_entries WHERE id = :id AND deleted = 0")
     suspend fun getEntryByIdSuspend(id: Long): WorkoutEntry?

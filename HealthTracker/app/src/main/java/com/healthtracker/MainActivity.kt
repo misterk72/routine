@@ -3,8 +3,6 @@ package com.healthtracker
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
-import android.view.Menu
-import android.view.MenuItem
 import android.view.View
 import android.widget.Toast
 import androidx.activity.viewModels
@@ -13,15 +11,15 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
-import com.healthtracker.data.HealthEntry
 import com.healthtracker.databinding.ActivityMainBinding
 import com.healthtracker.sync.SyncManager
 import com.healthtracker.ui.AddEntryActivity
 import com.healthtracker.ui.AddWorkoutActivity
 import com.healthtracker.ui.EntryActivity
-import com.healthtracker.ui.HealthEntryAdapter
+import com.healthtracker.ui.HomeFeedAdapter
 import com.healthtracker.ui.HealthTrackerViewModel
 import com.healthtracker.ui.SettingsActivity
+import com.healthtracker.ui.WorkoutEntryActivity
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -30,7 +28,7 @@ import javax.inject.Inject
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private val viewModel: HealthTrackerViewModel by viewModels()
-    private lateinit var adapter: HealthEntryAdapter
+    private lateinit var adapter: HomeFeedAdapter
     
     @Inject
     lateinit var syncManager: SyncManager
@@ -76,13 +74,20 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupRecyclerView() {
-        adapter = HealthEntryAdapter { entry ->
-            // Launch EntryActivity to edit the selected entry
-            val intent = Intent(this, EntryActivity::class.java).apply {
-                putExtra(EntryActivity.EXTRA_ENTRY_ID, entry.id)
+        adapter = HomeFeedAdapter(
+            onHealthEntryClick = { entry ->
+                val intent = Intent(this, EntryActivity::class.java).apply {
+                    putExtra(EntryActivity.EXTRA_ENTRY_ID, entry.id)
+                }
+                startActivity(intent)
+            },
+            onWorkoutEntryClick = { workoutId ->
+                val intent = Intent(this, WorkoutEntryActivity::class.java).apply {
+                    putExtra(WorkoutEntryActivity.EXTRA_WORKOUT_ID, workoutId)
+                }
+                startActivity(intent)
             }
-            startActivity(intent)
-        }
+        )
         binding.entriesRecyclerView.layoutManager = LinearLayoutManager(this)
         binding.entriesRecyclerView.adapter = adapter
     }
@@ -111,13 +116,10 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun observeViewModel() {
-        // Observe entries with user information
-        viewModel.entriesWithUser.observe(this) { entriesWithUser ->
-            adapter.submitList(entriesWithUser)
-            
-            // Show empty state if no entries
-            binding.entriesRecyclerView.visibility = if (entriesWithUser.isEmpty()) View.GONE else View.VISIBLE
-            // TODO: Add empty state view and show it when entries.isEmpty()
+        viewModel.homeItems.observe(this) { items ->
+            adapter.submitList(items)
+            binding.entriesRecyclerView.visibility = if (items.isEmpty()) View.GONE else View.VISIBLE
+            // TODO: Add empty state view and show it when items.isEmpty()
         }
         
         // Observe loading state
@@ -131,7 +133,7 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         // Refresh entries when returning to this screen
-        viewModel.loadEntriesWithUser()
+        viewModel.loadHomeItems()
     }
     
     /**

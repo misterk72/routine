@@ -107,6 +107,20 @@
     <string name="waist_display">Tour de taille : %1$s cm</string>
     <string name="body_fat_display">Masse graisseuse : %1$s kg</string>
     <string name="metric_value_display">%1$s %2$s</string>
+    <string name="workout_program_display">Programme : %1$s</string>
+    <string name="workout_duration_display">Durée : %1$d min</string>
+    <string name="workout_distance_display">Distance : %1$s km</string>
+    <string name="workout_calories_display">Calories : %1$d kcal</string>
+    <string name="workout_heart_rate_avg_display">FC moyenne : %1$d bpm</string>
+    <string name="workout_heart_rate_range_display">FC : %1$d-%2$d bpm</string>
+    <string name="workout_heart_rate_min_display">FC min : %1$d bpm</string>
+    <string name="workout_heart_rate_max_display">FC max : %1$d bpm</string>
+    <string name="workout_sleep_heart_rate_avg_display">FC sommeil moyenne : %1$d bpm</string>
+    <string name="workout_vo2_max_display">VO2 max : %1$s ml/kg/min</string>
+    <string name="workout_user_display">Utilisateur : %1$s</string>
+    <string name="workout_start_display">Début : %1$s</string>
+    <string name="workout_detail_title">Séance</string>
+    <string name="workout_not_found">Séance introuvable</string>
     
     <!-- Delete Entry -->
     <string name="delete_entry">Supprimer cette entrée</string>

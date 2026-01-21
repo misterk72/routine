@@ -2,6 +2,7 @@ package com.healthtracker.data.repository
 
 import com.healthtracker.data.HealthDatabase
 import com.healthtracker.data.WorkoutEntry
+import com.healthtracker.data.WorkoutEntryWithUser
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -12,6 +13,14 @@ class WorkoutEntryRepository @Inject constructor(
 ) {
     fun getAllEntries(): Flow<List<WorkoutEntry>> {
         return database.workoutEntryDao().getAllEntries()
+    }
+
+    fun getAllEntriesWithUser(): Flow<List<WorkoutEntryWithUser>> {
+        return database.workoutEntryDao().getAllEntriesWithUser()
+    }
+
+    fun getEntryWithUserById(id: Long): Flow<WorkoutEntryWithUser?> {
+        return database.workoutEntryDao().getEntryWithUserById(id)
     }
 
     suspend fun insertEntry(entry: WorkoutEntry): Long {
