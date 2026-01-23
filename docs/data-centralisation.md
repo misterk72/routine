@@ -3,6 +3,8 @@
 ## Objectif
 Centraliser toutes les sources de données (HealthTracker, Withings, Gadgetbridge, saisie manuelle de séances) dans MariaDB afin d'automatiser l'import, réduire la saisie manuelle et alimenter Grafana.
 
+Voir aussi: `docs/db-import-and-schema.md` pour la structure MariaDB et les imports.
+
 ## Sources de Données
 - **HealthTracker (app mobile)** : poids, tour de taille, masse graisseuse, notes.
 - **Withings** : poids/masse grasse importés automatiquement (Excel `Withings_Weight_Data.xlsx`).
