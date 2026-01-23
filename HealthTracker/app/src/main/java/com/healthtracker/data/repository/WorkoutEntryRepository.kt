@@ -31,6 +31,10 @@ class WorkoutEntryRepository @Inject constructor(
         database.workoutEntryDao().updateEntry(entry)
     }
 
+    suspend fun getEntryById(id: Long): WorkoutEntry? {
+        return database.workoutEntryDao().getEntryByIdSuspend(id)
+    }
+
     suspend fun deleteEntry(entry: WorkoutEntry) {
         if (entry.id > 0) {
             database.workoutEntryDao().markEntryAsDeleted(entry.id)

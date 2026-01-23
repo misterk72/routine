@@ -13,13 +13,11 @@ import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import com.healthtracker.databinding.ActivityMainBinding
 import com.healthtracker.sync.SyncManager
-import com.healthtracker.ui.AddEntryActivity
-import com.healthtracker.ui.AddWorkoutActivity
+import com.healthtracker.ui.AddUnifiedActivity
 import com.healthtracker.ui.EntryActivity
 import com.healthtracker.ui.HomeFeedAdapter
 import com.healthtracker.ui.HealthTrackerViewModel
 import com.healthtracker.ui.SettingsActivity
-import com.healthtracker.ui.WorkoutEntryActivity
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -54,7 +52,10 @@ class MainActivity : AppCompatActivity() {
                     true
                 }
                 R.id.action_add_workout -> {
-                    startActivity(Intent(this, AddWorkoutActivity::class.java))
+                    val intent = Intent(this, AddUnifiedActivity::class.java).apply {
+                        putExtra(AddUnifiedActivity.EXTRA_ENTRY_TYPE, AddUnifiedActivity.ENTRY_TYPE_WORKOUT)
+                    }
+                    startActivity(intent)
                     true
                 }
                 R.id.action_sync -> {
@@ -82,8 +83,9 @@ class MainActivity : AppCompatActivity() {
                 startActivity(intent)
             },
             onWorkoutEntryClick = { workoutId ->
-                val intent = Intent(this, WorkoutEntryActivity::class.java).apply {
-                    putExtra(WorkoutEntryActivity.EXTRA_WORKOUT_ID, workoutId)
+                val intent = Intent(this, AddUnifiedActivity::class.java).apply {
+                    putExtra(AddUnifiedActivity.EXTRA_ENTRY_TYPE, AddUnifiedActivity.ENTRY_TYPE_WORKOUT)
+                    putExtra(AddUnifiedActivity.EXTRA_WORKOUT_ID, workoutId)
                 }
                 startActivity(intent)
             }
@@ -94,8 +96,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupFab() {
         binding.fabAddEntry.setOnClickListener {
-            // Launch AddEntryActivity to create a new entry
-            startActivity(Intent(this, AddEntryActivity::class.java))
+            startActivity(Intent(this, AddUnifiedActivity::class.java))
         }
 
         // Temporary button

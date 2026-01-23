@@ -28,6 +28,9 @@
     <string name="edit_health_entry">Edit Health Entry</string>
     <string name="new_health_entry">New Health Entry</string>
     <string name="add_workout_entry">Add workout</string>
+    <string name="add_entry_title">Add entry</string>
+    <string name="entry_type_health">Health</string>
+    <string name="entry_type_workout">Workout</string>
     
     <!-- Settings Activity -->
     <string name="settings">Settings</string>

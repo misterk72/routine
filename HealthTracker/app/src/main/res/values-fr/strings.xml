@@ -28,6 +28,9 @@
     <string name="edit_health_entry">Modifier le suivi de santé</string>
     <string name="new_health_entry">Nouveau suivi de santé</string>
     <string name="add_workout_entry">Ajouter une séance</string>
+    <string name="add_entry_title">Ajouter une entrée</string>
+    <string name="entry_type_health">Suivi santé</string>
+    <string name="entry_type_workout">Séance</string>
     
     <!-- Settings Activity -->
     <string name="settings">Paramètres</string>
