@@ -212,18 +212,25 @@ def build_inserts(
             else:
                 notes = ""
 
+            # Skip ghost rows with no workout metrics, even if program/notes are filled.
+            if (
+                distance is None
+                and calories is None
+                and avg_hr is None
+                and min_hr is None
+                and max_hr is None
+            ):
+                continue
+
             source_uid = f"{sheet_name}:{start_time}"
             if source_uid in seen:
                 continue
             seen.add(source_uid)
             raw_json = json.dumps({"sheet": sheet_name})
 
-            insert_prefix = "INSERT INTO workouts "
-            if ignore_duplicates:
-                insert_prefix = "INSERT IGNORE INTO workouts "
             stmt = (
-                insert_prefix
-                + "(user_profile_id, source_id, source_uid, start_time, "
+                "INSERT INTO workouts "
+                "(user_profile_id, source_id, source_uid, start_time, "
                 "duration_minutes, program, distance_km, avg_speed_kmh, calories, calories_per_km, "
                 "avg_heart_rate, min_heart_rate, max_heart_rate, sleep_heart_rate_avg, vo2_max, "
                 "notes, raw_json) VALUES ("
@@ -232,8 +239,20 @@ def build_inserts(
                 f"{_sql_value(distance)}, {_sql_value(avg_speed)}, {_sql_value(calories)}, "
                 f"{_sql_value(calories_per_km)}, {_sql_value(avg_hr)}, {_sql_value(min_hr)}, "
                 f"{_sql_value(max_hr)}, {_sql_value(sleep_hr_avg)}, {_sql_value(vo2_max)}, "
-                f"{_sql_value(notes)}, {_sql_value(raw_json)});"
+                f"{_sql_value(notes)}, {_sql_value(raw_json)})"
             )
+            if ignore_duplicates:
+                stmt += (
+                    " ON DUPLICATE KEY UPDATE "
+                    "start_time=VALUES(start_time), duration_minutes=VALUES(duration_minutes), "
+                    "program=VALUES(program), distance_km=VALUES(distance_km), "
+                    "avg_speed_kmh=VALUES(avg_speed_kmh), calories=VALUES(calories), "
+                    "calories_per_km=VALUES(calories_per_km), avg_heart_rate=VALUES(avg_heart_rate), "
+                    "min_heart_rate=VALUES(min_heart_rate), max_heart_rate=VALUES(max_heart_rate), "
+                    "sleep_heart_rate_avg=VALUES(sleep_heart_rate_avg), vo2_max=VALUES(vo2_max), "
+                    "notes=VALUES(notes), raw_json=VALUES(raw_json)"
+                )
+            stmt += ";"
             statements.append(stmt)
     return statements
 
