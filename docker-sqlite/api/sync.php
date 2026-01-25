@@ -181,7 +181,11 @@ function createTablesIfNotExist($pdo) {
     $workoutIndex = $pdo->query("SHOW INDEX FROM workout_entries WHERE Key_name = 'uniq_workout_source_uid'");
     if ($workoutIndex->rowCount() === 0) {
         error_log("Ajout de la contrainte unique (source_id, source_uid) sur workout_entries");
-        $pdo->exec("ALTER TABLE workout_entries ADD UNIQUE KEY uniq_workout_source_uid (source_id, source_uid)");
+        try {
+            $pdo->exec("ALTER TABLE workout_entries ADD UNIQUE KEY uniq_workout_source_uid (source_id, source_uid)");
+        } catch (Exception $e) {
+            error_log("Impossible d'ajouter uniq_workout_source_uid: " . $e->getMessage());
+        }
     }
     
     // Vérifier s'il y a un utilisateur par défaut, sinon le créer

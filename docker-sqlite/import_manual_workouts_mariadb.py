@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Import manual workout entries from XLSX into MariaDB workouts."""
+"""Import manual workout entries from XLSX into MariaDB workout_entries."""
 
 import argparse
 import datetime as dt
@@ -163,7 +163,7 @@ def _float_or_none(value: str) -> float | None:
 
 def build_inserts(
     xlsx_path: str,
-    user_profile_id: int,
+    user_id: int,
     source_id: int,
     ignore_duplicates: bool,
 ) -> list[str]:
@@ -229,12 +229,12 @@ def build_inserts(
             raw_json = json.dumps({"sheet": sheet_name})
 
             stmt = (
-                "INSERT INTO workouts "
-                "(user_profile_id, source_id, source_uid, start_time, "
+                "INSERT INTO workout_entries "
+                "(user_id, source_id, source_uid, start_time, "
                 "duration_minutes, program, distance_km, avg_speed_kmh, calories, calories_per_km, "
                 "avg_heart_rate, min_heart_rate, max_heart_rate, sleep_heart_rate_avg, vo2_max, "
                 "notes, raw_json) VALUES ("
-                f"{_sql_value(user_profile_id)}, {source_id}, {_sql_value(source_uid)}, "
+                f"{_sql_value(user_id)}, {source_id}, {_sql_value(source_uid)}, "
                 f"{_sql_value(start_time)}, {_sql_value(duration)}, {_sql_value(program)}, "
                 f"{_sql_value(distance)}, {_sql_value(avg_speed)}, {_sql_value(calories)}, "
                 f"{_sql_value(calories_per_km)}, {_sql_value(avg_hr)}, {_sql_value(min_hr)}, "
@@ -260,10 +260,11 @@ def build_inserts(
 def main() -> int:
     parser = argparse.ArgumentParser(description="Import manual workouts XLSX into MariaDB.")
     parser.add_argument("--xlsx", default="samples/Entrainement vélo elliptique3.xlsx")
-    parser.add_argument("--user-profile-id", type=int, required=True)
+    parser.add_argument("--user-id", type=int, required=False)
+    parser.add_argument("--user-profile-id", type=int, dest="user_id", required=False)
     parser.add_argument("--source-id", type=int, default=4)
     parser.add_argument("--ignore-duplicates", action="store_true")
-    parser.add_argument("--out-sql", default="/tmp/manual_workouts.sql")
+    parser.add_argument("--out-sql", default="/tmp/manual_workout_entries.sql")
     parser.add_argument("--apply", action="store_true")
     parser.add_argument("--db-host", default="192.168.0.13")
     parser.add_argument("--db-user", default="healthuser")
@@ -272,8 +273,11 @@ def main() -> int:
 
     args = parser.parse_args()
 
+    if args.user_id is None:
+        parser.error("--user-id is required")
+
     statements = build_inserts(
-        args.xlsx, args.user_profile_id, args.source_id, args.ignore_duplicates
+        args.xlsx, args.user_id, args.source_id, args.ignore_duplicates
     )
     if not statements:
         print("No rows to import.")
