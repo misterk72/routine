@@ -80,6 +80,7 @@ class AddUnifiedActivity : AppCompatActivity() {
 
     private lateinit var gadgetbridgeConfig: GadgetbridgeImportConfig
     private var gadgetbridgeReceiverRegistered = false
+    private var autoImportTriggered = false
     private val gadgetbridgeExportReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             when (intent.action) {
@@ -143,6 +144,7 @@ class AddUnifiedActivity : AppCompatActivity() {
             binding.workoutSection.visibility = View.VISIBLE
             binding.healthSection.visibility = View.GONE
             currentType = ENTRY_TYPE_WORKOUT
+            binding.workoutForceImportGadgetbridgeButton.visibility = View.GONE
             loadWorkoutForEdit(editingWorkoutId!!)
         }
         if (initialType == ENTRY_TYPE_WORKOUT) {
@@ -162,6 +164,7 @@ class AddUnifiedActivity : AppCompatActivity() {
             ContextCompat.registerReceiver(this, gadgetbridgeExportReceiver, filter, ContextCompat.RECEIVER_EXPORTED)
             gadgetbridgeReceiverRegistered = true
         }
+        maybeTriggerInitialImport()
     }
 
     override fun onStop() {
@@ -179,6 +182,7 @@ class AddUnifiedActivity : AppCompatActivity() {
                 currentType = ENTRY_TYPE_WORKOUT
                 binding.workoutSection.visibility = View.VISIBLE
                 binding.healthSection.visibility = View.GONE
+                maybeTriggerInitialImport()
             } else {
                 currentType = ENTRY_TYPE_HEALTH
                 binding.healthSection.visibility = View.VISIBLE
@@ -477,16 +481,41 @@ class AddUnifiedActivity : AppCompatActivity() {
     }
 
     private fun setupGadgetbridgeImport() {
-        binding.workoutImportGadgetbridgeButton.setOnClickListener {
-            val exportUri = gadgetbridgeConfig.getExportUri()
-            if (exportUri == null) {
+        binding.workoutForceImportGadgetbridgeButton.setOnClickListener {
+            triggerGadgetbridgeExport(resetImportState = true, showToast = true)
+        }
+    }
+
+    private fun maybeTriggerInitialImport() {
+        if (autoImportTriggered || currentType != ENTRY_TYPE_WORKOUT || editingWorkoutId != null) {
+            return
+        }
+        val exportUri = gadgetbridgeConfig.getExportUri() ?: return
+        autoImportTriggered = true
+        triggerGadgetbridgeExport(resetImportState = false, showToast = false, exportUri = exportUri)
+    }
+
+    private fun triggerGadgetbridgeExport(
+        resetImportState: Boolean,
+        showToast: Boolean,
+        exportUri: android.net.Uri? = null
+    ) {
+        val resolvedUri = exportUri ?: gadgetbridgeConfig.getExportUri()
+        if (resolvedUri == null) {
+            if (showToast) {
                 Toast.makeText(this, R.string.gadgetbridge_missing_export, Toast.LENGTH_LONG).show()
-                return@setOnClickListener
             }
-            val intent = Intent(GadgetbridgeIntents.ACTION_TRIGGER_DB_EXPORT)
-            intent.setPackage("nodomain.freeyourgadget.gadgetbridge")
-            sendBroadcast(intent)
-            Log.d(TAG, "Triggered Gadgetbridge export for uri=$exportUri")
+            return
+        }
+        if (resetImportState) {
+            gadgetbridgeConfig.setLastImportedStartTime(0L)
+            Log.d(TAG, "Reset Gadgetbridge import state before export")
+        }
+        val intent = Intent(GadgetbridgeIntents.ACTION_TRIGGER_DB_EXPORT)
+        intent.setPackage("nodomain.freeyourgadget.gadgetbridge")
+        sendBroadcast(intent)
+        Log.d(TAG, "Triggered Gadgetbridge export for uri=$resolvedUri")
+        if (showToast) {
             Toast.makeText(this, R.string.gadgetbridge_export_triggered, Toast.LENGTH_SHORT).show()
         }
     }

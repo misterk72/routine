@@ -306,6 +306,7 @@ class GadgetbridgeImporter(
             "Summary table=$table deviceCol=$deviceCol startCol=$startCol endCol=$endCol " +
                 "summaryCol=$summaryCol rawSummaryCol=$rawSummaryCol lastImportedStart=$lastImportedStart"
         )
+        logSummaryCandidates(db, table, deviceCol, startCol, deviceId, lastImportedStart)
 
         val selection = if (lastImportedStart > 0) {
             "$deviceCol = ? AND $startCol > ?"
@@ -343,6 +344,47 @@ class GadgetbridgeImporter(
         val totalForDevice = countSummaries(db, table, deviceCol, deviceId)
         Log.w(TAG, "No activity summary found for deviceId=$deviceId (count=$totalForDevice)")
         return null
+    }
+
+    private fun logSummaryCandidates(
+        db: SQLiteDatabase,
+        table: String,
+        deviceCol: String,
+        startCol: String,
+        deviceId: Long,
+        lastImportedStart: Long
+    ) {
+        val cursor = db.query(
+            table,
+            arrayOf(startCol),
+            "$deviceCol = ?",
+            arrayOf(deviceId.toString()),
+            null,
+            null,
+            "$startCol DESC",
+            "3"
+        )
+        cursor.use {
+            if (!it.moveToFirst()) {
+                Log.d(TAG, "No summary candidates for deviceId=$deviceId")
+                return
+            }
+            var index = 0
+            do {
+                val raw = when (it.getType(0)) {
+                    Cursor.FIELD_TYPE_INTEGER -> it.getLong(0).toString()
+                    Cursor.FIELD_TYPE_STRING -> it.getString(0)
+                    else -> "null"
+                }
+                val parsed = parseDateValue(it, startCol)
+                Log.d(
+                    TAG,
+                    "Summary candidate[$index] rawStart=$raw parsedStart=$parsed " +
+                        "lastImportedStart=$lastImportedStart"
+                )
+                index++
+            } while (it.moveToNext())
+        }
     }
 
     private fun querySummary(

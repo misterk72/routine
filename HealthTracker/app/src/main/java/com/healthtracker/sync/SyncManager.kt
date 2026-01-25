@@ -237,13 +237,30 @@ class SyncManager @Inject constructor(
 
         val allEntries = unsyncedEntries + deletedEntries
         val workoutsJson = gson.toJson(mapOf("workouts" to allEntries.map { entry ->
+            val avgSpeedKmh = if (entry.durationMinutes != null && entry.durationMinutes > 0 && entry.distanceKm != null) {
+                (entry.distanceKm / entry.durationMinutes) * 60f
+            } else {
+                null
+            }
+            val caloriesPerKm = if (entry.distanceKm != null && entry.distanceKm > 0 && entry.calories != null) {
+                entry.calories / entry.distanceKm
+            } else {
+                null
+            }
             mapOf(
                 "id" to entry.id,
                 "userId" to entry.userId,
                 "startTime" to entry.startTime.format(dateFormatter),
                 "durationMinutes" to entry.durationMinutes,
                 "distanceKm" to entry.distanceKm,
+                "avgSpeedKmh" to avgSpeedKmh,
                 "calories" to entry.calories,
+                "caloriesPerKm" to caloriesPerKm,
+                "avgHeartRate" to entry.heartRateAvg,
+                "minHeartRate" to entry.heartRateMin,
+                "maxHeartRate" to entry.heartRateMax,
+                "sleepHeartRateAvg" to entry.sleepHeartRateAvg,
+                "vo2Max" to entry.vo2Max,
                 "program" to entry.program,
                 "notes" to entry.notes,
                 "deleted" to entry.deleted
@@ -455,6 +472,11 @@ class SyncManager @Inject constructor(
                     durationMinutes = (workoutMap["durationMinutes"] as? Double)?.toInt(),
                     distanceKm = (workoutMap["distanceKm"] as? Double)?.toFloat(),
                     calories = (workoutMap["calories"] as? Double)?.toInt(),
+                    heartRateAvg = (workoutMap["avgHeartRate"] as? Double)?.toInt(),
+                    heartRateMin = (workoutMap["minHeartRate"] as? Double)?.toInt(),
+                    heartRateMax = (workoutMap["maxHeartRate"] as? Double)?.toInt(),
+                    sleepHeartRateAvg = (workoutMap["sleepHeartRateAvg"] as? Double)?.toInt(),
+                    vo2Max = (workoutMap["vo2Max"] as? Double)?.toFloat(),
                     program = workoutMap["program"] as? String,
                     notes = workoutMap["notes"] as? String,
                     synced = true,

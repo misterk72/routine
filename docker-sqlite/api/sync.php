@@ -119,6 +119,7 @@ function createTablesIfNotExist($pdo) {
         id BIGINT PRIMARY KEY AUTO_INCREMENT,
         user_id BIGINT NOT NULL,
         start_time DATETIME NOT NULL,
+        end_time DATETIME DEFAULT NULL,
         duration_minutes INTEGER,
         distance_km FLOAT,
         avg_speed_kmh FLOAT,
@@ -131,6 +132,9 @@ function createTablesIfNotExist($pdo) {
         vo2_max FLOAT,
         program TEXT,
         notes TEXT,
+        source_id BIGINT DEFAULT 1,
+        source_uid VARCHAR(128),
+        raw_json JSON DEFAULT NULL,
         client_id BIGINT,
         deleted BOOLEAN DEFAULT 0,
         last_modified TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -155,6 +159,7 @@ function createTablesIfNotExist($pdo) {
         $pdo->exec("ALTER TABLE workout_entries ADD COLUMN deleted BOOLEAN DEFAULT 0");
     }
     $workoutColumnDefs = [
+        'end_time' => 'DATETIME DEFAULT NULL',
         'avg_speed_kmh' => 'FLOAT',
         'calories_per_km' => 'FLOAT',
         'avg_heart_rate' => 'INTEGER',
@@ -162,12 +167,21 @@ function createTablesIfNotExist($pdo) {
         'max_heart_rate' => 'INTEGER',
         'sleep_heart_rate_avg' => 'INTEGER',
         'vo2_max' => 'FLOAT',
+        'source_id' => 'BIGINT DEFAULT 1',
+        'source_uid' => 'VARCHAR(128)',
+        'raw_json' => 'JSON DEFAULT NULL',
     ];
     foreach ($workoutColumnDefs as $column => $definition) {
         if (!in_array($column, $workoutColumns)) {
             error_log("Ajout de la colonne '$column' a la table workout_entries");
             $pdo->exec("ALTER TABLE workout_entries ADD COLUMN $column $definition");
         }
+    }
+
+    $workoutIndex = $pdo->query("SHOW INDEX FROM workout_entries WHERE Key_name = 'uniq_workout_source_uid'");
+    if ($workoutIndex->rowCount() === 0) {
+        error_log("Ajout de la contrainte unique (source_id, source_uid) sur workout_entries");
+        $pdo->exec("ALTER TABLE workout_entries ADD UNIQUE KEY uniq_workout_source_uid (source_id, source_uid)");
     }
     
     // Vérifier s'il y a un utilisateur par défaut, sinon le créer
@@ -264,6 +278,10 @@ function processWorkouts($pdo, $workouts) {
         try {
             $userId = ensureUserExists($pdo, $workout['userId']);
             $deleted = isset($workout['deleted']) && $workout['deleted'] ? 1 : 0;
+            $sourceId = isset($workout['sourceId']) ? (int)$workout['sourceId'] : 1;
+            $sourceUid = $workout['sourceUid'] ?? ("healthtracker:" . $workout['id']);
+            $endTime = $workout['endTime'] ?? null;
+            $rawJson = $workout['rawJson'] ?? null;
 
             $checkStmt = $pdo->prepare("SELECT id FROM workout_entries WHERE client_id = ?");
             $checkStmt->execute([$workout['id']]);
@@ -271,13 +289,15 @@ function processWorkouts($pdo, $workouts) {
 
             if ($existingEntry) {
                 $stmt = $pdo->prepare("UPDATE workout_entries
-                    SET user_id = ?, start_time = ?, duration_minutes = ?, distance_km = ?, avg_speed_kmh = ?,
+                    SET user_id = ?, start_time = ?, end_time = ?, duration_minutes = ?, distance_km = ?, avg_speed_kmh = ?,
                     calories = ?, calories_per_km = ?, avg_heart_rate = ?, min_heart_rate = ?,
-                    max_heart_rate = ?, sleep_heart_rate_avg = ?, vo2_max = ?, program = ?, notes = ?, deleted = ?
+                    max_heart_rate = ?, sleep_heart_rate_avg = ?, vo2_max = ?, program = ?, notes = ?,
+                    source_id = ?, source_uid = ?, raw_json = ?, deleted = ?
                     WHERE client_id = ?");
                 $stmt->execute([
                     $userId,
                     $workout['startTime'],
+                    $endTime,
                     $workout['durationMinutes'],
                     $workout['distanceKm'],
                     $workout['avgSpeedKmh'] ?? null,
@@ -290,18 +310,22 @@ function processWorkouts($pdo, $workouts) {
                     $workout['vo2Max'] ?? null,
                     $workout['program'],
                     $workout['notes'],
+                    $sourceId,
+                    $sourceUid,
+                    $rawJson,
                     $deleted,
                     $workout['id']
                 ]);
             } else {
                 $stmt = $pdo->prepare("INSERT INTO workout_entries
-                    (user_id, start_time, duration_minutes, distance_km, avg_speed_kmh, calories,
+                    (user_id, start_time, end_time, duration_minutes, distance_km, avg_speed_kmh, calories,
                     calories_per_km, avg_heart_rate, min_heart_rate, max_heart_rate,
-                    sleep_heart_rate_avg, vo2_max, program, notes, client_id, deleted)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                    sleep_heart_rate_avg, vo2_max, program, notes, source_id, source_uid, raw_json, client_id, deleted)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
                 $stmt->execute([
                     $userId,
                     $workout['startTime'],
+                    $endTime,
                     $workout['durationMinutes'],
                     $workout['distanceKm'],
                     $workout['avgSpeedKmh'] ?? null,
@@ -314,6 +338,9 @@ function processWorkouts($pdo, $workouts) {
                     $workout['vo2Max'] ?? null,
                     $workout['program'],
                     $workout['notes'],
+                    $sourceId,
+                    $sourceUid,
+                    $rawJson,
                     $workout['id'],
                     $deleted
                 ]);
@@ -388,9 +415,9 @@ function getEntriesSince($pdo, $timestamp) {
 function getWorkoutsSince($pdo, $timestamp) {
     $date = date('Y-m-d H:i:s', $timestamp / 1000);
     $stmt = $pdo->prepare("SELECT
-        w.id, w.user_id, w.start_time, w.duration_minutes, w.distance_km, w.avg_speed_kmh,
+        w.id, w.user_id, w.start_time, w.end_time, w.duration_minutes, w.distance_km, w.avg_speed_kmh,
         w.calories, w.calories_per_km, w.avg_heart_rate, w.min_heart_rate, w.max_heart_rate,
-        w.sleep_heart_rate_avg, w.vo2_max, w.program, w.notes,
+        w.sleep_heart_rate_avg, w.vo2_max, w.program, w.notes, w.source_id, w.source_uid, w.raw_json,
         w.client_id, w.deleted,
         u.name as user_name
         FROM workout_entries w
@@ -405,6 +432,7 @@ function getWorkoutsSince($pdo, $timestamp) {
             'userId' => (int)$row['user_id'],
             'userName' => $row['user_name'],
             'startTime' => $row['start_time'],
+            'endTime' => $row['end_time'],
             'durationMinutes' => $row['duration_minutes'] !== null ? (int)$row['duration_minutes'] : null,
             'distanceKm' => $row['distance_km'] !== null ? (float)$row['distance_km'] : null,
             'avgSpeedKmh' => $row['avg_speed_kmh'] !== null ? (float)$row['avg_speed_kmh'] : null,
@@ -417,6 +445,9 @@ function getWorkoutsSince($pdo, $timestamp) {
             'vo2Max' => $row['vo2_max'] !== null ? (float)$row['vo2_max'] : null,
             'program' => $row['program'],
             'notes' => $row['notes'],
+            'sourceId' => $row['source_id'] !== null ? (int)$row['source_id'] : null,
+            'sourceUid' => $row['source_uid'],
+            'rawJson' => $row['raw_json'],
             'clientId' => $row['client_id'] ? (int)$row['client_id'] : null
         ];
     }

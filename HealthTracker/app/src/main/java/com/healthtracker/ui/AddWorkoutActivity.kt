@@ -68,7 +68,7 @@ class AddWorkoutActivity : AppCompatActivity() {
     private lateinit var averageSpeedEditText: TextInputEditText
     private lateinit var caloriesPerKmEditText: TextInputEditText
     private lateinit var notesEditText: TextInputEditText
-    private lateinit var importGadgetbridgeButton: com.google.android.material.button.MaterialButton
+    private lateinit var forceImportGadgetbridgeButton: com.google.android.material.button.MaterialButton
     private lateinit var saveButton: FloatingActionButton
 
     @Inject
@@ -76,6 +76,7 @@ class AddWorkoutActivity : AppCompatActivity() {
 
     private lateinit var gadgetbridgeConfig: GadgetbridgeImportConfig
     private var gadgetbridgeReceiverRegistered = false
+    private var autoImportTriggered = false
     private val gadgetbridgeExportReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             when (intent.action) {
@@ -110,7 +111,7 @@ class AddWorkoutActivity : AppCompatActivity() {
         averageSpeedEditText = findViewById(R.id.averageSpeedEditText)
         caloriesPerKmEditText = findViewById(R.id.caloriesPerKmEditText)
         notesEditText = findViewById(R.id.notesEditText)
-        importGadgetbridgeButton = findViewById(R.id.importGadgetbridgeButton)
+        forceImportGadgetbridgeButton = findViewById(R.id.forceImportGadgetbridgeButton)
         saveButton = findViewById(R.id.saveButton)
 
         setSupportActionBar(toolbar)
@@ -137,6 +138,7 @@ class AddWorkoutActivity : AppCompatActivity() {
             ContextCompat.registerReceiver(this, gadgetbridgeExportReceiver, filter, ContextCompat.RECEIVER_EXPORTED)
             gadgetbridgeReceiverRegistered = true
         }
+        maybeTriggerInitialImport()
     }
 
     override fun onStop() {
@@ -279,16 +281,41 @@ class AddWorkoutActivity : AppCompatActivity() {
     }
 
     private fun setupGadgetbridgeImport() {
-        importGadgetbridgeButton.setOnClickListener {
-            val exportUri = gadgetbridgeConfig.getExportUri()
-            if (exportUri == null) {
+        forceImportGadgetbridgeButton.setOnClickListener {
+            triggerGadgetbridgeExport(resetImportState = true, showToast = true)
+        }
+    }
+
+    private fun maybeTriggerInitialImport() {
+        if (autoImportTriggered) {
+            return
+        }
+        val exportUri = gadgetbridgeConfig.getExportUri() ?: return
+        autoImportTriggered = true
+        triggerGadgetbridgeExport(resetImportState = false, showToast = false, exportUri = exportUri)
+    }
+
+    private fun triggerGadgetbridgeExport(
+        resetImportState: Boolean,
+        showToast: Boolean,
+        exportUri: android.net.Uri? = null
+    ) {
+        val resolvedUri = exportUri ?: gadgetbridgeConfig.getExportUri()
+        if (resolvedUri == null) {
+            if (showToast) {
                 Toast.makeText(this, R.string.gadgetbridge_missing_export, Toast.LENGTH_LONG).show()
-                return@setOnClickListener
             }
-            val intent = Intent(GadgetbridgeIntents.ACTION_TRIGGER_DB_EXPORT)
-            intent.setPackage("nodomain.freeyourgadget.gadgetbridge")
-            sendBroadcast(intent)
-            Log.d(TAG, "Triggered Gadgetbridge export for uri=$exportUri")
+            return
+        }
+        if (resetImportState) {
+            gadgetbridgeConfig.setLastImportedStartTime(0L)
+            Log.d(TAG, "Reset Gadgetbridge import state before export")
+        }
+        val intent = Intent(GadgetbridgeIntents.ACTION_TRIGGER_DB_EXPORT)
+        intent.setPackage("nodomain.freeyourgadget.gadgetbridge")
+        sendBroadcast(intent)
+        Log.d(TAG, "Triggered Gadgetbridge export for uri=$resolvedUri")
+        if (showToast) {
             Toast.makeText(this, R.string.gadgetbridge_export_triggered, Toast.LENGTH_SHORT).show()
         }
     }

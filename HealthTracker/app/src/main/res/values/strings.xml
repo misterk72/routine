@@ -55,6 +55,7 @@
     <string name="workout_distance_km">Distance (km) - manuel</string>
     <string name="workout_calories">Calories (kcal) - manuel</string>
     <string name="import_gadgetbridge">Importer depuis Gadgetbridge</string>
+    <string name="force_import_gadgetbridge">Forcer import Gadgetbridge</string>
     <string name="heart_rate_avg">FC moyenne (bpm)</string>
     <string name="heart_rate_min">FC min (bpm)</string>
     <string name="heart_rate_max">FC max (bpm)</string>
