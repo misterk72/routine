@@ -18,7 +18,8 @@ interface WorkoutEntryDao {
             "distanceKm = :distanceKm, calories = :calories, heartRateAvg = :heartRateAvg, " +
             "heartRateMin = :heartRateMin, heartRateMax = :heartRateMax, " +
             "sleepHeartRateAvg = :sleepHeartRateAvg, vo2Max = :vo2Max, " +
-            "program = :program, notes = :notes, synced = 0 WHERE id = :id"
+            "program = :program, soundtrack = :soundtrack, " +
+            "notes = :notes, synced = 0 WHERE id = :id"
     )
     suspend fun updateEntry(
         id: Long,
@@ -32,6 +33,7 @@ interface WorkoutEntryDao {
         sleepHeartRateAvg: Int?,
         vo2Max: Float?,
         program: String?,
+        soundtrack: String?,
         notes: String?
     )
 
@@ -48,6 +50,7 @@ interface WorkoutEntryDao {
             sleepHeartRateAvg = entry.sleepHeartRateAvg,
             vo2Max = entry.vo2Max,
             program = entry.program,
+            soundtrack = entry.soundtrack,
             notes = entry.notes
         )
     }

@@ -32,6 +32,7 @@ data class WorkoutEntry(
     val sleepHeartRateAvg: Int? = null,
     val vo2Max: Float? = null,
     val program: String? = null,
+    val soundtrack: String? = null,
     val notes: String? = null,
     val synced: Boolean = false,
     val serverEntryId: Long? = null,

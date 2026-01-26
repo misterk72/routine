@@ -262,6 +262,7 @@ class SyncManager @Inject constructor(
                 "sleepHeartRateAvg" to entry.sleepHeartRateAvg,
                 "vo2Max" to entry.vo2Max,
                 "program" to entry.program,
+                "soundtrack" to entry.soundtrack,
                 "notes" to entry.notes,
                 "deleted" to entry.deleted
             )
@@ -478,6 +479,7 @@ class SyncManager @Inject constructor(
                     sleepHeartRateAvg = (workoutMap["sleepHeartRateAvg"] as? Double)?.toInt(),
                     vo2Max = (workoutMap["vo2Max"] as? Double)?.toFloat(),
                     program = workoutMap["program"] as? String,
+                    soundtrack = workoutMap["soundtrack"] as? String,
                     notes = workoutMap["notes"] as? String,
                     synced = true,
                     deleted = (workoutMap["deleted"] as? Double)?.toInt() == 1
