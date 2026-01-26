@@ -52,6 +52,7 @@ CREATE TABLE IF NOT EXISTS workouts (
     max_heart_rate INT DEFAULT NULL,
     sleep_heart_rate_avg INT DEFAULT NULL,
     vo2_max DECIMAL(6,2) DEFAULT NULL,
+    soundtrack TEXT DEFAULT NULL,
     notes TEXT DEFAULT NULL,
     raw_json JSON DEFAULT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,

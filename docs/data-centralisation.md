@@ -21,7 +21,7 @@ Voir aussi: `docs/db-import-and-schema.md` pour la structure MariaDB et les impo
 - `sources` : registre des sources (`healthtracker`, `withings`, `gadgetbridge`, `manual`).
 - `user_profiles` : personnes réelles (nom, alias).
 - `user_source_map` : mapping `source_user_id` / `device_id` vers `user_profile_id`.
-- `workout_entries` : séances (date, durée, distance, calories, fc_avg/fc_min/fc_max, notes).
+- `workouts` : séances (date, durée, distance, calories, fc_avg/fc_min/fc_max, fond sonore, observations).
 - `weight_measurements` : poids, masse grasse, tour de taille, notes.
 - `gadgetbridge_samples` (optionnel) : échantillons détaillés FC/steps.
 
@@ -36,7 +36,7 @@ Voir aussi: `docs/db-import-and-schema.md` pour la structure MariaDB et les impo
 ## Automatisation
 - **Imports planifiés** :
   - Withings (nocturne) -> `weight_measurements`
-  - Gadgetbridge (quotidien) -> `workout_entries` + agrégats FC
+  - Gadgetbridge (quotidien) -> `workouts` + agrégats FC
 - **Saisie mobile** :
   - Fin de séance : programme, durée, distance, calories
   - Après pesée : tour de taille + notes
@@ -60,12 +60,12 @@ Voir aussi: `docs/db-import-and-schema.md` pour la structure MariaDB et les impo
 6. **Grafana** : dashboards sur séances, poids, FC, tour de taille.
 
 ## TODO
-- Définir le schéma cible dans MariaDB pour `workout_entries`, `weight_measurements`, `sources`, `user_profiles`, `user_source_map`.
+- Définir le schéma cible dans MariaDB pour `workouts`, `weight_measurements`, `sources`, `user_profiles`, `user_source_map`.
 - Créer le mapping bracelet/personne pour éviter les mélanges (device_id → profil).
 - Écrire les scripts d'import :
   - Withings Excel → `weight_measurements`
-  - Gadgetbridge DB → `workout_entries` + stats FC
-  - Saisie manuelle séances → `workout_entries`
+  - Gadgetbridge DB → `workouts` + stats FC
+  - Saisie manuelle séances → `workouts`
 - Implémenter la fusion automatique (par fenêtre temporelle + device).
 - Ajouter un mini formulaire mobile pour saisies post‑séance/pesée.
 - Mettre en place les dashboards Grafana (séances, poids, FC, tour de taille).

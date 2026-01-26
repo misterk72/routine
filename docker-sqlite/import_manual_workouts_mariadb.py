@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Import manual workout entries from XLSX into MariaDB workout_entries."""
+"""Import manual workout entries from XLSX into MariaDB workouts."""
 
 import argparse
 import datetime as dt
@@ -205,12 +205,8 @@ def build_inserts(
             min_hr = _float_or_none(row[col_index.get("Min pulsations/min", -1)])
             sleep_hr_avg = _float_or_none(row[col_index.get("FC Repos pulsations/min", -1)])
             vo2_max = _float_or_none(row[col_index.get("VO2", -1)])
-            if "Observations" in col_index:
-                notes = row[col_index.get("Observations", -1)]
-            elif "Fond sonore" in col_index:
-                notes = row[col_index.get("Fond sonore", -1)]
-            else:
-                notes = ""
+            notes = row[col_index.get("Observations", -1)] if "Observations" in col_index else ""
+            soundtrack = row[col_index.get("Fond sonore", -1)] if "Fond sonore" in col_index else ""
 
             # Skip ghost rows with no workout metrics, even if program/notes are filled.
             if (
@@ -229,17 +225,17 @@ def build_inserts(
             raw_json = json.dumps({"sheet": sheet_name})
 
             stmt = (
-                "INSERT INTO workout_entries "
+                "INSERT INTO workouts "
                 "(user_id, source_id, source_uid, start_time, "
                 "duration_minutes, program, distance_km, avg_speed_kmh, calories, calories_per_km, "
                 "avg_heart_rate, min_heart_rate, max_heart_rate, sleep_heart_rate_avg, vo2_max, "
-                "notes, raw_json) VALUES ("
+                "soundtrack, notes, raw_json) VALUES ("
                 f"{_sql_value(user_id)}, {source_id}, {_sql_value(source_uid)}, "
                 f"{_sql_value(start_time)}, {_sql_value(duration)}, {_sql_value(program)}, "
                 f"{_sql_value(distance)}, {_sql_value(avg_speed)}, {_sql_value(calories)}, "
                 f"{_sql_value(calories_per_km)}, {_sql_value(avg_hr)}, {_sql_value(min_hr)}, "
                 f"{_sql_value(max_hr)}, {_sql_value(sleep_hr_avg)}, {_sql_value(vo2_max)}, "
-                f"{_sql_value(notes)}, {_sql_value(raw_json)})"
+                f"{_sql_value(soundtrack)}, {_sql_value(notes)}, {_sql_value(raw_json)})"
             )
             if ignore_duplicates:
                 stmt += (
@@ -250,7 +246,7 @@ def build_inserts(
                     "calories_per_km=VALUES(calories_per_km), avg_heart_rate=VALUES(avg_heart_rate), "
                     "min_heart_rate=VALUES(min_heart_rate), max_heart_rate=VALUES(max_heart_rate), "
                     "sleep_heart_rate_avg=VALUES(sleep_heart_rate_avg), vo2_max=VALUES(vo2_max), "
-                    "notes=VALUES(notes), raw_json=VALUES(raw_json)"
+                    "soundtrack=VALUES(soundtrack), notes=VALUES(notes), raw_json=VALUES(raw_json)"
                 )
             stmt += ";"
             statements.append(stmt)
@@ -264,7 +260,7 @@ def main() -> int:
     parser.add_argument("--user-profile-id", type=int, dest="user_id", required=False)
     parser.add_argument("--source-id", type=int, default=4)
     parser.add_argument("--ignore-duplicates", action="store_true")
-    parser.add_argument("--out-sql", default="/tmp/manual_workout_entries.sql")
+    parser.add_argument("--out-sql", default="/tmp/manual_workouts.sql")
     parser.add_argument("--apply", action="store_true")
     parser.add_argument("--db-host", default="192.168.0.13")
     parser.add_argument("--db-user", default="healthuser")

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Import Gadgetbridge activity summaries into MariaDB workout_entries."""
+"""Import Gadgetbridge activity summaries into MariaDB workouts."""
 
 import argparse
 import datetime as dt
@@ -167,7 +167,7 @@ def build_inserts(
         )
 
         stmt = (
-            "INSERT INTO workout_entries "
+            "INSERT INTO workouts "
             "(user_id, source_id, source_uid, start_time, end_time, "
             "duration_minutes, avg_heart_rate, min_heart_rate, max_heart_rate, raw_json) VALUES ("
             f"{_sql_value(user_id)}, {source_id}, {_sql_value(source_uid)}, "
@@ -200,7 +200,7 @@ def main() -> int:
         default=None,
         help="Comma-separated device_id:user_id pairs (e.g. 1:1,2:1,3:2).",
     )
-    parser.add_argument("--out-sql", default="/tmp/gadgetbridge_workout_entries.sql")
+    parser.add_argument("--out-sql", default="/tmp/gadgetbridge_workouts.sql")
     parser.add_argument("--samples-out", default="/tmp/gadgetbridge_samples.sql")
     parser.add_argument(
         "--include-samples",
