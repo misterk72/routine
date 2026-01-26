@@ -81,6 +81,9 @@ class AddUnifiedActivity : AppCompatActivity() {
     private lateinit var gadgetbridgeConfig: GadgetbridgeImportConfig
     private var gadgetbridgeReceiverRegistered = false
     private var autoImportTriggered = false
+    private val programDefaults by lazy {
+        getSharedPreferences("workout_program_defaults", Context.MODE_PRIVATE)
+    }
     private val gadgetbridgeExportReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             when (intent.action) {
@@ -183,6 +186,9 @@ class AddUnifiedActivity : AppCompatActivity() {
                 binding.workoutSection.visibility = View.VISIBLE
                 binding.healthSection.visibility = View.GONE
                 maybeTriggerInitialImport()
+                if (selectedUserId > 0L) {
+                    applyDefaultProgramForUser(selectedUserId)
+                }
             } else {
                 currentType = ENTRY_TYPE_HEALTH
                 binding.healthSection.visibility = View.VISIBLE
@@ -281,6 +287,7 @@ class AddUnifiedActivity : AppCompatActivity() {
                     selectedUserId = defaultUser.id
                     binding.healthUserDropdown.setText(defaultUser.name, false)
                     binding.workoutUserDropdown.setText(defaultUser.name, false)
+                    applyDefaultProgramForUser(defaultUser.id)
                 }
             }
 
@@ -290,6 +297,7 @@ class AddUnifiedActivity : AppCompatActivity() {
                     selectedUserId = selectedUser.id
                     binding.healthUserDropdown.setText(selectedUser.name, false)
                     binding.workoutUserDropdown.setText(selectedUser.name, false)
+                    applyDefaultProgramForUser(selectedUser.id)
                     pendingUserId = null
                 }
             }
@@ -310,10 +318,27 @@ class AddUnifiedActivity : AppCompatActivity() {
             val name = userList[position].name
             binding.healthUserDropdown.setText(name, false)
             binding.workoutUserDropdown.setText(name, false)
+            applyDefaultProgramForUser(selectedUserId)
         } else if (selectedItem == getString(R.string.add_new_user)) {
             showAddUserDialog()
         }
     }
+
+    private fun applyDefaultProgramForUser(userId: Long) {
+        if (editingWorkoutId != null || currentType != ENTRY_TYPE_WORKOUT) {
+            return
+        }
+        val current = binding.workoutProgramEditText.text?.toString().orEmpty()
+        if (current.isNotBlank()) {
+            return
+        }
+        val stored = programDefaults.getString(programKey(userId), null)?.trim().orEmpty()
+        if (stored.isNotEmpty()) {
+            binding.workoutProgramEditText.setText(stored)
+        }
+    }
+
+    private fun programKey(userId: Long): String = "program_user_$userId"
 
     private fun showAddUserDialog() {
         val dialogView = layoutInflater.inflate(R.layout.dialog_add_user, null)
@@ -618,6 +643,10 @@ class AddUnifiedActivity : AppCompatActivity() {
     private fun saveWorkoutEntry() {
         val startTimeText = binding.workoutStartTimeEditText.text?.toString().orEmpty()
         val startTime = parseDateTime(startTimeText)
+        val program = binding.workoutProgramEditText.text?.toString()?.takeIf { it.isNotBlank() }
+        if (program != null) {
+            programDefaults.edit().putString(programKey(selectedUserId), program).apply()
+        }
         val entry = WorkoutEntry(
             id = editingWorkoutId ?: 0,
             userId = selectedUserId,
@@ -630,7 +659,7 @@ class AddUnifiedActivity : AppCompatActivity() {
             heartRateMax = binding.workoutHeartRateMaxEditText.text?.toString()?.toIntOrNull(),
             sleepHeartRateAvg = binding.workoutSleepHeartRateAvgEditText.text?.toString()?.toIntOrNull(),
             vo2Max = binding.workoutVo2MaxEditText.text?.toString()?.toFloatOrNull(),
-            program = binding.workoutProgramEditText.text?.toString()?.takeIf { it.isNotBlank() },
+            program = program,
             soundtrack = binding.workoutSoundtrackEditText.text?.toString()?.takeIf { it.isNotBlank() },
             notes = binding.workoutNotesEditText.text?.toString()?.takeIf { it.isNotBlank() }
         )

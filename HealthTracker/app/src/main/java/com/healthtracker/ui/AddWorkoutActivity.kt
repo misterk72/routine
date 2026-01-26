@@ -78,6 +78,9 @@ class AddWorkoutActivity : AppCompatActivity() {
     private lateinit var gadgetbridgeConfig: GadgetbridgeImportConfig
     private var gadgetbridgeReceiverRegistered = false
     private var autoImportTriggered = false
+    private val programDefaults by lazy {
+        getSharedPreferences("workout_program_defaults", Context.MODE_PRIVATE)
+    }
     private val gadgetbridgeExportReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             when (intent.action) {
@@ -200,6 +203,7 @@ class AddWorkoutActivity : AppCompatActivity() {
                 if (defaultUser != null) {
                     selectedUserId = defaultUser.id
                     userSpinner.setText(defaultUser.name, false)
+                    applyDefaultProgramForUser(defaultUser.id)
                 }
             }
         }
@@ -207,9 +211,23 @@ class AddWorkoutActivity : AppCompatActivity() {
         userSpinner.setOnItemClickListener { parent, _, position, _ ->
             if (position < userList.size) {
                 selectedUserId = userList[position].id
+                applyDefaultProgramForUser(selectedUserId)
             }
         }
     }
+
+    private fun applyDefaultProgramForUser(userId: Long) {
+        val current = programEditText.text?.toString().orEmpty()
+        if (current.isNotBlank()) {
+            return
+        }
+        val stored = programDefaults.getString(programKey(userId), null)?.trim().orEmpty()
+        if (stored.isNotEmpty()) {
+            programEditText.setText(stored)
+        }
+    }
+
+    private fun programKey(userId: Long): String = "program_user_$userId"
 
     private fun setupSaveButton() {
         saveButton.setOnClickListener {
@@ -218,6 +236,11 @@ class AddWorkoutActivity : AppCompatActivity() {
             if (selectedUserId == 0L) {
                 Toast.makeText(this, R.string.select_user, Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
+            }
+
+            val program = programEditText.text?.toString()?.takeIf { it.isNotBlank() }
+            if (program != null) {
+                programDefaults.edit().putString(programKey(selectedUserId), program).apply()
             }
 
             val entry = WorkoutEntry(
@@ -231,7 +254,7 @@ class AddWorkoutActivity : AppCompatActivity() {
                 heartRateMax = heartRateMaxEditText.text?.toString()?.toIntOrNull(),
                 sleepHeartRateAvg = sleepHeartRateAvgEditText.text?.toString()?.toIntOrNull(),
                 vo2Max = vo2MaxEditText.text?.toString()?.toFloatOrNull(),
-                program = programEditText.text?.toString()?.takeIf { it.isNotBlank() },
+                program = program,
                 soundtrack = soundtrackEditText.text?.toString()?.takeIf { it.isNotBlank() },
                 notes = notesEditText.text?.toString()?.takeIf { it.isNotBlank() }
             )
