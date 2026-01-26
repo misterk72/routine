@@ -88,6 +88,9 @@ class WorkoutEntryActivity : AppCompatActivity() {
             setTextOrHide(binding.vo2MaxText, entry.vo2Max?.let {
                 getString(R.string.workout_vo2_max_display, it)
             })
+            setTextOrHide(binding.soundtrackText, entry.soundtrack?.takeIf { it.isNotBlank() }?.let {
+                getString(R.string.workout_soundtrack_display, it)
+            })
             setTextOrHide(binding.notesText, entry.notes?.takeIf { it.isNotBlank() })
         }
     }

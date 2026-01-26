@@ -592,6 +592,7 @@ class AddUnifiedActivity : AppCompatActivity() {
             binding.workoutHeartRateMaxEditText.setText(workout.heartRateMax?.toString().orEmpty())
             binding.workoutSleepHeartRateAvgEditText.setText(workout.sleepHeartRateAvg?.toString().orEmpty())
             binding.workoutVo2MaxEditText.setText(workout.vo2Max?.toString().orEmpty())
+            binding.workoutSoundtrackEditText.setText(workout.soundtrack.orEmpty())
             binding.workoutNotesEditText.setText(workout.notes.orEmpty())
             updateComputedFields()
         }
@@ -630,6 +631,7 @@ class AddUnifiedActivity : AppCompatActivity() {
             sleepHeartRateAvg = binding.workoutSleepHeartRateAvgEditText.text?.toString()?.toIntOrNull(),
             vo2Max = binding.workoutVo2MaxEditText.text?.toString()?.toFloatOrNull(),
             program = binding.workoutProgramEditText.text?.toString()?.takeIf { it.isNotBlank() },
+            soundtrack = binding.workoutSoundtrackEditText.text?.toString()?.takeIf { it.isNotBlank() },
             notes = binding.workoutNotesEditText.text?.toString()?.takeIf { it.isNotBlank() }
         )
         if (editingWorkoutId != null) {

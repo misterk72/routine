@@ -54,6 +54,8 @@
     <string name="workout_duration_minutes">Durée (min)</string>
     <string name="workout_distance_km">Distance (km)</string>
     <string name="workout_calories">Calories</string>
+    <string name="workout_soundtrack">Fond sonore</string>
+    <string name="workout_observations">Observations</string>
     <string name="workout_saved">Séance enregistrée</string>
     <string name="basic_metrics">Mesures de base</string>
     <string name="weight">Masse</string>
@@ -120,6 +122,7 @@
     <string name="workout_heart_rate_max_display">FC max : %1$d bpm</string>
     <string name="workout_sleep_heart_rate_avg_display">FC sommeil moyenne : %1$d bpm</string>
     <string name="workout_vo2_max_display">VO2 max : %1$s ml/kg/min</string>
+    <string name="workout_soundtrack_display">Fond sonore : %1$s</string>
     <string name="workout_user_display">Utilisateur : %1$s</string>
     <string name="workout_start_display">Début : %1$s</string>
     <string name="workout_detail_title">Séance</string>

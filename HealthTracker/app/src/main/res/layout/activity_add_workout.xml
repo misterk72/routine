@@ -294,7 +294,7 @@
             </com.google.android.material.textfield.TextInputLayout>
 
             <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/notesLayout"
+                android:id="@+id/soundtrackLayout"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
@@ -303,10 +303,27 @@
                 app:layout_constraintTop_toBottomOf="@id/caloriesPerKmLayout">
 
                 <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/soundtrackEditText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="@string/workout_soundtrack" />
+
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/notesLayout"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/soundtrackLayout">
+
+                <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/notesEditText"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:hint="@string/notes"
+                    android:hint="@string/workout_observations"
                     android:inputType="textMultiLine"
                     android:minLines="3" />
 

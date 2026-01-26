@@ -54,6 +54,8 @@
     <string name="workout_duration_minutes">Duration (min)</string>
     <string name="workout_distance_km">Distance (km) - manuel</string>
     <string name="workout_calories">Calories (kcal) - manuel</string>
+    <string name="workout_soundtrack">Soundtrack</string>
+    <string name="workout_observations">Observations</string>
     <string name="import_gadgetbridge">Importer depuis Gadgetbridge</string>
     <string name="force_import_gadgetbridge">Forcer import Gadgetbridge</string>
     <string name="heart_rate_avg">FC moyenne (bpm)</string>
@@ -138,6 +140,7 @@
     <string name="workout_heart_rate_max_display">Max HR: %1$d bpm</string>
     <string name="workout_sleep_heart_rate_avg_display">Sleep HR avg: %1$d bpm</string>
     <string name="workout_vo2_max_display">VO2 max: %1$s ml/kg/min</string>
+    <string name="workout_soundtrack_display">Soundtrack: %1$s</string>
     <string name="workout_user_display">User: %1$s</string>
     <string name="workout_start_display">Start: %1$s</string>
     <string name="workout_detail_title">Workout</string>

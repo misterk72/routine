@@ -67,6 +67,7 @@ class AddWorkoutActivity : AppCompatActivity() {
     private lateinit var vo2MaxEditText: TextInputEditText
     private lateinit var averageSpeedEditText: TextInputEditText
     private lateinit var caloriesPerKmEditText: TextInputEditText
+    private lateinit var soundtrackEditText: TextInputEditText
     private lateinit var notesEditText: TextInputEditText
     private lateinit var forceImportGadgetbridgeButton: com.google.android.material.button.MaterialButton
     private lateinit var saveButton: FloatingActionButton
@@ -110,6 +111,7 @@ class AddWorkoutActivity : AppCompatActivity() {
         vo2MaxEditText = findViewById(R.id.vo2MaxEditText)
         averageSpeedEditText = findViewById(R.id.averageSpeedEditText)
         caloriesPerKmEditText = findViewById(R.id.caloriesPerKmEditText)
+        soundtrackEditText = findViewById(R.id.soundtrackEditText)
         notesEditText = findViewById(R.id.notesEditText)
         forceImportGadgetbridgeButton = findViewById(R.id.forceImportGadgetbridgeButton)
         saveButton = findViewById(R.id.saveButton)
@@ -230,6 +232,7 @@ class AddWorkoutActivity : AppCompatActivity() {
                 sleepHeartRateAvg = sleepHeartRateAvgEditText.text?.toString()?.toIntOrNull(),
                 vo2Max = vo2MaxEditText.text?.toString()?.toFloatOrNull(),
                 program = programEditText.text?.toString()?.takeIf { it.isNotBlank() },
+                soundtrack = soundtrackEditText.text?.toString()?.takeIf { it.isNotBlank() },
                 notes = notesEditText.text?.toString()?.takeIf { it.isNotBlank() }
             )
 

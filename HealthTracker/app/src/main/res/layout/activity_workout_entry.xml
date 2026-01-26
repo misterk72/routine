@@ -115,6 +115,13 @@
                     android:textAppearance="@style/TextAppearance.MaterialComponents.Body2" />
 
                 <TextView
+                    android:id="@+id/soundtrackText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:textAppearance="@style/TextAppearance.MaterialComponents.Body2" />
+
+                <TextView
                     android:id="@+id/notesText"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
