@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="health_card_background">#2B333A</color>
+    <color name="workout_card_background">#332C26</color>
+</resources>
