@@ -46,6 +46,10 @@ class WorkoutViewModel @Inject constructor(
         return workoutEntryRepository.getEntryById(id)
     }
 
+    suspend fun deleteWorkout(entry: WorkoutEntry) {
+        workoutEntryRepository.deleteEntry(entry)
+    }
+
     private fun loadUsers() {
         viewModelScope.launch {
             userRepository.getAllUsers().collectLatest { usersList ->

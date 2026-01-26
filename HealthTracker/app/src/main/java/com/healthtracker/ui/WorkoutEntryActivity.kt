@@ -1,15 +1,21 @@
 package com.healthtracker.ui
 
 import android.os.Bundle
+import android.view.Menu
+import android.view.MenuItem
 import android.widget.Toast
 import androidx.activity.viewModels
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import com.healthtracker.R
+import com.healthtracker.data.WorkoutEntry
 import com.healthtracker.databinding.ActivityWorkoutEntryBinding
+import com.healthtracker.sync.SyncManager
 import dagger.hilt.android.AndroidEntryPoint
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class WorkoutEntryActivity : AppCompatActivity() {
@@ -30,6 +36,10 @@ class WorkoutEntryActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityWorkoutEntryBinding
     private val viewModel: WorkoutEntryViewModel by viewModels()
+    private var currentEntry: WorkoutEntry? = null
+
+    @Inject
+    lateinit var syncManager: SyncManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -56,6 +66,7 @@ class WorkoutEntryActivity : AppCompatActivity() {
 
             val entry = workoutWithUser.entry
             val user = workoutWithUser.user
+            currentEntry = entry
 
             val formattedDate = formatWithCapitalizedDay(entry.startTime, "EEEE d MMMM yyyy, HH'h'mm")
             binding.startTimeText.text = getString(R.string.workout_start_display, formattedDate)
@@ -93,6 +104,29 @@ class WorkoutEntryActivity : AppCompatActivity() {
             })
             setTextOrHide(binding.notesText, entry.notes?.takeIf { it.isNotBlank() })
         }
+
+        viewModel.deleteComplete.observe(this) { isComplete ->
+            if (isComplete) {
+                syncManager.syncNow()
+                Toast.makeText(this, R.string.entry_deleted, Toast.LENGTH_SHORT).show()
+                finish()
+            }
+        }
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu): Boolean {
+        menuInflater.inflate(R.menu.menu_workout_entry, menu)
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        return when (item.itemId) {
+            R.id.action_delete_workout -> {
+                confirmDeleteWorkout()
+                true
+            }
+            else -> super.onOptionsItemSelected(item)
+        }
     }
 
     private fun setTextOrHide(view: android.view.View, text: String?) {
@@ -104,5 +138,22 @@ class WorkoutEntryActivity : AppCompatActivity() {
                 view.text = text
             }
         }
+    }
+
+    private fun confirmDeleteWorkout() {
+        val entry = currentEntry
+        if (entry == null || entry.id == 0L) {
+            Toast.makeText(this, R.string.workout_not_found, Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        AlertDialog.Builder(this)
+            .setTitle(R.string.delete_entry)
+            .setMessage(R.string.confirm_delete_entry)
+            .setPositiveButton(R.string.delete) { _, _ ->
+                viewModel.deleteWorkout(entry)
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
     }
 }

@@ -8,6 +8,8 @@ import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.util.Log
+import android.view.Menu
+import android.view.MenuItem
 import android.view.View
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
@@ -102,6 +104,7 @@ class AddUnifiedActivity : AppCompatActivity() {
     private var currentType = ENTRY_TYPE_HEALTH
     private var editingWorkoutId: Long? = null
     private var pendingUserId: Long? = null
+    private var editingWorkoutEntry: WorkoutEntry? = null
 
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -619,6 +622,7 @@ class AddUnifiedActivity : AppCompatActivity() {
             binding.workoutVo2MaxEditText.setText(workout.vo2Max?.toString().orEmpty())
             binding.workoutSoundtrackEditText.setText(workout.soundtrack.orEmpty())
             binding.workoutNotesEditText.setText(workout.notes.orEmpty())
+            editingWorkoutEntry = workout
             updateComputedFields()
         }
     }
@@ -671,6 +675,52 @@ class AddUnifiedActivity : AppCompatActivity() {
         syncManager.syncNow()
         Toast.makeText(this, R.string.workout_saved, Toast.LENGTH_SHORT).show()
         finish()
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu): Boolean {
+        if (editingWorkoutId != null && currentType == ENTRY_TYPE_WORKOUT) {
+            menuInflater.inflate(R.menu.menu_workout_entry, menu)
+            return true
+        }
+        return super.onCreateOptionsMenu(menu)
+    }
+
+    override fun onPrepareOptionsMenu(menu: Menu): Boolean {
+        menu.findItem(R.id.action_delete_workout)?.isVisible =
+            editingWorkoutId != null && currentType == ENTRY_TYPE_WORKOUT
+        return super.onPrepareOptionsMenu(menu)
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        return when (item.itemId) {
+            R.id.action_delete_workout -> {
+                confirmDeleteWorkout()
+                true
+            }
+            else -> super.onOptionsItemSelected(item)
+        }
+    }
+
+    private fun confirmDeleteWorkout() {
+        val entry = editingWorkoutEntry
+        if (entry == null || entry.id == 0L) {
+            Toast.makeText(this, R.string.workout_not_found, Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.delete_entry)
+            .setMessage(R.string.confirm_delete_entry)
+            .setPositiveButton(R.string.delete) { _, _ ->
+                lifecycleScope.launch {
+                    workoutViewModel.deleteWorkout(entry)
+                    syncManager.syncNow()
+                    Toast.makeText(this@AddUnifiedActivity, R.string.entry_deleted, Toast.LENGTH_SHORT).show()
+                    finish()
+                }
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
     }
 
     private fun parseDateTime(value: String): LocalDateTime {
