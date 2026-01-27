@@ -10,12 +10,14 @@ Voir aussi: `docs/db-import-and-schema.md` pour la structure MariaDB et les impo
 - **Withings** : poids/masse grasse importés automatiquement (Excel `Withings_Weight_Data.xlsx`).
 - **Gadgetbridge** : fréquences cardiaques et métriques issues des bracelets (SQLite `Gadgetbridge/Gadgetbridge.db`).
 - **Saisie manuelle séances** : programme, durée, distance, calories (remplace l'Excel `Entrainement vélo elliptique3.xlsx`).
+- **Localisations (app mobile)** : lieux enregistrés pour le suivi santé.
 
 ## Principes de Centralisation
 - **Unifier sans mélanger** : chaque source conserve un identifiant d'origine (`source`, `source_uid`).
 - **Mapper les personnes** : les bracelets et les apps sont rattachés à un `user_profile`.
 - **Conserver le brut** : stocker les données importées avec `raw_json` pour audit/debug.
 - **Calculer les agrégats** : ex. FC moyenne/max/min par séance.
+- **Relier les localisations** : `health_entries.location_id` pointe vers `locations`.
 
 ## Schéma Cible (proposition)
 - `sources` : registre des sources (`healthtracker`, `withings`, `gadgetbridge`, `manual`).
@@ -24,6 +26,7 @@ Voir aussi: `docs/db-import-and-schema.md` pour la structure MariaDB et les impo
 - `workouts` : séances (date, durée, distance, calories, fc_avg/fc_min/fc_max, fond sonore, observations).
 - `weight_measurements` : poids, masse grasse, tour de taille, notes.
 - `gadgetbridge_samples` (optionnel) : échantillons détaillés FC/steps.
+- `locations` : lieux (nom, latitude, longitude, rayon, défaut).
 
 ## Règles d'Association (fusion)
 - **Par fenêtre temporelle** : associer les sources dans un intervalle configurable (ex. +/- 6h).

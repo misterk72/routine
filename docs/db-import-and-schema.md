@@ -35,6 +35,7 @@ The app sync layer uses:
 - `users`
 - `health_entries`
 - `workouts`
+- `locations`
 
 `workouts` is the single canonical table. External imports now write
 there too, using `source_id` and `source_uid` for dedupe.
@@ -45,6 +46,18 @@ there too, using `source_id` and `source_uid` for dedupe.
 - `avg_heart_rate`, `min_heart_rate`, `max_heart_rate`
 - `sleep_heart_rate_avg`, `vo2_max`
 - `soundtrack`, `notes`, `raw_json`
+
+`health_entries` also stores:
+- `location_id` (FK to `locations.id`)
+
+`locations` columns include:
+- `name`, `latitude`, `longitude`, `radius`, `is_default`, `client_id`
+
+Notes:
+- The mobile app sends locations with their **client-side IDs**.
+- The API stores those in `locations.client_id` and maps `health_entries.location_id`
+  to the **server-side** `locations.id`.
+- On download, `locationId` is translated back to the client-side ID.
 
 ## Import scripts
 
