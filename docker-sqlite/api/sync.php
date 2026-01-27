@@ -44,6 +44,13 @@ switch ($method) {
         
         $response = [];
 
+        // Traiter les localisations
+        if (isset($data['locations']) && is_array($data['locations'])) {
+            error_log("DEBUG - Nombre de localisations reçues: " . count($data['locations']));
+            $result = processLocations($pdo, $data['locations']);
+            $response['locations'] = $result;
+        }
+
         // Traiter les entrées de santé
         if (isset($data['entries']) && is_array($data['entries'])) {
             error_log("DEBUG - Nombre d'entrées reçues: " . count($data['entries']));
@@ -78,9 +85,10 @@ switch ($method) {
         createTablesIfNotExist($pdo);
         
         // Récupérer les entrées
+        $locations = getLocationsSince($pdo, $timestamp);
         $entries = getEntriesSince($pdo, $timestamp);
         $workouts = getWorkoutsSince($pdo, $timestamp);
-        echo json_encode(['entries' => $entries, 'workouts' => $workouts]);
+        echo json_encode(['locations' => $locations, 'entries' => $entries, 'workouts' => $workouts]);
         break;
         
     default:
@@ -107,10 +115,24 @@ function createTablesIfNotExist($pdo) {
         waist_measurement FLOAT,
         body_fat FLOAT,
         notes TEXT,
+        location_id BIGINT,
         client_id BIGINT,
         deleted BOOLEAN DEFAULT 0,
         last_modified TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        UNIQUE KEY (client_id)
+    )");
+
+    // Créer la table des localisations si elle n'existe pas
+    $pdo->exec("CREATE TABLE IF NOT EXISTS locations (
+        id BIGINT PRIMARY KEY AUTO_INCREMENT,
+        name VARCHAR(255) NOT NULL,
+        latitude DOUBLE NOT NULL,
+        longitude DOUBLE NOT NULL,
+        radius FLOAT DEFAULT 100,
+        is_default BOOLEAN DEFAULT 0,
+        client_id BIGINT,
+        last_modified TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         UNIQUE KEY (client_id)
     )");
 
@@ -151,6 +173,24 @@ function createTablesIfNotExist($pdo) {
     if (!in_array('deleted', $columns)) {
         error_log("Ajout de la colonne 'deleted' à la table health_entries");
         $pdo->exec("ALTER TABLE health_entries ADD COLUMN deleted BOOLEAN DEFAULT 0");
+    }
+    if (!in_array('location_id', $columns)) {
+        error_log("Ajout de la colonne 'location_id' à la table health_entries");
+        $pdo->exec("ALTER TABLE health_entries ADD COLUMN location_id BIGINT");
+    }
+
+    $locationInfo = $pdo->query("DESCRIBE locations");
+    $locationColumns = $locationInfo->fetchAll(PDO::FETCH_COLUMN);
+    $locationColumnDefs = [
+        'radius' => 'FLOAT DEFAULT 100',
+        'is_default' => 'BOOLEAN DEFAULT 0',
+        'client_id' => 'BIGINT',
+    ];
+    foreach ($locationColumnDefs as $column => $definition) {
+        if (!in_array($column, $locationColumns)) {
+            error_log("Ajout de la colonne '$column' a la table locations");
+            $pdo->exec("ALTER TABLE locations ADD COLUMN $column $definition");
+        }
     }
 
     $workoutInfo = $pdo->query("DESCRIBE workouts");
@@ -227,9 +267,10 @@ function processEntries($pdo, $entries) {
                 error_log("DEBUG - Mise à jour de l'entrée existante avec client_id = {$entry['id']}");
                 $stmt = $pdo->prepare("UPDATE health_entries 
                     SET user_id = ?, timestamp = ?, weight = ?, waist_measurement = ?, 
-                    body_fat = ?, notes = ?, deleted = ?
+                    body_fat = ?, notes = ?, location_id = ?, deleted = ?
                     WHERE client_id = ?");
                 
+                $locationServerId = resolveLocationId($pdo, $entry['locationId'] ?? null);
                 $stmt->execute([
                     $userId,
                     $entry['timestamp'],
@@ -237,6 +278,7 @@ function processEntries($pdo, $entries) {
                     $entry['waistMeasurement'],
                     $entry['bodyFat'],
                     $entry['notes'],
+                    $locationServerId,
                     $deleted,
                     $entry['id']
                 ]);
@@ -244,9 +286,10 @@ function processEntries($pdo, $entries) {
                 // Insertion d'une nouvelle entrée
                 error_log("DEBUG - Insertion d'une nouvelle entrée avec client_id = {$entry['id']}");
                 $stmt = $pdo->prepare("INSERT INTO health_entries 
-                    (user_id, timestamp, weight, waist_measurement, body_fat, notes, client_id, deleted)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+                    (user_id, timestamp, weight, waist_measurement, body_fat, notes, location_id, client_id, deleted)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
                 
+                $locationServerId = resolveLocationId($pdo, $entry['locationId'] ?? null);
                 $stmt->execute([
                     $userId,
                     $entry['timestamp'],
@@ -254,6 +297,7 @@ function processEntries($pdo, $entries) {
                     $entry['waistMeasurement'],
                     $entry['bodyFat'],
                     $entry['notes'],
+                    $locationServerId,
                     $entry['id'],
                     $deleted
                 ]);
@@ -370,6 +414,113 @@ function processWorkouts($pdo, $workouts) {
     ];
 }
 
+function processLocations($pdo, $locations) {
+    $processed = 0;
+    $errors = [];
+
+    foreach ($locations as $location) {
+        try {
+            $clientId = $location['id'] ?? null;
+            if ($clientId === null) {
+                continue;
+            }
+
+            $checkStmt = $pdo->prepare("SELECT id FROM locations WHERE client_id = ?");
+            $checkStmt->execute([$clientId]);
+            $existing = $checkStmt->fetch(PDO::FETCH_ASSOC);
+
+            if ($existing) {
+                $stmt = $pdo->prepare("UPDATE locations
+                    SET name = ?, latitude = ?, longitude = ?, radius = ?, is_default = ?
+                    WHERE client_id = ?");
+                $stmt->execute([
+                    $location['name'],
+                    $location['latitude'],
+                    $location['longitude'],
+                    $location['radius'] ?? 100,
+                    !empty($location['isDefault']) ? 1 : 0,
+                    $clientId
+                ]);
+            } else {
+                $stmt = $pdo->prepare("INSERT INTO locations
+                    (name, latitude, longitude, radius, is_default, client_id)
+                    VALUES (?, ?, ?, ?, ?, ?)");
+                $stmt->execute([
+                    $location['name'],
+                    $location['latitude'],
+                    $location['longitude'],
+                    $location['radius'] ?? 100,
+                    !empty($location['isDefault']) ? 1 : 0,
+                    $clientId
+                ]);
+            }
+
+            $processed++;
+        } catch (Exception $e) {
+            $errors[] = [
+                'location' => $location,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    return [
+        'success' => true,
+        'processed' => $processed,
+        'errors' => $errors
+    ];
+}
+
+function resolveLocationId($pdo, $clientId) {
+    if (empty($clientId)) {
+        return null;
+    }
+    $stmt = $pdo->prepare("SELECT id FROM locations WHERE client_id = ?");
+    $stmt->execute([$clientId]);
+    $result = $stmt->fetch(PDO::FETCH_ASSOC);
+    if ($result) {
+        return $result['id'];
+    }
+    return null;
+}
+
+function resolveLocationClientId($pdo, $serverId) {
+    if (empty($serverId)) {
+        return null;
+    }
+    $stmt = $pdo->prepare("SELECT client_id FROM locations WHERE id = ?");
+    $stmt->execute([$serverId]);
+    $result = $stmt->fetch(PDO::FETCH_ASSOC);
+    if ($result) {
+        return $result['client_id'] ? (int)$result['client_id'] : null;
+    }
+    return null;
+}
+
+function getLocationsSince($pdo, $timestamp) {
+    $date = date('Y-m-d H:i:s', $timestamp / 1000);
+
+    $stmt = $pdo->prepare("SELECT id, name, latitude, longitude, radius, is_default, client_id
+        FROM locations
+        WHERE last_modified > ?");
+    $stmt->execute([$date]);
+
+    $locations = [];
+    while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+        $locations[] = [
+            'id' => (int)$row['id'],
+            'clientId' => $row['client_id'] ? (int)$row['client_id'] : null,
+            'name' => $row['name'],
+            'latitude' => (float)$row['latitude'],
+            'longitude' => (float)$row['longitude'],
+            'radius' => $row['radius'] ? (float)$row['radius'] : 100,
+            'isDefault' => $row['is_default'] ? 1 : 0
+        ];
+    }
+
+    return $locations;
+}
+
 // Fonction pour s'assurer qu'un utilisateur existe
 function ensureUserExists($pdo, $userId) {
     // Vérifier si l'utilisateur existe
@@ -394,7 +545,7 @@ function getEntriesSince($pdo, $timestamp) {
     // et qui ne sont pas marquées comme supprimées
     // NOTE: On récupère maintenant toutes les entrées, qu'elles aient un client_id ou non
     $stmt = $pdo->prepare("SELECT 
-        e.id, e.user_id, e.timestamp, e.weight, e.waist_measurement, e.body_fat, e.notes, e.client_id, e.deleted,
+        e.id, e.user_id, e.timestamp, e.weight, e.waist_measurement, e.body_fat, e.notes, e.location_id, e.client_id, e.deleted,
         u.name as user_name
         FROM health_entries e
         JOIN users u ON e.user_id = u.id
@@ -412,6 +563,7 @@ function getEntriesSince($pdo, $timestamp) {
             'waistMeasurement' => $row['waist_measurement'] ? (float)$row['waist_measurement'] : null,
             'bodyFat' => $row['body_fat'] ? (float)$row['body_fat'] : null,
             'notes' => $row['notes'],
+            'locationId' => resolveLocationClientId($pdo, $row['location_id']),
             'clientId' => $row['client_id'] ? (int)$row['client_id'] : null
         ];
     }

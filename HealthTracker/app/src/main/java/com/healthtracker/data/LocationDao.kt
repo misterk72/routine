@@ -7,6 +7,9 @@ import androidx.room.*
 interface LocationDao {
     @Query("SELECT * FROM locations ORDER BY name ASC")
     fun getAllLocations(): LiveData<List<Location>>
+
+    @Query("SELECT * FROM locations")
+    suspend fun getAllLocationsList(): List<Location>
     
     @Query("SELECT * FROM locations WHERE id = :locationId")
     suspend fun getLocationById(locationId: Long): Location?
@@ -16,6 +19,9 @@ interface LocationDao {
     
     @Insert
     suspend fun insertLocation(location: Location): Long
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertOrUpdateLocations(locations: List<Location>)
     
     @Update
     suspend fun updateLocation(location: Location)

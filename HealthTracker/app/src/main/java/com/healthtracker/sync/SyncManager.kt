@@ -186,25 +186,40 @@ class SyncManager @Inject constructor(
         val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
         val unsyncedEntries = database.healthEntryDao().getUnsyncedEntries()
         val deletedEntries = database.healthEntryDao().getDeletedUnsyncedEntries()
+        val locations = database.locationDao().getAllLocationsList()
 
-        if (unsyncedEntries.isEmpty() && deletedEntries.isEmpty()) {
+        if (unsyncedEntries.isEmpty() && deletedEntries.isEmpty() && locations.isEmpty()) {
             Log.d(TAG, "Aucune entrée à synchroniser")
             return
         }
 
         val allEntries = unsyncedEntries + deletedEntries
-        val entriesJson = gson.toJson(mapOf("entries" to allEntries.map { entry ->
-            mapOf(
-                "id" to entry.id,
-                "userId" to entry.userId,
-                "timestamp" to entry.timestamp.format(dateFormatter),
-                "weight" to entry.weight,
-                "waistMeasurement" to entry.waistMeasurement,
-                "bodyFat" to entry.bodyFat,
-                "notes" to entry.notes,
-                "deleted" to entry.deleted
-            )
-        }))
+        val payload = mapOf(
+            "locations" to locations.map { location ->
+                mapOf(
+                    "id" to location.id,
+                    "name" to location.name,
+                    "latitude" to location.latitude,
+                    "longitude" to location.longitude,
+                    "radius" to location.radius,
+                    "isDefault" to location.isDefault
+                )
+            },
+            "entries" to allEntries.map { entry ->
+                mapOf(
+                    "id" to entry.id,
+                    "userId" to entry.userId,
+                    "timestamp" to entry.timestamp.format(dateFormatter),
+                    "weight" to entry.weight,
+                    "waistMeasurement" to entry.waistMeasurement,
+                    "bodyFat" to entry.bodyFat,
+                    "notes" to entry.notes,
+                    "locationId" to entry.locationId,
+                    "deleted" to entry.deleted
+                )
+            }
+        )
+        val entriesJson = gson.toJson(payload)
 
         val requestBody = entriesJson.toRequestBody("application/json".toMediaType())
         val request = Request.Builder()
@@ -220,8 +235,10 @@ class SyncManager @Inject constructor(
             Log.d(TAG, "DEBUG - Réponse du serveur (upload): $responseBody")
 
             val idsToMarkSynced = allEntries.map { it.id }
-            database.healthEntryDao().markAllAsSynced(idsToMarkSynced)
-            Log.d(TAG, "${idsToMarkSynced.size} entrées marquées comme synchronisées")
+            if (idsToMarkSynced.isNotEmpty()) {
+                database.healthEntryDao().markAllAsSynced(idsToMarkSynced)
+                Log.d(TAG, "${idsToMarkSynced.size} entrées marquées comme synchronisées")
+            }
         }
     }
 
@@ -332,6 +349,35 @@ class SyncManager @Inject constructor(
                 }
             }
 
+            val serverLocationsMap = jsonResponse["locations"] ?: emptyList()
+            if (serverLocationsMap.isNotEmpty()) {
+                val locationsToInsert = serverLocationsMap.mapNotNull { locationMap ->
+                    val id = (locationMap["clientId"] as? Double)?.toLong()
+                        ?: (locationMap["id"] as? Double)?.toLong()
+                    val name = locationMap["name"] as? String
+                    val lat = (locationMap["latitude"] as? Double)
+                    val lng = (locationMap["longitude"] as? Double)
+                    val radius = (locationMap["radius"] as? Double)?.toFloat()
+                    val isDefault = (locationMap["isDefault"] as? Double)?.toInt() == 1
+                    if (id != null && name != null && lat != null && lng != null) {
+                        com.healthtracker.data.Location(
+                            id = id,
+                            name = name,
+                            latitude = lat,
+                            longitude = lng,
+                            radius = radius ?: 100f,
+                            isDefault = isDefault
+                        )
+                    } else {
+                        null
+                    }
+                }
+                if (locationsToInsert.isNotEmpty()) {
+                    database.locationDao().insertOrUpdateLocations(locationsToInsert)
+                    Log.d(TAG, "${locationsToInsert.size} localisations insérées/mises à jour depuis le serveur.")
+                }
+            }
+
             // Étape 2: Gérer les utilisateurs manquants de manière plus intelligente
             val serverEntriesMap = jsonResponse["entries"] ?: emptyList()
             val userDao = database.userDao()
@@ -418,6 +464,7 @@ class SyncManager @Inject constructor(
                     waistMeasurement = (entryMap["waistMeasurement"] as? Double)?.toFloat(),
                     bodyFat = (entryMap["bodyFat"] as? Double)?.toFloat(),
                     notes = entryMap["notes"] as? String,
+                    locationId = (entryMap["locationId"] as? Double)?.toLong(),
                     synced = true,
                     deleted = (entryMap["deleted"] as? Double)?.toInt() == 1
                 )
