@@ -145,6 +145,7 @@
     <string name="workout_start_display">Start: %1$s</string>
     <string name="workout_detail_title">Workout</string>
     <string name="workout_not_found">Workout not found</string>
+    <string name="health_entry_not_found">Health entry not found</string>
     
     <!-- Delete Entry -->
     <string name="delete_entry">Delete this entry</string>

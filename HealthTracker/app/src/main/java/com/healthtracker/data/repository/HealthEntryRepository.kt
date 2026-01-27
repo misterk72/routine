@@ -99,4 +99,12 @@ class HealthEntryRepository @Inject constructor(
     fun getEntryWithUserById(id: Long): Flow<HealthEntryWithUser?> {
         return database.healthEntryDao().getEntryWithUserById(id)
     }
+
+    /**
+     * Get a specific health entry by ID (suspend).
+     * @param id The ID of the entry to retrieve
+     */
+    suspend fun getEntryByIdSuspend(id: Long): HealthEntry? {
+        return database.healthEntryDao().getEntryByIdSuspend(id)
+    }
 }

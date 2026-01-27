@@ -53,6 +53,7 @@ class AddUnifiedActivity : AppCompatActivity() {
     companion object {
         const val EXTRA_ENTRY_TYPE = "entry_type"
         const val EXTRA_WORKOUT_ID = "workout_id"
+        const val EXTRA_HEALTH_ID = "health_id"
         const val ENTRY_TYPE_HEALTH = "health"
         const val ENTRY_TYPE_WORKOUT = "workout"
         private const val TAG = "AddUnifiedActivity"
@@ -102,9 +103,11 @@ class AddUnifiedActivity : AppCompatActivity() {
     }
 
     private var currentType = ENTRY_TYPE_HEALTH
+    private var editingHealthId: Long? = null
     private var editingWorkoutId: Long? = null
     private var pendingUserId: Long? = null
     private var editingWorkoutEntry: WorkoutEntry? = null
+    private var editingHealthEntry: HealthEntry? = null
 
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -144,8 +147,16 @@ class AddUnifiedActivity : AppCompatActivity() {
         setupSaveButton()
 
         val initialType = intent.getStringExtra(EXTRA_ENTRY_TYPE)
+        editingHealthId = intent.getLongExtra(EXTRA_HEALTH_ID, 0L).takeIf { it > 0L }
         editingWorkoutId = intent.getLongExtra(EXTRA_WORKOUT_ID, 0L).takeIf { it > 0L }
-        if (editingWorkoutId != null) {
+        if (editingHealthId != null) {
+            binding.typeToggleGroup.visibility = View.GONE
+            binding.healthSection.visibility = View.VISIBLE
+            binding.workoutSection.visibility = View.GONE
+            currentType = ENTRY_TYPE_HEALTH
+            binding.workoutForceImportGadgetbridgeButton.visibility = View.GONE
+            loadHealthForEdit(editingHealthId!!)
+        } else if (editingWorkoutId != null) {
             binding.typeToggleGroup.visibility = View.GONE
             binding.workoutSection.visibility = View.VISIBLE
             binding.healthSection.visibility = View.GONE
@@ -374,6 +385,7 @@ class AddUnifiedActivity : AppCompatActivity() {
             adapter.clear()
             adapter.addAll(locationNames)
             adapter.notifyDataSetChanged()
+            applyLocationSelection()
         }
 
         binding.healthLocationDropdown.setOnItemClickListener { parent, _, position, _ ->
@@ -460,6 +472,9 @@ class AddUnifiedActivity : AppCompatActivity() {
         locationService.getLastLocation { location ->
             if (location != null) {
                 runOnUiThread {
+                    if (editingHealthId != null && selectedLocationId != null) {
+                        return@runOnUiThread
+                    }
                     Toast.makeText(this, getString(R.string.location_detected, location.name), Toast.LENGTH_SHORT).show()
                     selectedLocationId = location.id
                     binding.healthLocationDropdown.setText(location.name, false)
@@ -627,19 +642,51 @@ class AddUnifiedActivity : AppCompatActivity() {
         }
     }
 
+    private fun loadHealthForEdit(entryId: Long) {
+        lifecycleScope.launch {
+            val entry = withContext(Dispatchers.IO) {
+                healthViewModel.getEntryById(entryId)
+            }
+            if (entry == null) {
+                Toast.makeText(this@AddUnifiedActivity, R.string.health_entry_not_found, Toast.LENGTH_SHORT).show()
+                finish()
+                return@launch
+            }
+            pendingUserId = entry.userId
+            binding.healthTimestampEditText.setText(
+                formatWithCapitalizedDay(entry.timestamp, "EEEE d MMMM yyyy, HH'h'mm")
+            )
+            binding.healthWeightEditText.setText(entry.weight?.toString().orEmpty())
+            binding.healthBodyFatEditText.setText(entry.bodyFat?.toString().orEmpty())
+            binding.healthWaistEditText.setText(entry.waistMeasurement?.toString().orEmpty())
+            binding.healthNotesEditText.setText(entry.notes.orEmpty())
+            selectedLocationId = entry.locationId
+            editingHealthEntry = entry
+            applyLocationSelection()
+        }
+    }
+
     private fun saveHealthEntry() {
         val timestampText = binding.healthTimestampEditText.text?.toString().orEmpty()
         val timestamp = parseDateTime(timestampText)
         val entry = HealthEntry(
+            id = editingHealthId ?: 0,
             userId = selectedUserId,
             timestamp = timestamp,
             weight = binding.healthWeightEditText.text?.toString()?.toFloatOrNull(),
             waistMeasurement = binding.healthWaistEditText.text?.toString()?.toFloatOrNull(),
             bodyFat = binding.healthBodyFatEditText.text?.toString()?.toFloatOrNull(),
             notes = binding.healthNotesEditText.text?.toString().orEmpty(),
-            locationId = selectedLocationId
+            locationId = selectedLocationId,
+            serverEntryId = editingHealthEntry?.serverEntryId,
+            deleted = editingHealthEntry?.deleted ?: false,
+            synced = false
         )
-        healthViewModel.addEntry(entry)
+        if (editingHealthId != null) {
+            healthViewModel.updateEntry(entry)
+        } else {
+            healthViewModel.addEntry(entry)
+        }
         syncManager.syncNow()
         finish()
     }
@@ -721,6 +768,16 @@ class AddUnifiedActivity : AppCompatActivity() {
             }
             .setNegativeButton(R.string.cancel, null)
             .show()
+    }
+
+    private fun applyLocationSelection() {
+        val currentId = selectedLocationId
+        if (currentId == null) {
+            binding.healthLocationDropdown.setText("", false)
+            return
+        }
+        val location = locationList.firstOrNull { it.id == currentId } ?: return
+        binding.healthLocationDropdown.setText(location.name, false)
     }
 
     private fun parseDateTime(value: String): LocalDateTime {

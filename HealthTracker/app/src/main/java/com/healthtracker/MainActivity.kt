@@ -14,7 +14,6 @@ import androidx.work.WorkManager
 import com.healthtracker.databinding.ActivityMainBinding
 import com.healthtracker.sync.SyncManager
 import com.healthtracker.ui.AddUnifiedActivity
-import com.healthtracker.ui.EntryActivity
 import com.healthtracker.ui.HomeFeedAdapter
 import com.healthtracker.ui.HealthTrackerViewModel
 import com.healthtracker.ui.SettingsActivity
@@ -77,8 +76,9 @@ class MainActivity : AppCompatActivity() {
     private fun setupRecyclerView() {
         adapter = HomeFeedAdapter(
             onHealthEntryClick = { entry ->
-                val intent = Intent(this, EntryActivity::class.java).apply {
-                    putExtra(EntryActivity.EXTRA_ENTRY_ID, entry.id)
+                val intent = Intent(this, AddUnifiedActivity::class.java).apply {
+                    putExtra(AddUnifiedActivity.EXTRA_ENTRY_TYPE, AddUnifiedActivity.ENTRY_TYPE_HEALTH)
+                    putExtra(AddUnifiedActivity.EXTRA_HEALTH_ID, entry.id)
                 }
                 startActivity(intent)
             },

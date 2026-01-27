@@ -124,6 +124,10 @@ class HealthTrackerViewModel @Inject constructor(
         }
     }
 
+    suspend fun getEntryById(id: Long): HealthEntry? {
+        return healthEntryRepository.getEntryByIdSuspend(id)
+    }
+
     fun deleteEntry(entry: HealthEntry) {
         viewModelScope.launch {
             _isLoading.value = true

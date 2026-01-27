@@ -127,6 +127,7 @@
     <string name="workout_start_display">Début : %1$s</string>
     <string name="workout_detail_title">Séance</string>
     <string name="workout_not_found">Séance introuvable</string>
+    <string name="health_entry_not_found">Suivi santé introuvable</string>
     
     <!-- Delete Entry -->
     <string name="delete_entry">Supprimer cette entrée</string>
