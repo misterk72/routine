@@ -102,8 +102,11 @@ function createTablesIfNotExist($pdo) {
     $pdo->exec("CREATE TABLE IF NOT EXISTS users (
         id BIGINT PRIMARY KEY AUTO_INCREMENT,
         name VARCHAR(255) NOT NULL,
+        alias VARCHAR(255) DEFAULT NULL,
         is_default BOOLEAN DEFAULT 0,
-        last_modified TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        client_id BIGINT DEFAULT NULL,
+        last_modified TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        UNIQUE KEY (client_id)
     )");
     
     // Créer la table des entrées de santé si elle n'existe pas
@@ -176,6 +179,19 @@ function createTablesIfNotExist($pdo) {
     if (!in_array('location_id', $columns)) {
         error_log("Ajout de la colonne 'location_id' à la table health_entries");
         $pdo->exec("ALTER TABLE health_entries ADD COLUMN location_id BIGINT");
+    }
+
+    $userInfo = $pdo->query("DESCRIBE users");
+    $userColumns = $userInfo->fetchAll(PDO::FETCH_COLUMN);
+    $userColumnDefs = [
+        'alias' => 'VARCHAR(255) DEFAULT NULL',
+        'client_id' => 'BIGINT DEFAULT NULL',
+    ];
+    foreach ($userColumnDefs as $column => $definition) {
+        if (!in_array($column, $userColumns)) {
+            error_log("Ajout de la colonne '$column' a la table users");
+            $pdo->exec("ALTER TABLE users ADD COLUMN $column $definition");
+        }
     }
 
     $locationInfo = $pdo->query("DESCRIBE locations");

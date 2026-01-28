@@ -14,15 +14,15 @@
 ## 1. Schema
 - [x] Ecrire le DDL MariaDB (script `docker-sqlite/schema-mariadb.sql`).
 - [x] Creer `sources` (id, name, created_at).
-- [x] Creer `user_profiles` (id, name, alias, created_at).
-- [x] Creer `user_source_map` (source_id, source_user_id, device_id, user_profile_id).
+- [x] Creer `users` (id, name, alias, created_at).
+- [x] Creer `user_source_map` (source_id, source_user_id, device_id, user_id).
 - [x] Creer `workouts` (start_time, duration, distance, calories, fc_avg/min/max, notes, source_uid).
 - [x] Creer `weight_measurements` (weight, fat_mass, fat_pct, waist, notes, source_uid).
 - [x] Optionnel : `gadgetbridge_samples` (timestamp, heart_rate, steps, device_id).
 
 ## 2. Mapping utilisateurs
 - [x] Renseigner les profils (nom, alias).
-- [x] Associer chaque bracelet/app a un `user_profile_id`.
+- [x] Associer chaque bracelet/app a un `user_id`.
   - MB5-3 (Vincent) -> Vincent
   - Note: "ZPERDU" signifie bracelet perdu, les donnees doivent rester associees a l'utilisateur d'origine.
   - ZHS MB1 -> Christophe (bracelet HS)

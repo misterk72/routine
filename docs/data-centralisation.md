@@ -14,14 +14,14 @@ Voir aussi: `docs/db-import-and-schema.md` pour la structure MariaDB et les impo
 
 ## Principes de Centralisation
 - **Unifier sans mélanger** : chaque source conserve un identifiant d'origine (`source`, `source_uid`).
-- **Mapper les personnes** : les bracelets et les apps sont rattachés à un `user_profile`.
+- **Mapper les personnes** : les bracelets et les apps sont rattachés à un `user`.
 - **Calculer les agrégats** : ex. FC moyenne/max/min par séance.
 - **Relier les localisations** : `health_entries.location_id` pointe vers `locations`.
 
 ## Schéma Cible (proposition)
 - `sources` : registre des sources (`healthtracker`, `withings`, `gadgetbridge`, `manual`).
-- `user_profiles` : personnes réelles (nom, alias).
-- `user_source_map` : mapping `source_user_id` / `device_id` vers `user_profile_id`.
+- `users` : personnes réelles (nom, alias).
+- `user_source_map` : mapping `source_user_id` / `device_id` vers `user_id`.
 - `workouts` : séances (date, durée, distance, calories, fc_avg/fc_min/fc_max, fond sonore, observations).
 - `weight_measurements` : poids, masse grasse, tour de taille, notes.
 - `gadgetbridge_samples` (optionnel) : échantillons détaillés FC/steps.
@@ -62,7 +62,7 @@ Voir aussi: `docs/db-import-and-schema.md` pour la structure MariaDB et les impo
 6. **Grafana** : dashboards sur séances, poids, FC, tour de taille.
 
 ## TODO
-- Définir le schéma cible dans MariaDB pour `workouts`, `weight_measurements`, `sources`, `user_profiles`, `user_source_map`.
+- Définir le schéma cible dans MariaDB pour `workouts`, `weight_measurements`, `sources`, `users`, `user_source_map`.
 - Créer le mapping bracelet/personne pour éviter les mélanges (device_id → profil).
 - Écrire les scripts d'import :
   - Withings Excel → `weight_measurements`
@@ -71,3 +71,5 @@ Voir aussi: `docs/db-import-and-schema.md` pour la structure MariaDB et les impo
 - Implémenter la fusion automatique (par fenêtre temporelle + device).
 - Ajouter un mini formulaire mobile pour saisies post‑séance/pesée.
 - Mettre en place les dashboards Grafana (séances, poids, FC, tour de taille).
+
+Voir `docs/migrations/2026-01-28-merge-users.sql` pour fusionner `user_profiles` vers `users`.

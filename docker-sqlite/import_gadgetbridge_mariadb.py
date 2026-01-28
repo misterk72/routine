@@ -108,19 +108,19 @@ def build_sample_inserts(
     rows = _sample_rows(conn, device_ids, since_ts, until_ts)
     batch = []
     for device_id, ts, heart_rate, steps in rows:
-        user_profile_id = mapping.get(device_id)
-        if not user_profile_id:
+        user_id = mapping.get(device_id)
+        if not user_id:
             continue
         sample_time = dt.datetime.utcfromtimestamp(ts).strftime("%Y-%m-%d %H:%M:%S")
         batch.append(
-            f"({_sql_value(user_profile_id)}, {source_id}, {_sql_value(device_id)}, "
+            f"({_sql_value(user_id)}, {source_id}, {_sql_value(device_id)}, "
             f"{_sql_value(sample_time)}, {_sql_value(heart_rate)}, {_sql_value(steps)})"
         )
         total += 1
         if len(batch) >= batch_size:
             statements.append(
                 "INSERT INTO gadgetbridge_samples "
-                "(user_profile_id, source_id, device_id, sample_time, heart_rate, steps) VALUES "
+                "(user_id, source_id, device_id, sample_time, heart_rate, steps) VALUES "
                 + ",".join(batch)
                 + ";"
             )
@@ -128,7 +128,7 @@ def build_sample_inserts(
     if batch:
         statements.append(
             "INSERT INTO gadgetbridge_samples "
-            "(user_profile_id, source_id, device_id, sample_time, heart_rate, steps) VALUES "
+            "(user_id, source_id, device_id, sample_time, heart_rate, steps) VALUES "
             + ",".join(batch)
             + ";"
         )
@@ -177,8 +177,8 @@ def parse_mapping(mapping_str: Optional[str]) -> Dict[int, int]:
         pair = pair.strip()
         if not pair:
             continue
-        device, profile = pair.split(":", 1)
-        result[int(device)] = int(profile)
+        device, user = pair.split(":", 1)
+        result[int(device)] = int(user)
     return result
 
 
@@ -196,7 +196,7 @@ def main() -> int:
     parser.add_argument(
         "--include-samples",
         action="store_true",
-        help="Also export gadgetbridge_samples; mapping must match user_profile_id for samples.",
+        help="Also export gadgetbridge_samples; mapping must match user_id for samples.",
     )
     parser.add_argument("--samples-only", action="store_true")
     parser.add_argument("--samples-device-ids", default=None)

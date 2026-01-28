@@ -23,8 +23,8 @@ mariadb --protocol=TCP --ssl=OFF -h 192.168.0.13 -P 3306 \
 ## Core tables (schema-mariadb.sql)
 
 - `sources`: source registry (`healthtracker`, `gadgetbridge`, `withings`, `manual`)
-- `user_profiles`: human profiles
-- `user_source_map`: mapping source device/user to profile
+- `users`: human profiles (shared with app sync)
+- `user_source_map`: mapping source device/user to user
 - `workouts`: canonical workouts (all sources, created by sync.php)
 - `weight_measurements`: canonical body measurements
 - `gadgetbridge_samples`: HR/steps samples
@@ -36,6 +36,9 @@ The app sync layer uses:
 - `health_entries`
 - `workouts`
 - `locations`
+
+If you are migrating from `user_profiles`, use the SQL helper in
+`docs/migrations/2026-01-28-merge-users.sql` (review and adjust FK names).
 
 `workouts` is the single canonical table. External imports now write
 there too, using `source_id` and `source_uid` for dedupe.

@@ -71,7 +71,7 @@ def _sql_value(value):
     return f"'{_sql_escape(str(value))}'"
 
 
-def build_inserts(rows: list[list[str]], user_profile_id: int, source_id: int) -> list[str]:
+def build_inserts(rows: list[list[str]], user_id: int, source_id: int) -> list[str]:
     if not rows:
         return []
     header = rows[0]
@@ -104,9 +104,9 @@ def build_inserts(rows: list[list[str]], user_profile_id: int, source_id: int) -
         source_uid = f"{device_id}:{measured_at}"
         stmt = (
             "INSERT INTO weight_measurements "
-            "(user_profile_id, source_id, source_uid, measured_at, "
+            "(user_id, source_id, source_uid, measured_at, "
             "weight_kg, fat_mass_kg, fat_percentage) VALUES ("
-            f"{_sql_value(user_profile_id)}, {source_id}, {_sql_value(source_uid)}, "
+            f"{_sql_value(user_id)}, {source_id}, {_sql_value(source_uid)}, "
             f"{_sql_value(measured_at)}, {_sql_value(weight)}, {_sql_value(fat_mass)}, "
             f"{_sql_value(fat_pct)});"
         )
@@ -117,7 +117,8 @@ def build_inserts(rows: list[list[str]], user_profile_id: int, source_id: int) -
 def main() -> int:
     parser = argparse.ArgumentParser(description="Import Withings XLSX into MariaDB.")
     parser.add_argument("--xlsx", default="samples/Withings_Weight_Data.xlsx")
-    parser.add_argument("--user-profile-id", type=int, required=True)
+    parser.add_argument("--user-id", type=int, required=False)
+    parser.add_argument("--user-profile-id", type=int, dest="user_id", required=False)
     parser.add_argument("--source-id", type=int, default=2)
     parser.add_argument("--out-sql", default="/tmp/withings_import.sql")
     parser.add_argument("--apply", action="store_true")
@@ -129,7 +130,10 @@ def main() -> int:
     args = parser.parse_args()
 
     rows = _parse_xlsx_rows(args.xlsx)
-    statements = build_inserts(rows, args.user_profile_id, args.source_id)
+    if args.user_id is None:
+        parser.error("--user-id is required")
+
+    statements = build_inserts(rows, args.user_id, args.source_id)
     if not statements:
         print("No rows to import.")
         return 1
