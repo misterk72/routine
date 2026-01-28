@@ -157,7 +157,6 @@ function createTablesIfNotExist($pdo) {
         notes TEXT,
         source_id BIGINT DEFAULT 1,
         source_uid VARCHAR(128),
-        raw_json JSON DEFAULT NULL,
         client_id BIGINT,
         deleted BOOLEAN DEFAULT 0,
         last_modified TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -211,7 +210,6 @@ function createTablesIfNotExist($pdo) {
         'soundtrack' => 'TEXT',
         'source_id' => 'BIGINT DEFAULT 1',
         'source_uid' => 'VARCHAR(128)',
-        'raw_json' => 'JSON DEFAULT NULL',
     ];
     foreach ($workoutColumnDefs as $column => $definition) {
         if (!in_array($column, $workoutColumns)) {
@@ -331,8 +329,6 @@ function processWorkouts($pdo, $workouts) {
             $sourceId = isset($workout['sourceId']) ? (int)$workout['sourceId'] : 1;
             $sourceUid = $workout['sourceUid'] ?? ("healthtracker:" . $workout['id']);
             $endTime = $workout['endTime'] ?? null;
-            $rawJson = $workout['rawJson'] ?? null;
-
             $checkStmt = $pdo->prepare("SELECT id FROM workouts WHERE client_id = ?");
             $checkStmt->execute([$workout['id']]);
             $existingEntry = $checkStmt->fetch(PDO::FETCH_ASSOC);
@@ -342,7 +338,7 @@ function processWorkouts($pdo, $workouts) {
                     SET user_id = ?, start_time = ?, end_time = ?, duration_minutes = ?, distance_km = ?, avg_speed_kmh = ?,
                     calories = ?, calories_per_km = ?, avg_heart_rate = ?, min_heart_rate = ?,
                     max_heart_rate = ?, sleep_heart_rate_avg = ?, vo2_max = ?, program = ?, soundtrack = ?, notes = ?,
-                    source_id = ?, source_uid = ?, raw_json = ?, deleted = ?
+                    source_id = ?, source_uid = ?, deleted = ?
                     WHERE client_id = ?");
                 $stmt->execute([
                     $userId,
@@ -363,7 +359,6 @@ function processWorkouts($pdo, $workouts) {
                     $workout['notes'],
                     $sourceId,
                     $sourceUid,
-                    $rawJson,
                     $deleted,
                     $workout['id']
                 ]);
@@ -371,8 +366,8 @@ function processWorkouts($pdo, $workouts) {
                 $stmt = $pdo->prepare("INSERT INTO workouts
                     (user_id, start_time, end_time, duration_minutes, distance_km, avg_speed_kmh, calories,
                     calories_per_km, avg_heart_rate, min_heart_rate, max_heart_rate,
-                    sleep_heart_rate_avg, vo2_max, program, soundtrack, notes, source_id, source_uid, raw_json, client_id, deleted)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                    sleep_heart_rate_avg, vo2_max, program, soundtrack, notes, source_id, source_uid, client_id, deleted)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
                 $stmt->execute([
                     $userId,
                     $workout['startTime'],
@@ -392,7 +387,6 @@ function processWorkouts($pdo, $workouts) {
                     $workout['notes'],
                     $sourceId,
                     $sourceUid,
-                    $rawJson,
                     $workout['id'],
                     $deleted
                 ]);
@@ -577,7 +571,7 @@ function getWorkoutsSince($pdo, $timestamp) {
     $stmt = $pdo->prepare("SELECT
         w.id, w.user_id, w.start_time, w.end_time, w.duration_minutes, w.distance_km, w.avg_speed_kmh,
         w.calories, w.calories_per_km, w.avg_heart_rate, w.min_heart_rate, w.max_heart_rate,
-        w.sleep_heart_rate_avg, w.vo2_max, w.program, w.soundtrack, w.notes, w.source_id, w.source_uid, w.raw_json,
+        w.sleep_heart_rate_avg, w.vo2_max, w.program, w.soundtrack, w.notes, w.source_id, w.source_uid,
         w.client_id, w.deleted,
         u.name as user_name
         FROM workouts w
@@ -608,7 +602,6 @@ function getWorkoutsSince($pdo, $timestamp) {
             'notes' => $row['notes'],
             'sourceId' => $row['source_id'] !== null ? (int)$row['source_id'] : null,
             'sourceUid' => $row['source_uid'],
-            'rawJson' => $row['raw_json'],
             'clientId' => $row['client_id'] ? (int)$row['client_id'] : null
         ];
     }

@@ -3,7 +3,6 @@
 
 import argparse
 import datetime as dt
-import json
 import sqlite3
 import subprocess
 import zipfile
@@ -222,20 +221,19 @@ def build_inserts(
             if source_uid in seen:
                 continue
             seen.add(source_uid)
-            raw_json = json.dumps({"sheet": sheet_name})
 
             stmt = (
                 "INSERT INTO workouts "
                 "(user_id, source_id, source_uid, start_time, "
                 "duration_minutes, program, distance_km, avg_speed_kmh, calories, calories_per_km, "
                 "avg_heart_rate, min_heart_rate, max_heart_rate, sleep_heart_rate_avg, vo2_max, "
-                "soundtrack, notes, raw_json) VALUES ("
+                "soundtrack, notes) VALUES ("
                 f"{_sql_value(user_id)}, {source_id}, {_sql_value(source_uid)}, "
                 f"{_sql_value(start_time)}, {_sql_value(duration)}, {_sql_value(program)}, "
                 f"{_sql_value(distance)}, {_sql_value(avg_speed)}, {_sql_value(calories)}, "
                 f"{_sql_value(calories_per_km)}, {_sql_value(avg_hr)}, {_sql_value(min_hr)}, "
                 f"{_sql_value(max_hr)}, {_sql_value(sleep_hr_avg)}, {_sql_value(vo2_max)}, "
-                f"{_sql_value(soundtrack)}, {_sql_value(notes)}, {_sql_value(raw_json)})"
+                f"{_sql_value(soundtrack)}, {_sql_value(notes)})"
             )
             if ignore_duplicates:
                 stmt += (
@@ -246,7 +244,7 @@ def build_inserts(
                     "calories_per_km=VALUES(calories_per_km), avg_heart_rate=VALUES(avg_heart_rate), "
                     "min_heart_rate=VALUES(min_heart_rate), max_heart_rate=VALUES(max_heart_rate), "
                     "sleep_heart_rate_avg=VALUES(sleep_heart_rate_avg), vo2_max=VALUES(vo2_max), "
-                    "soundtrack=VALUES(soundtrack), notes=VALUES(notes), raw_json=VALUES(raw_json)"
+                    "soundtrack=VALUES(soundtrack), notes=VALUES(notes)"
                 )
             stmt += ";"
             statements.append(stmt)

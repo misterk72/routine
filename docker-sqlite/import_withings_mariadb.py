@@ -3,7 +3,6 @@
 
 import argparse
 import datetime as dt
-import json
 import subprocess
 import sys
 import zipfile
@@ -103,21 +102,13 @@ def build_inserts(rows: list[list[str]], user_profile_id: int, source_id: int) -
             fat_pct = round((fat_mass / weight) * 100, 2)
 
         source_uid = f"{device_id}:{measured_at}"
-        raw_json = json.dumps(
-            {
-                "date": date_raw,
-                "device_id": device_id,
-                "model": model,
-            }
-        )
-
         stmt = (
             "INSERT INTO weight_measurements "
             "(user_profile_id, source_id, source_uid, measured_at, "
-            "weight_kg, fat_mass_kg, fat_percentage, raw_json) VALUES ("
+            "weight_kg, fat_mass_kg, fat_percentage) VALUES ("
             f"{_sql_value(user_profile_id)}, {source_id}, {_sql_value(source_uid)}, "
             f"{_sql_value(measured_at)}, {_sql_value(weight)}, {_sql_value(fat_mass)}, "
-            f"{_sql_value(fat_pct)}, {_sql_value(raw_json)});"
+            f"{_sql_value(fat_pct)});"
         )
         statements.append(stmt)
     return statements

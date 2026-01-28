@@ -3,7 +3,6 @@
 
 import argparse
 import datetime as dt
-import json
 import sqlite3
 import subprocess
 from typing import Dict, Iterable, Optional
@@ -158,21 +157,13 @@ def build_inserts(
             duration_minutes = int((end_ms - start_ms) / 60000)
 
         source_uid = f"{device_id}:{start_ms}"
-        raw_json = json.dumps(
-            {
-                "session_id": session_id,
-                "device_id": device_id,
-                "activity_kind": activity_kind,
-            }
-        )
-
         stmt = (
             "INSERT INTO workouts "
             "(user_id, source_id, source_uid, start_time, end_time, "
-            "duration_minutes, avg_heart_rate, min_heart_rate, max_heart_rate, raw_json) VALUES ("
+            "duration_minutes, avg_heart_rate, min_heart_rate, max_heart_rate) VALUES ("
             f"{_sql_value(user_id)}, {source_id}, {_sql_value(source_uid)}, "
             f"{_sql_value(start_time)}, {_sql_value(end_time)}, {_sql_value(duration_minutes)}, "
-            f"{_sql_value(avg_hr)}, {_sql_value(min_hr)}, {_sql_value(max_hr)}, {_sql_value(raw_json)});"
+            f"{_sql_value(avg_hr)}, {_sql_value(min_hr)}, {_sql_value(max_hr)});"
         )
         statements.append(stmt)
     return statements, skipped

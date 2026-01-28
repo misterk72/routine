@@ -15,7 +15,6 @@ Voir aussi: `docs/db-import-and-schema.md` pour la structure MariaDB et les impo
 ## Principes de Centralisation
 - **Unifier sans mélanger** : chaque source conserve un identifiant d'origine (`source`, `source_uid`).
 - **Mapper les personnes** : les bracelets et les apps sont rattachés à un `user_profile`.
-- **Conserver le brut** : stocker les données importées avec `raw_json` pour audit/debug.
 - **Calculer les agrégats** : ex. FC moyenne/max/min par séance.
 - **Relier les localisations** : `health_entries.location_id` pointe vers `locations`.
 

@@ -45,7 +45,7 @@ there too, using `source_id` and `source_uid` for dedupe.
 - `distance_km`, `avg_speed_kmh`, `calories`, `calories_per_km`
 - `avg_heart_rate`, `min_heart_rate`, `max_heart_rate`
 - `sleep_heart_rate_avg`, `vo2_max`
-- `soundtrack`, `notes`, `raw_json`
+- `soundtrack`, `notes`
 
 `health_entries` also stores:
 - `location_id` (FK to `locations.id`)
