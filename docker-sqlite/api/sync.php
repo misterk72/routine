@@ -85,10 +85,11 @@ switch ($method) {
         createTablesIfNotExist($pdo);
         
         // Récupérer les entrées
+        $users = getUsers($pdo);
         $locations = getLocationsSince($pdo, $timestamp);
         $entries = getEntriesSince($pdo, $timestamp);
         $workouts = getWorkoutsSince($pdo, $timestamp);
-        echo json_encode(['locations' => $locations, 'entries' => $entries, 'workouts' => $workouts]);
+        echo json_encode(['users' => $users, 'locations' => $locations, 'entries' => $entries, 'workouts' => $workouts]);
         break;
         
     default:
@@ -505,6 +506,23 @@ function resolveLocationClientId($pdo, $serverId) {
         return $result['client_id'] ? (int)$result['client_id'] : null;
     }
     return null;
+}
+
+function getUsers($pdo) {
+    $stmt = $pdo->prepare("SELECT id, name, alias, is_default, client_id FROM users");
+    $stmt->execute();
+
+    $users = [];
+    while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+        $users[] = [
+            'id' => (int)$row['id'],
+            'name' => $row['name'],
+            'alias' => $row['alias'],
+            'isDefault' => $row['is_default'] ? 1 : 0,
+            'clientId' => $row['client_id'] ? (int)$row['client_id'] : null
+        ];
+    }
+    return $users;
 }
 
 function getLocationsSince($pdo, $timestamp) {
