@@ -165,6 +165,7 @@ def build_inserts(
     user_id: int,
     source_id: int,
     ignore_duplicates: bool,
+    max_date: dt.date | None,
 ) -> list[str]:
     statements = []
     seen = set()
@@ -190,6 +191,8 @@ def build_inserts(
             try:
                 dt_obj = _parse_datetime(date_raw)
             except ValueError:
+                continue
+            if max_date is not None and dt_obj.date() > max_date:
                 continue
             start_time = dt_obj.strftime("%Y-%m-%d %H:%M:%S")
 
@@ -258,6 +261,8 @@ def main() -> int:
     parser.add_argument("--user-profile-id", type=int, dest="user_id", required=False)
     parser.add_argument("--source-id", type=int, default=4)
     parser.add_argument("--ignore-duplicates", action="store_true")
+    parser.add_argument("--max-date", default=None, help="Skip rows after this date (YYYY-MM-DD).")
+    parser.add_argument("--allow-future", action="store_true", help="Allow dates after today.")
     parser.add_argument("--out-sql", default="/tmp/manual_workouts.sql")
     parser.add_argument("--apply", action="store_true")
     parser.add_argument("--db-host", default="192.168.0.13")
@@ -270,8 +275,17 @@ def main() -> int:
     if args.user_id is None:
         parser.error("--user-id is required")
 
+    max_date = None
+    if args.max_date:
+        try:
+            max_date = dt.datetime.strptime(args.max_date, "%Y-%m-%d").date()
+        except ValueError as exc:
+            parser.error(f"--max-date must be YYYY-MM-DD (got {args.max_date})")
+    elif not args.allow_future:
+        max_date = dt.date.today()
+
     statements = build_inserts(
-        args.xlsx, args.user_id, args.source_id, args.ignore_duplicates
+        args.xlsx, args.user_id, args.source_id, args.ignore_duplicates, max_date
     )
     if not statements:
         print("No rows to import.")
