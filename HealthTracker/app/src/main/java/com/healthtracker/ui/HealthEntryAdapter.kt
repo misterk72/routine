@@ -48,7 +48,11 @@ class HealthEntryAdapter(private val onEntryClick: (HealthEntry) -> Unit) :
 
         init {
             binding.root.setOnClickListener {
-                onEntryClick(getItem(adapterPosition).entry)
+                val position = adapterPosition
+                if (position == RecyclerView.NO_POSITION) {
+                    return@setOnClickListener
+                }
+                onEntryClick(getItem(position).entry)
             }
         }
 

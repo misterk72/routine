@@ -66,3 +66,21 @@
 - Datasources MariaDB.
 - Dashboards poids/masse grasse/tour de taille.
 - Dashboards seances (duree, distance, calories, FC).
+
+## 9. Migration prod (2026-01-31)
+- [x] Migration user_profiles -> users + FK user_id sur prod (192.168.0.103).
+- [x] Ajout colonnes workouts manquantes: calories_per_km, sleep_heart_rate_avg, vo2_max, soundtrack, client_id, last_modified.
+- [x] Withings import (profil Christophe) avec INSERT IGNORE pour doublons (source_uid).
+- [x] Manual import: filtrage des lignes futures (ghost rows).
+  - Script mis a jour: docker-sqlite/import_manual_workouts_mariadb.py
+  - Par defaut, ignore dates > aujourd'hui.
+  - Flags: --max-date YYYY-MM-DD, --allow-future
+  - Purge ghost rows: DELETE FROM workouts WHERE source_id=4 AND start_time > '2026-01-31 23:59:59';
+- [x] Gadgetbridge import (workouts) avec INSERT IGNORE pour doublons (source_uid).
+- [x] Suppression de la table legacy workout_entries (server) apres migration.
+- [x] Fix API sync (GET): ajout de users dans la reponse (sync.php).
+  - Necessaire pour creer les users locaux (ex: Vincent) quand seules des seances existent.
+- [x] Fix API sync (GET): ajout/backup last_modified + client_id sur workouts pour download complet.
+
+## 10. ADB / SQLite - base locale (Android)
+- Voir `docs/operations.md`.

@@ -4,6 +4,7 @@
 Centraliser toutes les sources de données (HealthTracker, Withings, Gadgetbridge, saisie manuelle de séances) dans MariaDB afin d'automatiser l'import, réduire la saisie manuelle et alimenter Grafana.
 
 Voir aussi: `docs/db-import-and-schema.md` pour la structure MariaDB et les imports.
+Voir aussi: `docs/operations.md` pour les commandes ADB/SQLite cote telephone.
 
 ## Sources de Données
 - **HealthTracker (app mobile)** : poids, tour de taille, masse graisseuse, notes.

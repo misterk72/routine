@@ -244,6 +244,9 @@ function createTablesIfNotExist($pdo) {
         error_log("Impossible d'ajouter uniq_workouts_source_uid: " . $e->getMessage());
         }
     }
+
+    // Migrer l'ancienne table workout_entries si presente (serveurs upgrades).
+    migrateWorkoutEntriesIfPresent($pdo);
     
     // Vérifier s'il y a un utilisateur par défaut, sinon le créer
     $stmt = $pdo->query("SELECT COUNT(*) FROM users WHERE is_default = 1");
@@ -523,6 +526,88 @@ function getUsers($pdo) {
         ];
     }
     return $users;
+}
+
+function tableExists($pdo, $table) {
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = ?");
+    $stmt->execute([$table]);
+    return $stmt->fetchColumn() > 0;
+}
+
+function getTableColumns($pdo, $table) {
+    $stmt = $pdo->prepare("SELECT column_name FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = ?");
+    $stmt->execute([$table]);
+    return $stmt->fetchAll(PDO::FETCH_COLUMN);
+}
+
+function migrateWorkoutEntriesIfPresent($pdo) {
+    if (!tableExists($pdo, 'workout_entries') || !tableExists($pdo, 'workouts')) {
+        return;
+    }
+
+    $workoutsCount = $pdo->query("SELECT COUNT(*) FROM workouts")->fetchColumn();
+    if ($workoutsCount > 0) {
+        return;
+    }
+
+    $oldColumns = array_flip(getTableColumns($pdo, 'workout_entries'));
+    $newColumns = array_flip(getTableColumns($pdo, 'workouts'));
+
+    $columnMap = [
+        'id' => 'id',
+        'user_id' => 'user_id',
+        'userId' => 'user_id',
+        'start_time' => 'start_time',
+        'startTime' => 'start_time',
+        'end_time' => 'end_time',
+        'endTime' => 'end_time',
+        'duration_minutes' => 'duration_minutes',
+        'durationMinutes' => 'duration_minutes',
+        'distance_km' => 'distance_km',
+        'distanceKm' => 'distance_km',
+        'avg_speed_kmh' => 'avg_speed_kmh',
+        'avgSpeedKmh' => 'avg_speed_kmh',
+        'calories' => 'calories',
+        'calories_per_km' => 'calories_per_km',
+        'caloriesPerKm' => 'calories_per_km',
+        'avg_heart_rate' => 'avg_heart_rate',
+        'heartRateAvg' => 'avg_heart_rate',
+        'min_heart_rate' => 'min_heart_rate',
+        'heartRateMin' => 'min_heart_rate',
+        'max_heart_rate' => 'max_heart_rate',
+        'heartRateMax' => 'max_heart_rate',
+        'sleep_heart_rate_avg' => 'sleep_heart_rate_avg',
+        'sleepHeartRateAvg' => 'sleep_heart_rate_avg',
+        'vo2_max' => 'vo2_max',
+        'vo2Max' => 'vo2_max',
+        'program' => 'program',
+        'soundtrack' => 'soundtrack',
+        'notes' => 'notes',
+        'source_id' => 'source_id',
+        'sourceId' => 'source_id',
+        'source_uid' => 'source_uid',
+        'sourceUid' => 'source_uid',
+        'client_id' => 'client_id',
+        'clientId' => 'client_id',
+        'deleted' => 'deleted'
+    ];
+
+    $insertCols = [];
+    $selectExprs = [];
+    foreach ($columnMap as $old => $new) {
+        if (isset($oldColumns[$old]) && isset($newColumns[$new])) {
+            $insertCols[] = "`$new`";
+            $selectExprs[] = "`$old`";
+        }
+    }
+
+    if (empty($insertCols)) {
+        return;
+    }
+
+    $sql = "INSERT INTO workouts (" . implode(",", $insertCols) . ") " .
+        "SELECT " . implode(",", $selectExprs) . " FROM workout_entries";
+    $pdo->exec($sql);
 }
 
 function getLocationsSince($pdo, $timestamp) {

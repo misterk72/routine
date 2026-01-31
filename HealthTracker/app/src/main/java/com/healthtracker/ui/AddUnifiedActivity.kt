@@ -587,6 +587,10 @@ class AddUnifiedActivity : AppCompatActivity() {
         )
         binding.workoutStartTimeEditText.setText(formatWithCapitalizedDay(result.startTime, "EEEE d MMMM yyyy, HH'h'mm"))
         binding.workoutDurationEditText.setText(result.durationMinutes?.toString().orEmpty())
+        binding.workoutDistanceEditText.setText(
+            result.distanceKm?.let { String.format(Locale.US, "%.2f", it) }.orEmpty()
+        )
+        binding.workoutCaloriesEditText.setText(result.calories?.toString().orEmpty())
         binding.workoutHeartRateAvgEditText.setText(result.heartRateAvg?.toString().orEmpty())
         binding.workoutHeartRateMinEditText.setText(result.heartRateMin?.toString().orEmpty())
         binding.workoutHeartRateMaxEditText.setText(result.heartRateMax?.toString().orEmpty())
