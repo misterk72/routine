@@ -4,7 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_margin="8dp"
-    app:cardBackgroundColor="@color/health_card_background"
+    app:cardBackgroundColor="@color/workout_card_background"
     app:cardCornerRadius="8dp"
     app:cardElevation="4dp">
 
@@ -35,7 +35,7 @@
             app:layout_constraintTop_toBottomOf="@id/timestampText" />
 
         <TextView
-            android:id="@+id/weightText"
+            android:id="@+id/programText"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
@@ -45,24 +45,44 @@
             app:layout_constraintTop_toBottomOf="@id/userNameText" />
 
         <TextView
-            android:id="@+id/bodyFatText"
+            android:id="@+id/durationText"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
             android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/weightText" />
+            app:layout_constraintTop_toBottomOf="@id/programText" />
 
         <TextView
-            android:id="@+id/waistText"
+            android:id="@+id/distanceText"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
             android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/bodyFatText" />
+            app:layout_constraintTop_toBottomOf="@id/durationText" />
+
+        <TextView
+            android:id="@+id/caloriesText"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/distanceText" />
+
+        <TextView
+            android:id="@+id/heartRateText"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/caloriesText" />
 
         <TextView
             android:id="@+id/notesText"
@@ -73,7 +93,7 @@
             android:textColor="@android:color/darker_gray"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/waistText" />
+            app:layout_constraintTop_toBottomOf="@id/heartRateText" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 

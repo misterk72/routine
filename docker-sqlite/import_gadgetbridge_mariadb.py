@@ -3,7 +3,6 @@
 
 import argparse
 import datetime as dt
-import json
 import sqlite3
 import subprocess
 from typing import Dict, Iterable, Optional
@@ -109,19 +108,19 @@ def build_sample_inserts(
     rows = _sample_rows(conn, device_ids, since_ts, until_ts)
     batch = []
     for device_id, ts, heart_rate, steps in rows:
-        user_profile_id = mapping.get(device_id)
-        if not user_profile_id:
+        user_id = mapping.get(device_id)
+        if not user_id:
             continue
         sample_time = dt.datetime.utcfromtimestamp(ts).strftime("%Y-%m-%d %H:%M:%S")
         batch.append(
-            f"({_sql_value(user_profile_id)}, {source_id}, {_sql_value(device_id)}, "
+            f"({_sql_value(user_id)}, {source_id}, {_sql_value(device_id)}, "
             f"{_sql_value(sample_time)}, {_sql_value(heart_rate)}, {_sql_value(steps)})"
         )
         total += 1
         if len(batch) >= batch_size:
             statements.append(
                 "INSERT INTO gadgetbridge_samples "
-                "(user_profile_id, source_id, device_id, sample_time, heart_rate, steps) VALUES "
+                "(user_id, source_id, device_id, sample_time, heart_rate, steps) VALUES "
                 + ",".join(batch)
                 + ";"
             )
@@ -129,7 +128,7 @@ def build_sample_inserts(
     if batch:
         statements.append(
             "INSERT INTO gadgetbridge_samples "
-            "(user_profile_id, source_id, device_id, sample_time, heart_rate, steps) VALUES "
+            "(user_id, source_id, device_id, sample_time, heart_rate, steps) VALUES "
             + ",".join(batch)
             + ";"
         )
@@ -145,8 +144,8 @@ def build_inserts(
     statements = []
     skipped = 0
     for session_id, device_id, start_ms, end_ms, activity_kind in sessions:
-        user_profile_id = mapping.get(device_id)
-        if not user_profile_id:
+        user_id = mapping.get(device_id)
+        if not user_id:
             skipped += 1
             continue
 
@@ -158,21 +157,13 @@ def build_inserts(
             duration_minutes = int((end_ms - start_ms) / 60000)
 
         source_uid = f"{device_id}:{start_ms}"
-        raw_json = json.dumps(
-            {
-                "session_id": session_id,
-                "device_id": device_id,
-                "activity_kind": activity_kind,
-            }
-        )
-
         stmt = (
             "INSERT INTO workouts "
-            "(user_profile_id, source_id, source_uid, start_time, end_time, "
-            "duration_minutes, avg_heart_rate, min_heart_rate, max_heart_rate, raw_json) VALUES ("
-            f"{_sql_value(user_profile_id)}, {source_id}, {_sql_value(source_uid)}, "
+            "(user_id, source_id, source_uid, start_time, end_time, "
+            "duration_minutes, avg_heart_rate, min_heart_rate, max_heart_rate) VALUES ("
+            f"{_sql_value(user_id)}, {source_id}, {_sql_value(source_uid)}, "
             f"{_sql_value(start_time)}, {_sql_value(end_time)}, {_sql_value(duration_minutes)}, "
-            f"{_sql_value(avg_hr)}, {_sql_value(min_hr)}, {_sql_value(max_hr)}, {_sql_value(raw_json)});"
+            f"{_sql_value(avg_hr)}, {_sql_value(min_hr)}, {_sql_value(max_hr)});"
         )
         statements.append(stmt)
     return statements, skipped
@@ -186,8 +177,8 @@ def parse_mapping(mapping_str: Optional[str]) -> Dict[int, int]:
         pair = pair.strip()
         if not pair:
             continue
-        device, profile = pair.split(":", 1)
-        result[int(device)] = int(profile)
+        device, user = pair.split(":", 1)
+        result[int(device)] = int(user)
     return result
 
 
@@ -198,11 +189,15 @@ def main() -> int:
     parser.add_argument(
         "--mapping",
         default=None,
-        help="Comma-separated device_id:profile_id pairs (e.g. 1:1,2:1,3:2)",
+        help="Comma-separated device_id:user_id pairs (e.g. 1:1,2:1,3:2).",
     )
     parser.add_argument("--out-sql", default="/tmp/gadgetbridge_workouts.sql")
     parser.add_argument("--samples-out", default="/tmp/gadgetbridge_samples.sql")
-    parser.add_argument("--include-samples", action="store_true")
+    parser.add_argument(
+        "--include-samples",
+        action="store_true",
+        help="Also export gadgetbridge_samples; mapping must match user_id for samples.",
+    )
     parser.add_argument("--samples-only", action="store_true")
     parser.add_argument("--samples-device-ids", default=None)
     parser.add_argument("--samples-since", default=None, help="YYYY-MM-DD or YYYY-MM-DD HH:MM:SS (UTC)")
@@ -218,7 +213,7 @@ def main() -> int:
 
     mapping = parse_mapping(args.mapping)
     if not mapping:
-        # Default mapping from current TODO
+        # Default mapping (device_id -> user_id).
         mapping = {
             1: 1,
             2: 1,

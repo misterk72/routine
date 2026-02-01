@@ -8,12 +8,15 @@ import com.healthtracker.data.HealthEntry
 import com.healthtracker.data.HealthEntryWithUser
 import com.healthtracker.data.Location
 import com.healthtracker.data.User
+import com.healthtracker.data.WorkoutEntryWithUser
 import com.healthtracker.data.repository.HealthEntryRepository
 import com.healthtracker.data.repository.LocationRepository
 import com.healthtracker.data.repository.MetricRepository
 import com.healthtracker.data.repository.MetricTypeRepository
 import com.healthtracker.data.repository.UserRepository
+import com.healthtracker.data.repository.WorkoutEntryRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -21,6 +24,7 @@ import javax.inject.Inject
 @HiltViewModel
 class HealthTrackerViewModel @Inject constructor(
     private val healthEntryRepository: HealthEntryRepository,
+    private val workoutEntryRepository: WorkoutEntryRepository,
     private val metricRepository: MetricRepository,
     private val metricTypeRepository: MetricTypeRepository,
     private val userRepository: UserRepository,
@@ -32,6 +36,12 @@ class HealthTrackerViewModel @Inject constructor(
     
     private val _entriesWithUser = MutableLiveData<List<HealthEntryWithUser>>(emptyList())
     val entriesWithUser: LiveData<List<HealthEntryWithUser>> = _entriesWithUser
+
+    private val _workoutsWithUser = MutableLiveData<List<WorkoutEntryWithUser>>(emptyList())
+    val workoutsWithUser: LiveData<List<WorkoutEntryWithUser>> = _workoutsWithUser
+
+    private val _homeItems = MutableLiveData<List<HomeFeedItem>>(emptyList())
+    val homeItems: LiveData<List<HomeFeedItem>> = _homeItems
     
     private val _isLoading = MutableLiveData<Boolean>(false)
     val isLoading: LiveData<Boolean> = _isLoading
@@ -47,6 +57,8 @@ class HealthTrackerViewModel @Inject constructor(
 
     init {
         loadEntriesWithUser()
+        loadWorkoutsWithUser()
+        loadHomeItems()
         loadUsers()
         loadDefaultUser()
         loadLocations()
@@ -72,6 +84,28 @@ class HealthTrackerViewModel @Inject constructor(
         }
     }
 
+    fun loadWorkoutsWithUser() {
+        viewModelScope.launch {
+            workoutEntryRepository.getAllEntriesWithUser().collectLatest { workoutsWithUser ->
+                _workoutsWithUser.value = workoutsWithUser
+            }
+        }
+    }
+
+    fun loadHomeItems() {
+        viewModelScope.launch {
+            healthEntryRepository.getAllEntriesWithUser()
+                .combine(workoutEntryRepository.getAllEntriesWithUser()) { entriesWithUser, workoutsWithUser ->
+                    val healthItems = entriesWithUser.map { HomeFeedItem.Health(it) }
+                    val workoutItems = workoutsWithUser.map { HomeFeedItem.Workout(it) }
+                    (healthItems + workoutItems).sortedByDescending { it.timestamp }
+                }
+                .collectLatest { items ->
+                    _homeItems.value = items
+                }
+        }
+    }
+
     fun addEntry(entry: HealthEntry) {
         viewModelScope.launch {
             _isLoading.value = true
@@ -88,6 +122,10 @@ class HealthTrackerViewModel @Inject constructor(
             loadEntriesWithUser() // Recharger les entrées avec les utilisateurs après la mise à jour
             _isLoading.value = false
         }
+    }
+
+    suspend fun getEntryById(id: Long): HealthEntry? {
+        return healthEntryRepository.getEntryByIdSuspend(id)
     }
 
     fun deleteEntry(entry: HealthEntry) {

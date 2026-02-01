@@ -3,7 +3,6 @@
 
 import argparse
 import datetime as dt
-import json
 import sqlite3
 import subprocess
 import zipfile
@@ -163,9 +162,10 @@ def _float_or_none(value: str) -> float | None:
 
 def build_inserts(
     xlsx_path: str,
-    user_profile_id: int,
+    user_id: int,
     source_id: int,
     ignore_duplicates: bool,
+    max_date: dt.date | None,
 ) -> list[str]:
     statements = []
     seen = set()
@@ -192,6 +192,8 @@ def build_inserts(
                 dt_obj = _parse_datetime(date_raw)
             except ValueError:
                 continue
+            if max_date is not None and dt_obj.date() > max_date:
+                continue
             start_time = dt_obj.strftime("%Y-%m-%d %H:%M:%S")
 
             program = row[col_index.get("Programme", -1)] if "Programme" in col_index else ""
@@ -199,31 +201,55 @@ def build_inserts(
             avg_speed = _float_or_none(row[col_index.get("Vitesse Moyenne (km/h)", -1)])
             distance = _float_or_none(row[col_index.get("Distance parcourue (km)", -1)])
             calories = _float_or_none(row[col_index.get("Calories", -1)])
+            calories_per_km = _float_or_none(row[col_index.get("Calories/km", -1)])
             avg_hr = _float_or_none(row[col_index.get("Moyenne pulsations/min", -1)])
             max_hr = _float_or_none(row[col_index.get("Max pulsations/min", -1)])
             min_hr = _float_or_none(row[col_index.get("Min pulsations/min", -1)])
+            sleep_hr_avg = _float_or_none(row[col_index.get("FC Repos pulsations/min", -1)])
+            vo2_max = _float_or_none(row[col_index.get("VO2", -1)])
             notes = row[col_index.get("Observations", -1)] if "Observations" in col_index else ""
+            soundtrack = row[col_index.get("Fond sonore", -1)] if "Fond sonore" in col_index else ""
+
+            # Skip ghost rows with no workout metrics, even if program/notes are filled.
+            if (
+                distance is None
+                and calories is None
+                and avg_hr is None
+                and min_hr is None
+                and max_hr is None
+            ):
+                continue
 
             source_uid = f"{sheet_name}:{start_time}"
             if source_uid in seen:
                 continue
             seen.add(source_uid)
-            raw_json = json.dumps({"sheet": sheet_name})
 
-            insert_prefix = "INSERT INTO workouts "
-            if ignore_duplicates:
-                insert_prefix = "INSERT IGNORE INTO workouts "
             stmt = (
-                insert_prefix
-                + "(user_profile_id, source_id, source_uid, start_time, "
-                "duration_minutes, program, distance_km, avg_speed_kmh, calories, "
-                "avg_heart_rate, min_heart_rate, max_heart_rate, notes, raw_json) VALUES ("
-                f"{_sql_value(user_profile_id)}, {source_id}, {_sql_value(source_uid)}, "
+                "INSERT INTO workouts "
+                "(user_id, source_id, source_uid, start_time, "
+                "duration_minutes, program, distance_km, avg_speed_kmh, calories, calories_per_km, "
+                "avg_heart_rate, min_heart_rate, max_heart_rate, sleep_heart_rate_avg, vo2_max, "
+                "soundtrack, notes) VALUES ("
+                f"{_sql_value(user_id)}, {source_id}, {_sql_value(source_uid)}, "
                 f"{_sql_value(start_time)}, {_sql_value(duration)}, {_sql_value(program)}, "
                 f"{_sql_value(distance)}, {_sql_value(avg_speed)}, {_sql_value(calories)}, "
-                f"{_sql_value(avg_hr)}, {_sql_value(min_hr)}, {_sql_value(max_hr)}, "
-                f"{_sql_value(notes)}, {_sql_value(raw_json)});"
+                f"{_sql_value(calories_per_km)}, {_sql_value(avg_hr)}, {_sql_value(min_hr)}, "
+                f"{_sql_value(max_hr)}, {_sql_value(sleep_hr_avg)}, {_sql_value(vo2_max)}, "
+                f"{_sql_value(soundtrack)}, {_sql_value(notes)})"
             )
+            if ignore_duplicates:
+                stmt += (
+                    " ON DUPLICATE KEY UPDATE "
+                    "start_time=VALUES(start_time), duration_minutes=VALUES(duration_minutes), "
+                    "program=VALUES(program), distance_km=VALUES(distance_km), "
+                    "avg_speed_kmh=VALUES(avg_speed_kmh), calories=VALUES(calories), "
+                    "calories_per_km=VALUES(calories_per_km), avg_heart_rate=VALUES(avg_heart_rate), "
+                    "min_heart_rate=VALUES(min_heart_rate), max_heart_rate=VALUES(max_heart_rate), "
+                    "sleep_heart_rate_avg=VALUES(sleep_heart_rate_avg), vo2_max=VALUES(vo2_max), "
+                    "soundtrack=VALUES(soundtrack), notes=VALUES(notes)"
+                )
+            stmt += ";"
             statements.append(stmt)
     return statements
 
@@ -231,9 +257,12 @@ def build_inserts(
 def main() -> int:
     parser = argparse.ArgumentParser(description="Import manual workouts XLSX into MariaDB.")
     parser.add_argument("--xlsx", default="samples/Entrainement vélo elliptique3.xlsx")
-    parser.add_argument("--user-profile-id", type=int, required=True)
+    parser.add_argument("--user-id", type=int, required=False)
+    parser.add_argument("--user-profile-id", type=int, dest="user_id", required=False)
     parser.add_argument("--source-id", type=int, default=4)
     parser.add_argument("--ignore-duplicates", action="store_true")
+    parser.add_argument("--max-date", default=None, help="Skip rows after this date (YYYY-MM-DD).")
+    parser.add_argument("--allow-future", action="store_true", help="Allow dates after today.")
     parser.add_argument("--out-sql", default="/tmp/manual_workouts.sql")
     parser.add_argument("--apply", action="store_true")
     parser.add_argument("--db-host", default="192.168.0.13")
@@ -243,8 +272,20 @@ def main() -> int:
 
     args = parser.parse_args()
 
+    if args.user_id is None:
+        parser.error("--user-id is required")
+
+    max_date = None
+    if args.max_date:
+        try:
+            max_date = dt.datetime.strptime(args.max_date, "%Y-%m-%d").date()
+        except ValueError as exc:
+            parser.error(f"--max-date must be YYYY-MM-DD (got {args.max_date})")
+    elif not args.allow_future:
+        max_date = dt.date.today()
+
     statements = build_inserts(
-        args.xlsx, args.user_profile_id, args.source_id, args.ignore_duplicates
+        args.xlsx, args.user_id, args.source_id, args.ignore_duplicates, max_date
     )
     if not statements:
         print("No rows to import.")

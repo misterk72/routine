@@ -5,6 +5,7 @@ import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -14,8 +15,11 @@ interface WorkoutEntryDao {
 
     @Query(
         "UPDATE workout_entries SET startTime = :startTime, durationMinutes = :durationMinutes, " +
-            "distanceKm = :distanceKm, calories = :calories, program = :program, notes = :notes, " +
-            "synced = 0 WHERE id = :id"
+            "distanceKm = :distanceKm, calories = :calories, heartRateAvg = :heartRateAvg, " +
+            "heartRateMin = :heartRateMin, heartRateMax = :heartRateMax, " +
+            "sleepHeartRateAvg = :sleepHeartRateAvg, vo2Max = :vo2Max, " +
+            "program = :program, soundtrack = :soundtrack, " +
+            "notes = :notes, synced = 0 WHERE id = :id"
     )
     suspend fun updateEntry(
         id: Long,
@@ -23,7 +27,13 @@ interface WorkoutEntryDao {
         durationMinutes: Int?,
         distanceKm: Float?,
         calories: Int?,
+        heartRateAvg: Int?,
+        heartRateMin: Int?,
+        heartRateMax: Int?,
+        sleepHeartRateAvg: Int?,
+        vo2Max: Float?,
         program: String?,
+        soundtrack: String?,
         notes: String?
     )
 
@@ -34,7 +44,13 @@ interface WorkoutEntryDao {
             durationMinutes = entry.durationMinutes,
             distanceKm = entry.distanceKm,
             calories = entry.calories,
+            heartRateAvg = entry.heartRateAvg,
+            heartRateMin = entry.heartRateMin,
+            heartRateMax = entry.heartRateMax,
+            sleepHeartRateAvg = entry.sleepHeartRateAvg,
+            vo2Max = entry.vo2Max,
             program = entry.program,
+            soundtrack = entry.soundtrack,
             notes = entry.notes
         )
     }
@@ -47,6 +63,14 @@ interface WorkoutEntryDao {
 
     @Query("SELECT * FROM workout_entries WHERE deleted = 0 ORDER BY startTime DESC")
     fun getAllEntries(): Flow<List<WorkoutEntry>>
+
+    @Transaction
+    @Query("SELECT * FROM workout_entries WHERE deleted = 0 ORDER BY startTime DESC")
+    fun getAllEntriesWithUser(): Flow<List<WorkoutEntryWithUser>>
+
+    @Transaction
+    @Query("SELECT * FROM workout_entries WHERE id = :id AND deleted = 0")
+    fun getEntryWithUserById(id: Long): Flow<WorkoutEntryWithUser?>
 
     @Query("SELECT * FROM workout_entries WHERE id = :id AND deleted = 0")
     suspend fun getEntryByIdSuspend(id: Long): WorkoutEntry?

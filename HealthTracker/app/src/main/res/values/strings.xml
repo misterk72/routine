@@ -28,6 +28,9 @@
     <string name="edit_health_entry">Edit Health Entry</string>
     <string name="new_health_entry">New Health Entry</string>
     <string name="add_workout_entry">Add workout</string>
+    <string name="add_entry_title">Add entry</string>
+    <string name="entry_type_health">Health</string>
+    <string name="entry_type_workout">Workout</string>
     
     <!-- Settings Activity -->
     <string name="settings">Settings</string>
@@ -49,8 +52,28 @@
     <string name="workout_start_time">Workout start time</string>
     <string name="workout_program">Program</string>
     <string name="workout_duration_minutes">Duration (min)</string>
-    <string name="workout_distance_km">Distance (km)</string>
-    <string name="workout_calories">Calories</string>
+    <string name="workout_distance_km">Distance (km) - manuel</string>
+    <string name="workout_calories">Calories (kcal) - manuel</string>
+    <string name="workout_soundtrack">Soundtrack</string>
+    <string name="workout_observations">Observations</string>
+    <string name="import_gadgetbridge">Importer depuis Gadgetbridge</string>
+    <string name="force_import_gadgetbridge">Forcer import Gadgetbridge</string>
+    <string name="heart_rate_avg">FC moyenne (bpm)</string>
+    <string name="heart_rate_min">FC min (bpm)</string>
+    <string name="heart_rate_max">FC max (bpm)</string>
+    <string name="sleep_heart_rate_avg">FC sommeil moyenne (bpm)</string>
+    <string name="vo2_max">VO2 (ml/kg/min)</string>
+    <string name="average_speed">Vitesse moyenne (km/h)</string>
+    <string name="calories_per_km">Calories / km</string>
+    <string name="gadgetbridge_import">Gadgetbridge</string>
+    <string name="gadgetbridge_export_file">Fichier export DB/ZIP</string>
+    <string name="gadgetbridge_device_match">Bracelet (alias, nom ou MAC)</string>
+    <string name="choose_file">Choisir</string>
+    <string name="gadgetbridge_missing_export">Configure d\'abord le fichier d\'export Gadgetbridge dans les parametres.</string>
+    <string name="gadgetbridge_export_triggered">Export Gadgetbridge lance...</string>
+    <string name="gadgetbridge_export_failed">L\'export Gadgetbridge a echoue.</string>
+    <string name="gadgetbridge_import_empty">Aucun workout a importer depuis Gadgetbridge.</string>
+    <string name="gadgetbridge_imported">Workout Gadgetbridge importe.</string>
     <string name="workout_saved">Workout saved</string>
     <string name="basic_metrics">Basic Metrics</string>
     <string name="weight">Weight</string>
@@ -107,6 +130,22 @@
     <string name="waist_display">Waist: %1$s cm</string>
     <string name="body_fat_display">Body Fat: %1$s kg</string>
     <string name="metric_value_display">%1$s %2$s</string>
+    <string name="workout_program_display">Program: %1$s</string>
+    <string name="workout_duration_display">Duration: %1$d min</string>
+    <string name="workout_distance_display">Distance: %1$s km</string>
+    <string name="workout_calories_display">Calories: %1$d kcal</string>
+    <string name="workout_heart_rate_avg_display">Avg HR: %1$d bpm</string>
+    <string name="workout_heart_rate_range_display">HR: %1$d-%2$d bpm</string>
+    <string name="workout_heart_rate_min_display">Min HR: %1$d bpm</string>
+    <string name="workout_heart_rate_max_display">Max HR: %1$d bpm</string>
+    <string name="workout_sleep_heart_rate_avg_display">Sleep HR avg: %1$d bpm</string>
+    <string name="workout_vo2_max_display">VO2 max: %1$s ml/kg/min</string>
+    <string name="workout_soundtrack_display">Soundtrack: %1$s</string>
+    <string name="workout_user_display">User: %1$s</string>
+    <string name="workout_start_display">Start: %1$s</string>
+    <string name="workout_detail_title">Workout</string>
+    <string name="workout_not_found">Workout not found</string>
+    <string name="health_entry_not_found">Health entry not found</string>
     
     <!-- Delete Entry -->
     <string name="delete_entry">Delete this entry</string>

@@ -186,25 +186,40 @@ class SyncManager @Inject constructor(
         val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
         val unsyncedEntries = database.healthEntryDao().getUnsyncedEntries()
         val deletedEntries = database.healthEntryDao().getDeletedUnsyncedEntries()
+        val locations = database.locationDao().getAllLocationsList()
 
-        if (unsyncedEntries.isEmpty() && deletedEntries.isEmpty()) {
+        if (unsyncedEntries.isEmpty() && deletedEntries.isEmpty() && locations.isEmpty()) {
             Log.d(TAG, "Aucune entrée à synchroniser")
             return
         }
 
         val allEntries = unsyncedEntries + deletedEntries
-        val entriesJson = gson.toJson(mapOf("entries" to allEntries.map { entry ->
-            mapOf(
-                "id" to entry.id,
-                "userId" to entry.userId,
-                "timestamp" to entry.timestamp.format(dateFormatter),
-                "weight" to entry.weight,
-                "waistMeasurement" to entry.waistMeasurement,
-                "bodyFat" to entry.bodyFat,
-                "notes" to entry.notes,
-                "deleted" to entry.deleted
-            )
-        }))
+        val payload = mapOf(
+            "locations" to locations.map { location ->
+                mapOf(
+                    "id" to location.id,
+                    "name" to location.name,
+                    "latitude" to location.latitude,
+                    "longitude" to location.longitude,
+                    "radius" to location.radius,
+                    "isDefault" to location.isDefault
+                )
+            },
+            "entries" to allEntries.map { entry ->
+                mapOf(
+                    "id" to entry.id,
+                    "userId" to entry.userId,
+                    "timestamp" to entry.timestamp.format(dateFormatter),
+                    "weight" to entry.weight,
+                    "waistMeasurement" to entry.waistMeasurement,
+                    "bodyFat" to entry.bodyFat,
+                    "notes" to entry.notes,
+                    "locationId" to entry.locationId,
+                    "deleted" to entry.deleted
+                )
+            }
+        )
+        val entriesJson = gson.toJson(payload)
 
         val requestBody = entriesJson.toRequestBody("application/json".toMediaType())
         val request = Request.Builder()
@@ -220,8 +235,10 @@ class SyncManager @Inject constructor(
             Log.d(TAG, "DEBUG - Réponse du serveur (upload): $responseBody")
 
             val idsToMarkSynced = allEntries.map { it.id }
-            database.healthEntryDao().markAllAsSynced(idsToMarkSynced)
-            Log.d(TAG, "${idsToMarkSynced.size} entrées marquées comme synchronisées")
+            if (idsToMarkSynced.isNotEmpty()) {
+                database.healthEntryDao().markAllAsSynced(idsToMarkSynced)
+                Log.d(TAG, "${idsToMarkSynced.size} entrées marquées comme synchronisées")
+            }
         }
     }
 
@@ -237,14 +254,32 @@ class SyncManager @Inject constructor(
 
         val allEntries = unsyncedEntries + deletedEntries
         val workoutsJson = gson.toJson(mapOf("workouts" to allEntries.map { entry ->
+            val avgSpeedKmh = if (entry.durationMinutes != null && entry.durationMinutes > 0 && entry.distanceKm != null) {
+                (entry.distanceKm / entry.durationMinutes) * 60f
+            } else {
+                null
+            }
+            val caloriesPerKm = if (entry.distanceKm != null && entry.distanceKm > 0 && entry.calories != null) {
+                entry.calories / entry.distanceKm
+            } else {
+                null
+            }
             mapOf(
                 "id" to entry.id,
                 "userId" to entry.userId,
                 "startTime" to entry.startTime.format(dateFormatter),
                 "durationMinutes" to entry.durationMinutes,
                 "distanceKm" to entry.distanceKm,
+                "avgSpeedKmh" to avgSpeedKmh,
                 "calories" to entry.calories,
+                "caloriesPerKm" to caloriesPerKm,
+                "avgHeartRate" to entry.heartRateAvg,
+                "minHeartRate" to entry.heartRateMin,
+                "maxHeartRate" to entry.heartRateMax,
+                "sleepHeartRateAvg" to entry.sleepHeartRateAvg,
+                "vo2Max" to entry.vo2Max,
                 "program" to entry.program,
+                "soundtrack" to entry.soundtrack,
                 "notes" to entry.notes,
                 "deleted" to entry.deleted
             )
@@ -311,6 +346,35 @@ class SyncManager @Inject constructor(
                 if (usersToInsert.isNotEmpty()) {
                     database.userDao().insertOrUpdateUsers(usersToInsert)
                     Log.d(TAG, "${usersToInsert.size} utilisateurs insérés/mis à jour depuis le serveur.")
+                }
+            }
+
+            val serverLocationsMap = jsonResponse["locations"] ?: emptyList()
+            if (serverLocationsMap.isNotEmpty()) {
+                val locationsToInsert = serverLocationsMap.mapNotNull { locationMap ->
+                    val id = (locationMap["clientId"] as? Double)?.toLong()
+                        ?: (locationMap["id"] as? Double)?.toLong()
+                    val name = locationMap["name"] as? String
+                    val lat = (locationMap["latitude"] as? Double)
+                    val lng = (locationMap["longitude"] as? Double)
+                    val radius = (locationMap["radius"] as? Double)?.toFloat()
+                    val isDefault = (locationMap["isDefault"] as? Double)?.toInt() == 1
+                    if (id != null && name != null && lat != null && lng != null) {
+                        com.healthtracker.data.Location(
+                            id = id,
+                            name = name,
+                            latitude = lat,
+                            longitude = lng,
+                            radius = radius ?: 100f,
+                            isDefault = isDefault
+                        )
+                    } else {
+                        null
+                    }
+                }
+                if (locationsToInsert.isNotEmpty()) {
+                    database.locationDao().insertOrUpdateLocations(locationsToInsert)
+                    Log.d(TAG, "${locationsToInsert.size} localisations insérées/mises à jour depuis le serveur.")
                 }
             }
 
@@ -400,6 +464,7 @@ class SyncManager @Inject constructor(
                     waistMeasurement = (entryMap["waistMeasurement"] as? Double)?.toFloat(),
                     bodyFat = (entryMap["bodyFat"] as? Double)?.toFloat(),
                     notes = entryMap["notes"] as? String,
+                    locationId = (entryMap["locationId"] as? Double)?.toLong(),
                     synced = true,
                     deleted = (entryMap["deleted"] as? Double)?.toInt() == 1
                 )
@@ -455,7 +520,13 @@ class SyncManager @Inject constructor(
                     durationMinutes = (workoutMap["durationMinutes"] as? Double)?.toInt(),
                     distanceKm = (workoutMap["distanceKm"] as? Double)?.toFloat(),
                     calories = (workoutMap["calories"] as? Double)?.toInt(),
+                    heartRateAvg = (workoutMap["avgHeartRate"] as? Double)?.toInt(),
+                    heartRateMin = (workoutMap["minHeartRate"] as? Double)?.toInt(),
+                    heartRateMax = (workoutMap["maxHeartRate"] as? Double)?.toInt(),
+                    sleepHeartRateAvg = (workoutMap["sleepHeartRateAvg"] as? Double)?.toInt(),
+                    vo2Max = (workoutMap["vo2Max"] as? Double)?.toFloat(),
                     program = workoutMap["program"] as? String,
+                    soundtrack = workoutMap["soundtrack"] as? String,
                     notes = workoutMap["notes"] as? String,
                     synced = true,
                     deleted = (workoutMap["deleted"] as? Double)?.toInt() == 1

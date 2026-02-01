@@ -36,6 +36,20 @@ class WorkoutViewModel @Inject constructor(
         }
     }
 
+    fun updateWorkout(entry: WorkoutEntry) {
+        viewModelScope.launch {
+            workoutEntryRepository.updateEntry(entry)
+        }
+    }
+
+    suspend fun getWorkoutById(id: Long): WorkoutEntry? {
+        return workoutEntryRepository.getEntryById(id)
+    }
+
+    suspend fun deleteWorkout(entry: WorkoutEntry) {
+        workoutEntryRepository.deleteEntry(entry)
+    }
+
     private fun loadUsers() {
         viewModelScope.launch {
             userRepository.getAllUsers().collectLatest { usersList ->

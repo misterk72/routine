@@ -18,7 +18,7 @@ import com.healthtracker.data.converters.DateTimeConverters
         Location::class,
         WorkoutEntry::class
     ],
-    version = 8,
+    version = 10,
     exportSchema = false
 )
 @TypeConverters(DateTimeConverters::class)
@@ -240,6 +240,24 @@ abstract class HealthDatabase : RoomDatabase() {
             }
         }
 
+        // Migration de la version 8 à 9 (ajout des métriques FC/VO2 aux séances)
+        private val MIGRATION_8_9 = object : Migration(8, 9) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("ALTER TABLE workout_entries ADD COLUMN heartRateAvg INTEGER")
+                database.execSQL("ALTER TABLE workout_entries ADD COLUMN heartRateMin INTEGER")
+                database.execSQL("ALTER TABLE workout_entries ADD COLUMN heartRateMax INTEGER")
+                database.execSQL("ALTER TABLE workout_entries ADD COLUMN sleepHeartRateAvg INTEGER")
+                database.execSQL("ALTER TABLE workout_entries ADD COLUMN vo2Max REAL")
+            }
+        }
+
+        // Migration de la version 9 à 10 (ajout du champ soundtrack aux séances)
+        private val MIGRATION_9_10 = object : Migration(9, 10) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("ALTER TABLE workout_entries ADD COLUMN soundtrack TEXT")
+            }
+        }
+
         fun getDatabase(context: Context): HealthDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -254,7 +272,9 @@ abstract class HealthDatabase : RoomDatabase() {
                     MIGRATION_4_5,
                     MIGRATION_5_6,
                     MIGRATION_6_7,
-                    MIGRATION_7_8
+                    MIGRATION_7_8,
+                    MIGRATION_8_9,
+                    MIGRATION_9_10
                 )
                 // Fallback en cas d'autres migrations non gérées
                 .fallbackToDestructiveMigration()
