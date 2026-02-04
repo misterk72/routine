@@ -1,110 +1,340 @@
 {
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
   "id": null,
-  "uid": "workouts-table",
-  "title": "Entrainement velo elliptique",
-  "tags": ["workouts", "elliptique"],
-  "timezone": "browser",
-  "schemaVersion": 38,
-  "version": 1,
-  "refresh": false,
+  "links": [],
   "panels": [
     {
-      "type": "table",
-      "title": "Entrainement velo elliptique",
-      "id": 1,
-      "gridPos": {
-        "x": 0,
-        "y": 0,
-        "w": 24,
-        "h": 14
-      },
       "datasource": "MariaDB-Prod",
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": "MariaDB-Prod",
-          "format": "table",
-          "rawSql": "SELECT\n  w.start_time AS 'Date et Heure',\n  w.program AS 'Programme',\n  w.duration_minutes AS 'Duree (min)',\n  w.avg_speed_kmh AS 'Vitesse Moyenne (km/h)',\n  w.distance_km AS 'Distance parcourue (km)',\n  w.calories AS 'Calories',\n  w.calories_per_km AS 'Calories/km',\n  w.avg_heart_rate AS 'Moyenne pulsations/min',\n  w.max_heart_rate AS 'Max pulsations/min',\n  w.min_heart_rate AS 'Min pulsations/min',\n  w.sleep_heart_rate_avg AS 'FC Repos pulsations/min',\n  w.vo2_max AS 'VO2',\n  wm.weight_kg AS 'Masse (kg)',\n  wm.fat_mass_kg AS 'Masse graisseuse (kg)',\n  wm.fat_percentage AS 'Taux de graisse',\n  wm.waist_cm AS 'Tour de taille (cm)',\n  w.soundtrack AS 'Fond sonore',\n  w.notes AS 'Observations'\nFROM workouts w\nLEFT JOIN (\n  SELECT wm1.*\n  FROM weight_measurements wm1\n  JOIN (\n    SELECT user_id, DATE(measured_at) AS d, MAX(measured_at) AS max_at\n    FROM weight_measurements\n    GROUP BY user_id, DATE(measured_at)\n  ) latest ON latest.user_id = wm1.user_id\n    AND DATE(wm1.measured_at) = latest.d\n    AND wm1.measured_at = latest.max_at\n) wm ON wm.user_id = w.user_id\n  AND DATE(w.start_time) = DATE(wm.measured_at)\nWHERE $__timeFilter(w.start_time)\nORDER BY w.start_time DESC",
-          "rawQuery": true
-        }
-      ],
-      "options": {
-        "showHeader": true,
-        "sortBy": [
-          {
-            "displayName": "Date et Heure",
-            "desc": true
-          }
-        ]
-      },
       "fieldConfig": {
         "defaults": {
           "custom": {
-            "align": "left"
+            "align": "left",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
           }
         },
         "overrides": [
           {
-            "matcher": {"id": "byName", "options": "Duree (min)"},
-            "properties": [{"id": "unit", "value": "minutes"}]
+            "matcher": {
+              "id": "byName",
+              "options": "Duree (min)"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "minutes"
+              },
+              {
+                "id": "custom.width",
+                "value": 87
+              }
+            ]
           },
           {
-            "matcher": {"id": "byName", "options": "Vitesse Moyenne (km/h)"},
-            "properties": [{"id": "unit", "value": "kmh"}]
+            "matcher": {
+              "id": "byName",
+              "options": "Vitesse Moyenne (km/h)"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "kmh"
+              },
+              {
+                "id": "custom.width",
+                "value": 85
+              }
+            ]
           },
           {
-            "matcher": {"id": "byName", "options": "Distance parcourue (km)"},
-            "properties": [{"id": "unit", "value": "km"}]
+            "matcher": {
+              "id": "byName",
+              "options": "Distance parcourue (km)"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "km"
+              }
+            ]
           },
           {
-            "matcher": {"id": "byName", "options": "Calories"},
-            "properties": [{"id": "unit", "value": "kcal"}]
+            "matcher": {
+              "id": "byName",
+              "options": "Calories"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "kcal"
+              }
+            ]
           },
           {
-            "matcher": {"id": "byName", "options": "Calories/km"},
-            "properties": [{"id": "unit", "value": "kcal"}]
+            "matcher": {
+              "id": "byName",
+              "options": "Calories/km"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "kcal"
+              }
+            ]
           },
           {
-            "matcher": {"id": "byName", "options": "Moyenne pulsations/min"},
-            "properties": [{"id": "unit", "value": "bpm"}]
+            "matcher": {
+              "id": "byName",
+              "options": "Moyenne pulsations/min"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "bpm"
+              }
+            ]
           },
           {
-            "matcher": {"id": "byName", "options": "Max pulsations/min"},
-            "properties": [{"id": "unit", "value": "bpm"}]
+            "matcher": {
+              "id": "byName",
+              "options": "Max pulsations/min"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "bpm"
+              },
+              {
+                "id": "custom.width",
+                "value": 92
+              }
+            ]
           },
           {
-            "matcher": {"id": "byName", "options": "Min pulsations/min"},
-            "properties": [{"id": "unit", "value": "bpm"}]
+            "matcher": {
+              "id": "byName",
+              "options": "Min pulsations/min"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "bpm"
+              },
+              {
+                "id": "custom.width",
+                "value": 70
+              }
+            ]
           },
           {
-            "matcher": {"id": "byName", "options": "FC Repos pulsations/min"},
-            "properties": [{"id": "unit", "value": "bpm"}]
+            "matcher": {
+              "id": "byName",
+              "options": "FC Repos pulsations/min"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "bpm"
+              },
+              {
+                "id": "custom.width",
+                "value": 68
+              }
+            ]
           },
           {
-            "matcher": {"id": "byName", "options": "Masse (kg)"},
-            "properties": [{"id": "unit", "value": "kg"}]
+            "matcher": {
+              "id": "byName",
+              "options": "Masse (kg)"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "kg"
+              },
+              {
+                "id": "custom.width",
+                "value": 67
+              }
+            ]
           },
           {
-            "matcher": {"id": "byName", "options": "Masse graisseuse (kg)"},
-            "properties": [{"id": "unit", "value": "kg"}]
+            "matcher": {
+              "id": "byName",
+              "options": "Masse graisseuse (kg)"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "kg"
+              },
+              {
+                "id": "custom.width",
+                "value": 60
+              }
+            ]
           },
           {
-            "matcher": {"id": "byName", "options": "Taux de graisse"},
-            "properties": [{"id": "unit", "value": "percentunit"}]
+            "matcher": {
+              "id": "byName",
+              "options": "Taux de graisse"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percentunit"
+              },
+              {
+                "id": "custom.width",
+                "value": 59
+              }
+            ]
           },
           {
-            "matcher": {"id": "byName", "options": "Tour de taille (cm)"},
-            "properties": [{"id": "unit", "value": "lengthcm"}]
+            "matcher": {
+              "id": "byName",
+              "options": "Tour de taille (cm)"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "lengthcm"
+              },
+              {
+                "id": "custom.width",
+                "value": 58
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Date et Heure"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 165
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Programme"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 109
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "VO2"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 41
+              }
+            ]
           }
         ]
-      }
+      },
+      "gridPos": {
+        "h": 24,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "Date et Heure"
+          }
+        ]
+      },
+      "pluginVersion": "11.5.1",
+      "targets": [
+        {
+          "datasource": "MariaDB-Prod",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  w.start_time AS 'Date et Heure',\n  w.program AS 'Programme',\n  w.duration_minutes AS 'Duree (min)',\n  w.avg_speed_kmh AS 'Vitesse Moyenne (km/h)',\n  w.distance_km AS 'Distance parcourue (km)',\n  w.calories AS 'Calories',\n  w.calories_per_km AS 'Calories/km',\n  w.avg_heart_rate AS 'Moyenne pulsations/min',\n  w.max_heart_rate AS 'Max pulsations/min',\n  w.min_heart_rate AS 'Min pulsations/min',\n  w.sleep_heart_rate_avg AS 'FC Repos pulsations/min',\n  w.vo2_max AS 'VO2',\n  wm.weight_kg AS 'Masse (kg)',\n  wm.fat_mass_kg AS 'Masse graisseuse (kg)',\n  wm.fat_percentage AS 'Taux de graisse',\n  wm.waist_cm AS 'Tour de taille (cm)',\n  w.soundtrack AS 'Fond sonore',\n  w.notes AS 'Observations'\nFROM workouts w\nLEFT JOIN (\n  SELECT wm1.*\n  FROM weight_measurements wm1\n  JOIN (\n    SELECT user_id, DATE(measured_at) AS d, MAX(measured_at) AS max_at\n    FROM weight_measurements\n    GROUP BY user_id, DATE(measured_at)\n  ) latest ON latest.user_id = wm1.user_id\n    AND DATE(wm1.measured_at) = latest.d\n    AND wm1.measured_at = latest.max_at\n) wm ON wm.user_id = w.user_id\n  AND DATE(w.start_time) = DATE(wm.measured_at)\nWHERE $__timeFilter(w.start_time)\nORDER BY w.start_time DESC",
+          "refId": "A"
+        }
+      ],
+      "title": "Entrainement velo elliptique",
+      "type": "table"
     }
   ],
+  "preload": false,
+  "refresh": false,
+  "schemaVersion": 40,
+  "tags": [
+    "workouts",
+    "elliptique"
+  ],
+  "templating": {
+    "list": []
+  },
   "time": {
     "from": "now-1y",
     "to": "now"
   },
-  "templating": {
-    "list": []
-  }
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Entrainement velo elliptique",
+  "uid": "workouts-table",
+  "version": 1,
+  "weekStart": ""
 }
