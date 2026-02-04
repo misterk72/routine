@@ -9,6 +9,7 @@ datasources:
     database: "healthtracker"
     user: "healthuser"
     jsonData:
-      tlsSkipVerify: true
+      tlsAuth: false
+      tlsSkipVerify: false
     secureJsonData:
       password: "healthpassword"
