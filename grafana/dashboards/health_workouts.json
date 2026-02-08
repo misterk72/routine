@@ -1,0 +1,697 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "datasource": "MariaDB-Prod",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 4,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": true,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": "MariaDB-Prod",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  $__timeGroup(w.start_time, '1d') AS time,\n  COUNT(*) AS workouts\nFROM workouts w\nJOIN users u ON u.id = w.user_id\nWHERE $__timeFilter(w.start_time)\n  AND COALESCE(u.alias, u.name) = ${user_name:sqlstring}\n  AND (${source_id:raw} = 'all' OR w.source_id IN (${source_id:sqlstring}))\n  AND (${program:raw} = 'all' OR w.program = ${program:sqlstring})\nGROUP BY 1\nORDER BY 1",
+          "refId": "A"
+        }
+      ],
+      "title": "Nombre d'entrainements",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "MariaDB-Prod",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "minutes",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 4,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": true,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 0
+      },
+      "id": 2,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": "MariaDB-Prod",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  $__timeGroup(w.start_time, '1d') AS time,\n  SUM(w.duration_minutes) AS minutes\nFROM workouts w\nJOIN users u ON u.id = w.user_id\nWHERE $__timeFilter(w.start_time)\n  AND COALESCE(u.alias, u.name) = ${user_name:sqlstring}\n  AND w.duration_minutes IS NOT NULL\n  AND (${source_id:raw} = 'all' OR w.source_id IN (${source_id:sqlstring}))\n  AND (${program:raw} = 'all' OR w.program = ${program:sqlstring})\nGROUP BY 1\nORDER BY 1",
+          "refId": "A"
+        }
+      ],
+      "title": "Duree totale (min)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "MariaDB-Prod",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "km",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 4,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": true,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 8
+      },
+      "id": 3,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": "MariaDB-Prod",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  $__timeGroup(w.start_time, '1d') AS time,\n  SUM(w.distance_km) AS km\nFROM workouts w\nJOIN users u ON u.id = w.user_id\nWHERE $__timeFilter(w.start_time)\n  AND COALESCE(u.alias, u.name) = ${user_name:sqlstring}\n  AND w.distance_km IS NOT NULL\n  AND (${source_id:raw} = 'all' OR w.source_id IN (${source_id:sqlstring}))\n  AND (${program:raw} = 'all' OR w.program = ${program:sqlstring})\nGROUP BY 1\nORDER BY 1",
+          "refId": "A"
+        }
+      ],
+      "title": "Distance totale (km)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "MariaDB-Prod",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "kcal",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 4,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": true,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 8
+      },
+      "id": 4,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": "MariaDB-Prod",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  $__timeGroup(w.start_time, '1d') AS time,\n  SUM(w.calories) AS kcal\nFROM workouts w\nJOIN users u ON u.id = w.user_id\nWHERE $__timeFilter(w.start_time)\n  AND COALESCE(u.alias, u.name) = ${user_name:sqlstring}\n  AND w.calories IS NOT NULL\n  AND (${source_id:raw} = 'all' OR w.source_id IN (${source_id:sqlstring}))\n  AND (${program:raw} = 'all' OR w.program = ${program:sqlstring})\nGROUP BY 1\nORDER BY 1",
+          "refId": "A"
+        }
+      ],
+      "title": "Calories totales",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "MariaDB-Prod",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bpm",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 4,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": true,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 160
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 16
+      },
+      "id": 5,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": "MariaDB-Prod",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  $__timeGroup(w.start_time, '1d') AS time,\n  AVG(w.avg_heart_rate) AS avg_hr\nFROM workouts w\nJOIN users u ON u.id = w.user_id\nWHERE $__timeFilter(w.start_time)\n  AND COALESCE(u.alias, u.name) = ${user_name:sqlstring}\n  AND w.avg_heart_rate IS NOT NULL\n  AND (${source_id:raw} = 'all' OR w.source_id IN (${source_id:sqlstring}))\n  AND (${program:raw} = 'all' OR w.program = ${program:sqlstring})\nGROUP BY 1\nORDER BY 1",
+          "refId": "A"
+        }
+      ],
+      "title": "Frequence cardiaque moyenne",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "MariaDB-Prod",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ml/min/kg",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 4,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": true,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 60
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 16
+      },
+      "id": 6,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": "MariaDB-Prod",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  $__timeGroup(w.start_time, '7d') AS time,\n  AVG(w.vo2_max) AS vo2\nFROM workouts w\nJOIN users u ON u.id = w.user_id\nWHERE $__timeFilter(w.start_time)\n  AND COALESCE(u.alias, u.name) = ${user_name:sqlstring}\n  AND w.vo2_max IS NOT NULL\n  AND (${source_id:raw} = 'all' OR w.source_id IN (${source_id:sqlstring}))\n  AND (${program:raw} = 'all' OR w.program = ${program:sqlstring})\nGROUP BY 1\nORDER BY 1",
+          "refId": "A"
+        }
+      ],
+      "title": "VO2 max (moyenne 7 jours)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "MariaDB-Prod",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "bars",
+            "fillOpacity": 60,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 2,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": true,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 24
+      },
+      "id": 7,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": "MariaDB-Prod",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  w.program AS metric,\n  COUNT(*) AS value\nFROM workouts w\nJOIN users u ON u.id = w.user_id\nWHERE $__timeFilter(w.start_time)\n  AND COALESCE(u.alias, u.name) = ${user_name:sqlstring}\n  AND w.program IS NOT NULL\n  AND w.program <> ''\n  AND (${source_id:raw} = 'all' OR w.source_id IN (${source_id:sqlstring}))\nGROUP BY w.program\nORDER BY value DESC",
+          "refId": "A"
+        }
+      ],
+      "title": "Repartition des programmes",
+      "type": "barchart"
+    }
+  ],
+  "preload": false,
+  "refresh": false,
+  "schemaVersion": 40,
+  "tags": [
+    "health",
+    "workouts"
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "user_name",
+        "label": "Utilisateur",
+        "type": "query",
+        "datasource": "MariaDB-Prod",
+        "refresh": 1,
+        "query": "SELECT COALESCE(alias, name) AS __text, COALESCE(alias, name) AS __value FROM users ORDER BY (COALESCE(alias, name)='Christophe') DESC, is_default DESC, name",
+        "multi": false,
+        "includeAll": false,
+        "current": {
+          "text": "Christophe",
+          "value": "Christophe"
+        }
+      },
+      {
+        "name": "source_id",
+        "label": "Source",
+        "type": "query",
+        "datasource": "MariaDB-Prod",
+        "refresh": 1,
+        "query": "SELECT id AS __value, name AS __text FROM sources ORDER BY name",
+        "multi": true,
+        "includeAll": true,
+        "allValue": "all",
+        "current": {
+          "text": "All",
+          "value": "all"
+        }
+      },
+      {
+        "name": "program",
+        "label": "Programme",
+        "type": "query",
+        "datasource": "MariaDB-Prod",
+        "refresh": 1,
+        "query": "SELECT DISTINCT program AS __text, program AS __value FROM workouts WHERE program IS NOT NULL AND program <> '' ORDER BY program",
+        "multi": false,
+        "includeAll": true,
+        "allValue": "all",
+        "current": {
+          "text": "All",
+          "value": "all"
+        }
+      }
+    ]
+  },
+  "time": {
+    "from": "now-1y",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "HealthTracker - Entrainements",
+  "uid": "health-workouts",
+  "version": 1,
+  "weekStart": ""
+}

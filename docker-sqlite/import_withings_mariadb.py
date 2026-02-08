@@ -96,10 +96,12 @@ def build_inserts(rows: list[list[str]], user_id: int, source_id: int) -> list[s
 
         measured_at = _parse_datetime(date_raw)
         weight = float(weight_raw) if weight_raw else None
-        fat_mass = float(fat_raw) if fat_raw else None
+        # Withings export provides fat percentage in the "Fat Mass (kg)" column (scaled by 100).
+        # Example: 2350 means 23.50%.
+        fat_mass = None
         fat_pct = None
-        if weight and fat_mass is not None:
-            fat_pct = round((fat_mass / weight) * 100, 2)
+        if fat_raw:
+            fat_pct = round(float(fat_raw) / 100.0, 2)
 
         source_uid = f"{device_id}:{measured_at}"
         stmt = (
