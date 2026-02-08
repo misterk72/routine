@@ -208,11 +208,8 @@ class HealthTrackerViewModel @Inject constructor(
         }
     }
     
-    fun addLocation(location: Location) {
-        viewModelScope.launch {
-            val locationId = locationRepository.insertLocation(location)
-            loadLocations() // Recharger les localisations après l'ajout
-        }
+    suspend fun insertLocationAndReturnId(location: Location): Long {
+        return locationRepository.insertLocation(location)
     }
     
     fun updateLocation(location: Location) {
