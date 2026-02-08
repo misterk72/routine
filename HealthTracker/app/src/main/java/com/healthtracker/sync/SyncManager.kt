@@ -266,6 +266,7 @@ class SyncManager @Inject constructor(
             }
             mapOf(
                 "id" to entry.id,
+                "serverId" to entry.serverEntryId,
                 "userId" to entry.userId,
                 "startTime" to entry.startTime.format(dateFormatter),
                 "durationMinutes" to entry.durationMinutes,
@@ -512,8 +513,11 @@ class SyncManager @Inject constructor(
                 }
 
                 val startTime = LocalDateTime.parse(workoutMap["startTime"] as String, dateFormatter)
+                // When fetching all data after a full resync, preserve server clientId as local id
+                // to avoid generating new clientIds and creating server-side duplicates on next upload.
+                val localId = if (fetchAll && clientId != null) clientId else 0L
                 val newEntry = WorkoutEntry(
-                    id = 0,
+                    id = localId,
                     serverEntryId = serverId,
                     userId = (workoutMap["userId"] as Double).toLong(),
                     startTime = startTime,

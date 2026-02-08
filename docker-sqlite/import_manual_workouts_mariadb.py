@@ -8,6 +8,7 @@ import subprocess
 import zipfile
 import xml.etree.ElementTree as ET
 from collections import defaultdict
+import unicodedata
 
 NS = {"a": "http://schemas.openxmlformats.org/spreadsheetml/2006/main"}
 
@@ -136,18 +137,62 @@ def _load_sheet_rows(path: str, sheet_path: str, shared_strings: list[str]) -> l
     return values
 
 
+def _normalize_text(value: str) -> str:
+    value = value.replace("\ufeff", "").strip()
+    value = unicodedata.normalize("NFKD", value)
+    value = "".join(ch for ch in value if not unicodedata.combining(ch))
+    value = " ".join(value.split())
+    return value.lower()
+
+
 def _normalize_header(rows: list[list[str]]) -> tuple[list[str], list[list[str]]]:
     if not rows:
         return [], []
     header = rows[0]
     data = rows[1:]
-    for idx, row in enumerate(rows[:10]):
-        joined = " ".join(row)
-        if "Date" in joined:
+    # Find the first row that looks like a header (case-insensitive "date").
+    for idx, row in enumerate(rows[:50]):
+        joined = _normalize_text(" ".join(row))
+        if "date" in joined:
             header = row
             data = rows[idx + 1 :]
             break
     return header, data
+
+
+def _header_index(header: list[str]) -> dict[str, int]:
+    mapping: dict[str, int] = {}
+    for idx, name in enumerate(header):
+        if not name:
+            continue
+        norm = _normalize_text(str(name))
+        if not norm:
+            continue
+        mapping[norm] = idx
+
+    def find(*keys: str) -> int | None:
+        for key in keys:
+            key_norm = _normalize_text(key)
+            if key_norm in mapping:
+                return mapping[key_norm]
+        return None
+
+    return {
+        "date": find("Date et Heure", "Date", "Date Heure", "Date/Heure"),
+        "program": find("Programme", "Program"),
+        "duration": find("Durée (min)", "Duree (min)", "Duree", "Durée", "Duration"),
+        "avg_speed": find("Vitesse Moyenne (km/h)", "Vitesse Moyenne", "Avg Speed (km/h)"),
+        "distance": find("Distance parcourue (km)", "Distance (km)", "Distance"),
+        "calories": find("Calories"),
+        "calories_per_km": find("Calories/km", "Calories par km", "Calories par Km"),
+        "avg_hr": find("Moyenne pulsations/min", "Moyenne pulsations", "FC moyenne", "Avg heart rate"),
+        "max_hr": find("Max pulsations/min", "Max pulsations", "FC max", "Max heart rate"),
+        "min_hr": find("Min pulsations/min", "Min pulsations", "FC min", "Min heart rate"),
+        "sleep_hr": find("FC Repos pulsations/min", "FC Repos", "Resting HR"),
+        "vo2_max": find("VO2", "VO2 max", "VO2_Max"),
+        "soundtrack": find("Fond sonore", "Soundtrack"),
+        "notes": find("Observations", "Notes"),
+    }
 
 
 def _float_or_none(value: str) -> float | None:
@@ -177,15 +222,15 @@ def build_inserts(
         header, data = _normalize_header(rows)
         if not header:
             continue
-        col_index = {name: idx for idx, name in enumerate(header)}
-        if "Date et Heure" not in col_index:
+        col_index = _header_index(header)
+        if col_index.get("date") is None:
             continue
 
         for row in data:
             if len(row) < len(header):
                 row = row + [""] * (len(header) - len(row))
 
-            date_raw = row[col_index["Date et Heure"]]
+            date_raw = row[col_index["date"]]
             if not date_raw:
                 continue
             try:
@@ -196,19 +241,25 @@ def build_inserts(
                 continue
             start_time = dt_obj.strftime("%Y-%m-%d %H:%M:%S")
 
-            program = row[col_index.get("Programme", -1)] if "Programme" in col_index else ""
-            duration = _float_or_none(row[col_index.get("Durée (min)", -1)])
-            avg_speed = _float_or_none(row[col_index.get("Vitesse Moyenne (km/h)", -1)])
-            distance = _float_or_none(row[col_index.get("Distance parcourue (km)", -1)])
-            calories = _float_or_none(row[col_index.get("Calories", -1)])
-            calories_per_km = _float_or_none(row[col_index.get("Calories/km", -1)])
-            avg_hr = _float_or_none(row[col_index.get("Moyenne pulsations/min", -1)])
-            max_hr = _float_or_none(row[col_index.get("Max pulsations/min", -1)])
-            min_hr = _float_or_none(row[col_index.get("Min pulsations/min", -1)])
-            sleep_hr_avg = _float_or_none(row[col_index.get("FC Repos pulsations/min", -1)])
-            vo2_max = _float_or_none(row[col_index.get("VO2", -1)])
-            notes = row[col_index.get("Observations", -1)] if "Observations" in col_index else ""
-            soundtrack = row[col_index.get("Fond sonore", -1)] if "Fond sonore" in col_index else ""
+            program = row[col_index["program"]] if col_index.get("program") is not None else ""
+            duration = _float_or_none(row[col_index["duration"]]) if col_index.get("duration") is not None else None
+            avg_speed = _float_or_none(row[col_index["avg_speed"]]) if col_index.get("avg_speed") is not None else None
+            distance = _float_or_none(row[col_index["distance"]]) if col_index.get("distance") is not None else None
+            calories = _float_or_none(row[col_index["calories"]]) if col_index.get("calories") is not None else None
+            calories_per_km = (
+                _float_or_none(row[col_index["calories_per_km"]])
+                if col_index.get("calories_per_km") is not None
+                else None
+            )
+            avg_hr = _float_or_none(row[col_index["avg_hr"]]) if col_index.get("avg_hr") is not None else None
+            max_hr = _float_or_none(row[col_index["max_hr"]]) if col_index.get("max_hr") is not None else None
+            min_hr = _float_or_none(row[col_index["min_hr"]]) if col_index.get("min_hr") is not None else None
+            sleep_hr_avg = (
+                _float_or_none(row[col_index["sleep_hr"]]) if col_index.get("sleep_hr") is not None else None
+            )
+            vo2_max = _float_or_none(row[col_index["vo2_max"]]) if col_index.get("vo2_max") is not None else None
+            notes = row[col_index["notes"]] if col_index.get("notes") is not None else ""
+            soundtrack = row[col_index["soundtrack"]] if col_index.get("soundtrack") is not None else ""
 
             # Skip ghost rows with no workout metrics, even if program/notes are filled.
             if (

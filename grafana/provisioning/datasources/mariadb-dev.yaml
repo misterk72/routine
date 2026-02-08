@@ -1,0 +1,15 @@
+apiVersion: 1
+
+datasources:
+  - name: "MariaDB-Dev"
+    type: mysql
+    access: proxy
+    isDefault: true
+    url: "192.168.0.13:3306"
+    database: "healthtracker"
+    user: "healthuser"
+    jsonData:
+      tlsAuth: false
+      tlsSkipVerify: false
+    secureJsonData:
+      password: "healthpassword"

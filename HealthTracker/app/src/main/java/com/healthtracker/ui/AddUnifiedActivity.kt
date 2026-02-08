@@ -133,10 +133,6 @@ class AddUnifiedActivity : AppCompatActivity() {
 
         gadgetbridgeConfig = GadgetbridgeImportConfig(this)
 
-        val currentDateTime = LocalDateTime.now()
-        binding.healthTimestampEditText.setText(formatWithCapitalizedDay(currentDateTime, "EEEE d MMMM yyyy, HH'h'mm"))
-        binding.workoutStartTimeEditText.setText(formatWithCapitalizedDay(currentDateTime, "EEEE d MMMM yyyy, HH'h'mm"))
-
         setupTypeToggle()
         setupDatePickers()
         setupUserDropdowns()
@@ -163,6 +159,14 @@ class AddUnifiedActivity : AppCompatActivity() {
             currentType = ENTRY_TYPE_WORKOUT
             binding.workoutForceImportGadgetbridgeButton.visibility = View.GONE
             loadWorkoutForEdit(editingWorkoutId!!)
+        } else {
+            val currentDateTime = LocalDateTime.now()
+            binding.healthTimestampEditText.setText(
+                formatWithCapitalizedDay(currentDateTime, "EEEE d MMMM yyyy, HH'h'mm")
+            )
+            binding.workoutStartTimeEditText.setText(
+                formatWithCapitalizedDay(currentDateTime, "EEEE d MMMM yyyy, HH'h'mm")
+            )
         }
         if (initialType == ENTRY_TYPE_WORKOUT) {
             binding.typeToggleGroup.check(binding.toggleWorkout.id)
@@ -297,7 +301,7 @@ class AddUnifiedActivity : AppCompatActivity() {
             workoutAdapter.notifyDataSetChanged()
 
             healthViewModel.defaultUser.observe(this) { defaultUser ->
-                if (defaultUser != null) {
+                if (defaultUser != null && editingWorkoutId == null && editingHealthId == null) {
                     selectedUserId = defaultUser.id
                     binding.healthUserDropdown.setText(defaultUser.name, false)
                     binding.workoutUserDropdown.setText(defaultUser.name, false)
@@ -430,7 +434,13 @@ class AddUnifiedActivity : AppCompatActivity() {
                         longitude = longitude,
                         radius = radius
                     )
-                    healthViewModel.addLocation(newLocation)
+                    lifecycleScope.launch {
+                        val newLocationId = withContext(Dispatchers.IO) {
+                            healthViewModel.insertLocationAndReturnId(newLocation)
+                        }
+                        selectedLocationId = newLocationId
+                        binding.healthLocationDropdown.setText(name, false)
+                    }
                 }
             }
             .setNegativeButton(R.string.cancel, null)
@@ -438,24 +448,10 @@ class AddUnifiedActivity : AppCompatActivity() {
     }
 
     private fun checkLocationPermission() {
-        when {
-            ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
-                ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED -> {
-                detectCurrentLocation()
-            }
-            ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.ACCESS_FINE_LOCATION) -> {
-                MaterialAlertDialogBuilder(this)
-                    .setTitle(R.string.location)
-                    .setMessage(R.string.location_permission_required)
-                    .setPositiveButton(R.string.change) { _, _ ->
-                        requestLocationPermission()
-                    }
-                    .setNegativeButton(R.string.cancel, null)
-                    .show()
-            }
-            else -> {
-                requestLocationPermission()
-            }
+        val granted = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
+            ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        if (granted) {
+            detectCurrentLocation()
         }
     }
 
@@ -627,6 +623,7 @@ class AddUnifiedActivity : AppCompatActivity() {
                 return@launch
             }
             pendingUserId = workout.userId
+            selectedUserId = workout.userId
             binding.workoutStartTimeEditText.setText(
                 formatWithCapitalizedDay(workout.startTime, "EEEE d MMMM yyyy, HH'h'mm")
             )
@@ -642,6 +639,12 @@ class AddUnifiedActivity : AppCompatActivity() {
             binding.workoutSoundtrackEditText.setText(workout.soundtrack.orEmpty())
             binding.workoutNotesEditText.setText(workout.notes.orEmpty())
             editingWorkoutEntry = workout
+            val selectedUser = userList.firstOrNull { it.id == workout.userId }
+            if (selectedUser != null) {
+                binding.workoutUserDropdown.setText(selectedUser.name, false)
+                binding.healthUserDropdown.setText(selectedUser.name, false)
+                pendingUserId = null
+            }
             updateComputedFields()
         }
     }
@@ -673,6 +676,7 @@ class AddUnifiedActivity : AppCompatActivity() {
     private fun saveHealthEntry() {
         val timestampText = binding.healthTimestampEditText.text?.toString().orEmpty()
         val timestamp = parseDateTime(timestampText)
+        val resolvedLocationId = resolveSelectedLocationId()
         val entry = HealthEntry(
             id = editingHealthId ?: 0,
             userId = selectedUserId,
@@ -681,7 +685,7 @@ class AddUnifiedActivity : AppCompatActivity() {
             waistMeasurement = binding.healthWaistEditText.text?.toString()?.toFloatOrNull(),
             bodyFat = binding.healthBodyFatEditText.text?.toString()?.toFloatOrNull(),
             notes = binding.healthNotesEditText.text?.toString().orEmpty(),
-            locationId = selectedLocationId,
+            locationId = resolvedLocationId,
             serverEntryId = editingHealthEntry?.serverEntryId,
             deleted = editingHealthEntry?.deleted ?: false,
             synced = false
@@ -782,6 +786,15 @@ class AddUnifiedActivity : AppCompatActivity() {
         }
         val location = locationList.firstOrNull { it.id == currentId } ?: return
         binding.healthLocationDropdown.setText(location.name, false)
+    }
+
+    private fun resolveSelectedLocationId(): Long? {
+        selectedLocationId?.let { return it }
+        val label = binding.healthLocationDropdown.text?.toString()?.trim().orEmpty()
+        if (label.isBlank()) {
+            return null
+        }
+        return locationList.firstOrNull { it.name.equals(label, ignoreCase = true) }?.id
     }
 
     private fun parseDateTime(value: String): LocalDateTime {

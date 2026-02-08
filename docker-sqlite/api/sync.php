@@ -349,6 +349,49 @@ function processWorkouts($pdo, $workouts) {
             $sourceId = isset($workout['sourceId']) ? (int)$workout['sourceId'] : 1;
             $sourceUid = $workout['sourceUid'] ?? ("healthtracker:" . $workout['id']);
             $endTime = $workout['endTime'] ?? null;
+            $serverId = isset($workout['serverId']) ? (int)$workout['serverId'] : null;
+
+            // If a serverId is provided, update by server id to avoid duplicate inserts
+            // for server-origin workouts that have no client_id.
+            if ($serverId) {
+                $existing = $pdo->prepare("SELECT id, source_id, source_uid, client_id FROM workouts WHERE id = ?");
+                $existing->execute([$serverId]);
+                $row = $existing->fetch(PDO::FETCH_ASSOC);
+                if ($row) {
+                    $effectiveSourceId = isset($workout['sourceId']) ? (int)$workout['sourceId'] : (int)$row['source_id'];
+                    $effectiveSourceUid = $workout['sourceUid'] ?? $row['source_uid'];
+                    $stmt = $pdo->prepare("UPDATE workouts
+                        SET user_id = ?, start_time = ?, end_time = ?, duration_minutes = ?, distance_km = ?, avg_speed_kmh = ?,
+                        calories = ?, calories_per_km = ?, avg_heart_rate = ?, min_heart_rate = ?,
+                        max_heart_rate = ?, sleep_heart_rate_avg = ?, vo2_max = ?, program = ?, soundtrack = ?, notes = ?,
+                        source_id = ?, source_uid = ?, deleted = ?
+                        WHERE id = ?");
+                    $stmt->execute([
+                        $userId,
+                        $workout['startTime'],
+                        $endTime,
+                        $workout['durationMinutes'],
+                        $workout['distanceKm'],
+                        $workout['avgSpeedKmh'] ?? null,
+                        $workout['calories'],
+                        $workout['caloriesPerKm'] ?? null,
+                        $workout['avgHeartRate'] ?? null,
+                        $workout['minHeartRate'] ?? null,
+                        $workout['maxHeartRate'] ?? null,
+                        $workout['sleepHeartRateAvg'] ?? null,
+                        $workout['vo2Max'] ?? null,
+                        $workout['program'],
+                        $workout['soundtrack'] ?? null,
+                        $workout['notes'],
+                        $effectiveSourceId,
+                        $effectiveSourceUid,
+                        $deleted,
+                        $serverId
+                    ]);
+                    $processed++;
+                    continue;
+                }
+            }
             $checkStmt = $pdo->prepare("SELECT id FROM workouts WHERE client_id = ?");
             $checkStmt->execute([$workout['id']]);
             $existingEntry = $checkStmt->fetch(PDO::FETCH_ASSOC);
