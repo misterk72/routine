@@ -266,6 +266,7 @@ class SyncManager @Inject constructor(
             }
             mapOf(
                 "id" to entry.id,
+                "serverId" to entry.serverEntryId,
                 "userId" to entry.userId,
                 "startTime" to entry.startTime.format(dateFormatter),
                 "durationMinutes" to entry.durationMinutes,
