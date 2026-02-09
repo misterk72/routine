@@ -619,7 +619,7 @@
       "targets": [
         {
           "datasource": "MariaDB-Prod",
-          "format": "time_series",
+          "format": "table",
           "rawQuery": true,
           "rawSql": "SELECT\n  w.program AS metric,\n  COUNT(*) AS value\nFROM workouts w\nJOIN users u ON u.id = w.user_id\nWHERE $__timeFilter(w.start_time)\n  AND COALESCE(u.alias, u.name) = ${user_name:sqlstring}\n  AND w.program IS NOT NULL\n  AND w.program <> ''\n  AND ('${source_id:raw}' = 'all' OR w.source_id IN (${source_id:csv}))\nGROUP BY w.program\nORDER BY value DESC",
           "refId": "A"
