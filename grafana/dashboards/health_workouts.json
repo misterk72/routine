@@ -448,11 +448,11 @@
           "datasource": "MariaDB-Prod",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  $__timeGroup(w.start_time, '1d') AS time,\n  AVG(w.avg_heart_rate) AS avg_hr\nFROM workouts w\nJOIN users u ON u.id = w.user_id\nWHERE $__timeFilter(w.start_time)\n  AND COALESCE(u.alias, u.name) = ${user_name:sqlstring}\n  AND w.avg_heart_rate IS NOT NULL\n  AND (${source_id:raw} = 'all' OR w.source_id IN (${source_id:sqlstring}))\n  AND ('${program:raw}' = 'all' OR w.program = '${program:raw}')\nGROUP BY 1\nORDER BY 1",
+          "rawSql": "SELECT\n  $__timeGroup(w.start_time, '1d') AS time,\n  AVG(w.min_heart_rate) AS min_hr,\n  AVG(w.avg_heart_rate) AS avg_hr,\n  AVG(w.max_heart_rate) AS max_hr\nFROM workouts w\nJOIN users u ON u.id = w.user_id\nWHERE $__timeFilter(w.start_time)\n  AND COALESCE(u.alias, u.name) = ${user_name:sqlstring}\n  AND (w.min_heart_rate IS NOT NULL OR w.avg_heart_rate IS NOT NULL OR w.max_heart_rate IS NOT NULL)\n  AND (${source_id:raw} = 'all' OR w.source_id IN (${source_id:sqlstring}))\n  AND ('${program:raw}' = 'all' OR w.program = '${program:raw}')\nGROUP BY 1\nORDER BY 1",
           "refId": "A"
         }
       ],
-      "title": "Frequence cardiaque moyenne",
+      "title": "Frequence cardiaque (min/moy/max)",
       "type": "timeseries"
     },
     {
@@ -692,6 +692,6 @@
   "timezone": "browser",
   "title": "HealthTracker - Entrainements",
   "uid": "health-workouts",
-  "version": 1,
+  "version": 2,
   "weekStart": ""
 }
