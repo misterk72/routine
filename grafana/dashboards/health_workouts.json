@@ -100,7 +100,7 @@
           "datasource": "MariaDB-Prod",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  $__timeGroup(w.start_time, '1d') AS time,\n  COUNT(*) AS workouts\nFROM workouts w\nJOIN users u ON u.id = w.user_id\nWHERE $__timeFilter(w.start_time)\n  AND COALESCE(u.alias, u.name) = ${user_name:sqlstring}\n  AND (${source_id:raw} = 'all' OR w.source_id IN (${source_id:sqlstring}))\n  AND ('${program:raw}' = 'all' OR w.program = '${program:raw}')\nGROUP BY 1\nORDER BY 1",
+          "rawSql": "SELECT\n  $__timeGroup(w.start_time, '1d') AS time,\n  COUNT(*) AS workouts\nFROM workouts w\nJOIN users u ON u.id = w.user_id\nWHERE $__timeFilter(w.start_time)\n  AND COALESCE(u.alias, u.name) = ${user_name:sqlstring}\n  AND ('${source_id:raw}' = 'all' OR w.source_id IN (${source_id:csv}))\n  AND ('${program:raw}' = 'all' OR w.program = '${program:raw}')\nGROUP BY 1\nORDER BY 1",
           "refId": "A"
         }
       ],
@@ -187,7 +187,7 @@
           "datasource": "MariaDB-Prod",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  $__timeGroup(w.start_time, '1d') AS time,\n  SUM(w.duration_minutes) AS minutes\nFROM workouts w\nJOIN users u ON u.id = w.user_id\nWHERE $__timeFilter(w.start_time)\n  AND COALESCE(u.alias, u.name) = ${user_name:sqlstring}\n  AND w.duration_minutes IS NOT NULL\n  AND (${source_id:raw} = 'all' OR w.source_id IN (${source_id:sqlstring}))\n  AND ('${program:raw}' = 'all' OR w.program = '${program:raw}')\nGROUP BY 1\nORDER BY 1",
+          "rawSql": "SELECT\n  $__timeGroup(w.start_time, '1d') AS time,\n  SUM(w.duration_minutes) AS minutes\nFROM workouts w\nJOIN users u ON u.id = w.user_id\nWHERE $__timeFilter(w.start_time)\n  AND COALESCE(u.alias, u.name) = ${user_name:sqlstring}\n  AND w.duration_minutes IS NOT NULL\n  AND ('${source_id:raw}' = 'all' OR w.source_id IN (${source_id:csv}))\n  AND ('${program:raw}' = 'all' OR w.program = '${program:raw}')\nGROUP BY 1\nORDER BY 1",
           "refId": "A"
         }
       ],
@@ -274,7 +274,7 @@
           "datasource": "MariaDB-Prod",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  $__timeGroup(w.start_time, '1d') AS time,\n  SUM(w.distance_km) AS km\nFROM workouts w\nJOIN users u ON u.id = w.user_id\nWHERE $__timeFilter(w.start_time)\n  AND COALESCE(u.alias, u.name) = ${user_name:sqlstring}\n  AND w.distance_km IS NOT NULL\n  AND (${source_id:raw} = 'all' OR w.source_id IN (${source_id:sqlstring}))\n  AND ('${program:raw}' = 'all' OR w.program = '${program:raw}')\nGROUP BY 1\nORDER BY 1",
+          "rawSql": "SELECT\n  $__timeGroup(w.start_time, '1d') AS time,\n  SUM(w.distance_km) AS km\nFROM workouts w\nJOIN users u ON u.id = w.user_id\nWHERE $__timeFilter(w.start_time)\n  AND COALESCE(u.alias, u.name) = ${user_name:sqlstring}\n  AND w.distance_km IS NOT NULL\n  AND ('${source_id:raw}' = 'all' OR w.source_id IN (${source_id:csv}))\n  AND ('${program:raw}' = 'all' OR w.program = '${program:raw}')\nGROUP BY 1\nORDER BY 1",
           "refId": "A"
         }
       ],
@@ -361,7 +361,7 @@
           "datasource": "MariaDB-Prod",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  $__timeGroup(w.start_time, '1d') AS time,\n  SUM(w.calories) AS kcal\nFROM workouts w\nJOIN users u ON u.id = w.user_id\nWHERE $__timeFilter(w.start_time)\n  AND COALESCE(u.alias, u.name) = ${user_name:sqlstring}\n  AND w.calories IS NOT NULL\n  AND (${source_id:raw} = 'all' OR w.source_id IN (${source_id:sqlstring}))\n  AND ('${program:raw}' = 'all' OR w.program = '${program:raw}')\nGROUP BY 1\nORDER BY 1",
+          "rawSql": "SELECT\n  $__timeGroup(w.start_time, '1d') AS time,\n  SUM(w.calories) AS kcal\nFROM workouts w\nJOIN users u ON u.id = w.user_id\nWHERE $__timeFilter(w.start_time)\n  AND COALESCE(u.alias, u.name) = ${user_name:sqlstring}\n  AND w.calories IS NOT NULL\n  AND ('${source_id:raw}' = 'all' OR w.source_id IN (${source_id:csv}))\n  AND ('${program:raw}' = 'all' OR w.program = '${program:raw}')\nGROUP BY 1\nORDER BY 1",
           "refId": "A"
         }
       ],
@@ -448,7 +448,7 @@
           "datasource": "MariaDB-Prod",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  $__timeGroup(w.start_time, '1d') AS time,\n  AVG(w.min_heart_rate) AS min_hr,\n  AVG(w.avg_heart_rate) AS avg_hr,\n  AVG(w.max_heart_rate) AS max_hr\nFROM workouts w\nJOIN users u ON u.id = w.user_id\nWHERE $__timeFilter(w.start_time)\n  AND COALESCE(u.alias, u.name) = ${user_name:sqlstring}\n  AND (w.min_heart_rate IS NOT NULL OR w.avg_heart_rate IS NOT NULL OR w.max_heart_rate IS NOT NULL)\n  AND (${source_id:raw} = 'all' OR w.source_id IN (${source_id:sqlstring}))\n  AND ('${program:raw}' = 'all' OR w.program = '${program:raw}')\nGROUP BY 1\nORDER BY 1",
+          "rawSql": "SELECT\n  $__timeGroup(w.start_time, '1d') AS time,\n  AVG(w.min_heart_rate) AS min_hr,\n  AVG(w.avg_heart_rate) AS avg_hr,\n  AVG(w.max_heart_rate) AS max_hr\nFROM workouts w\nJOIN users u ON u.id = w.user_id\nWHERE $__timeFilter(w.start_time)\n  AND COALESCE(u.alias, u.name) = ${user_name:sqlstring}\n  AND (w.min_heart_rate IS NOT NULL OR w.avg_heart_rate IS NOT NULL OR w.max_heart_rate IS NOT NULL)\n  AND ('${source_id:raw}' = 'all' OR w.source_id IN (${source_id:csv}))\n  AND ('${program:raw}' = 'all' OR w.program = '${program:raw}')\nGROUP BY 1\nORDER BY 1",
           "refId": "A"
         }
       ],
@@ -535,7 +535,7 @@
           "datasource": "MariaDB-Prod",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  $__timeGroup(w.start_time, '7d') AS time,\n  AVG(w.vo2_max) AS vo2\nFROM workouts w\nJOIN users u ON u.id = w.user_id\nWHERE $__timeFilter(w.start_time)\n  AND COALESCE(u.alias, u.name) = ${user_name:sqlstring}\n  AND w.vo2_max IS NOT NULL\n  AND (${source_id:raw} = 'all' OR w.source_id IN (${source_id:sqlstring}))\n  AND ('${program:raw}' = 'all' OR w.program = '${program:raw}')\nGROUP BY 1\nORDER BY 1",
+          "rawSql": "SELECT\n  $__timeGroup(w.start_time, '7d') AS time,\n  AVG(w.vo2_max) AS vo2\nFROM workouts w\nJOIN users u ON u.id = w.user_id\nWHERE $__timeFilter(w.start_time)\n  AND COALESCE(u.alias, u.name) = ${user_name:sqlstring}\n  AND w.vo2_max IS NOT NULL\n  AND ('${source_id:raw}' = 'all' OR w.source_id IN (${source_id:csv}))\n  AND ('${program:raw}' = 'all' OR w.program = '${program:raw}')\nGROUP BY 1\nORDER BY 1",
           "refId": "A"
         }
       ],
@@ -621,7 +621,7 @@
           "datasource": "MariaDB-Prod",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  w.program AS metric,\n  COUNT(*) AS value\nFROM workouts w\nJOIN users u ON u.id = w.user_id\nWHERE $__timeFilter(w.start_time)\n  AND COALESCE(u.alias, u.name) = ${user_name:sqlstring}\n  AND w.program IS NOT NULL\n  AND w.program <> ''\n  AND (${source_id:raw} = 'all' OR w.source_id IN (${source_id:sqlstring}))\nGROUP BY w.program\nORDER BY value DESC",
+          "rawSql": "SELECT\n  w.program AS metric,\n  COUNT(*) AS value\nFROM workouts w\nJOIN users u ON u.id = w.user_id\nWHERE $__timeFilter(w.start_time)\n  AND COALESCE(u.alias, u.name) = ${user_name:sqlstring}\n  AND w.program IS NOT NULL\n  AND w.program <> ''\n  AND ('${source_id:raw}' = 'all' OR w.source_id IN (${source_id:csv}))\nGROUP BY w.program\nORDER BY value DESC",
           "refId": "A"
         }
       ],
