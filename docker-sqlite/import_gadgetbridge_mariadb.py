@@ -39,7 +39,8 @@ def heart_rate_stats(conn: sqlite3.Connection, device_id: int, start_ms: int, en
     end_sec = end_ms // 1000
     cur.execute(
         "select HEART_RATE from MI_BAND_ACTIVITY_SAMPLE "
-        "where DEVICE_ID = ? and TIMESTAMP >= ? and TIMESTAMP <= ? and HEART_RATE > 0",
+        "where DEVICE_ID = ? and TIMESTAMP >= ? and TIMESTAMP <= ? "
+        "and HEART_RATE > 0 and HEART_RATE <> 255",
         (device_id, start_sec, end_sec),
     )
     rows = [r[0] for r in cur.fetchall()]
@@ -111,6 +112,8 @@ def build_sample_inserts(
         user_id = mapping.get(device_id)
         if not user_id:
             continue
+        if heart_rate == 255:
+            heart_rate = None
         sample_time = dt.datetime.utcfromtimestamp(ts).strftime("%Y-%m-%d %H:%M:%S")
         batch.append(
             f"({_sql_value(user_id)}, {source_id}, {_sql_value(device_id)}, "
