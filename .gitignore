@@ -84,3 +84,4 @@ docker-sqlite/mysql-data
 .venv
 
 samples/Gadgetbridge.db
+docker-sqlite/__pycache__/

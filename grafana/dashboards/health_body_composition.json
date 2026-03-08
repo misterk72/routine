@@ -1,0 +1,408 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "datasource": "MariaDB-Prod",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "kg",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 4,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": true,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": "MariaDB-Prod",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  wm.measured_at AS time,\n  wm.weight_kg AS weight\nFROM weight_measurements wm\nJOIN users u ON u.id = wm.user_id\nWHERE $__timeFilter(wm.measured_at)\n  AND COALESCE(u.alias, u.name) = ${user_name:sqlstring}\n  AND wm.weight_kg IS NOT NULL\nORDER BY time",
+          "refId": "A"
+        }
+      ],
+      "title": "Poids (kg)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "MariaDB-Prod",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 4,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": true,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 30
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 8
+      },
+      "id": 2,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": "MariaDB-Prod",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  wm.measured_at AS time,\n  wm.fat_percentage AS fat_pct\nFROM weight_measurements wm\nJOIN users u ON u.id = wm.user_id\nWHERE $__timeFilter(wm.measured_at)\n  AND COALESCE(u.alias, u.name) = ${user_name:sqlstring}\n  AND wm.fat_percentage IS NOT NULL\nORDER BY time",
+          "refId": "A"
+        }
+      ],
+      "title": "Masse grasse (%)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "MariaDB-Prod",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "kg",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 4,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": true,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 30
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 8
+      },
+      "id": 3,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": "MariaDB-Prod",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  wm.measured_at AS time,\n  wm.fat_mass_kg AS fat_mass\nFROM weight_measurements wm\nJOIN users u ON u.id = wm.user_id\nWHERE $__timeFilter(wm.measured_at)\n  AND COALESCE(u.alias, u.name) = ${user_name:sqlstring}\n  AND wm.fat_mass_kg IS NOT NULL\nORDER BY time",
+          "refId": "A"
+        }
+      ],
+      "title": "Masse grasse (kg)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "MariaDB-Prod",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "lengthcm",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 4,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": true,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 110
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 16
+      },
+      "id": 4,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": "MariaDB-Prod",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  wm.measured_at AS time,\n  wm.waist_cm AS waist\nFROM weight_measurements wm\nJOIN users u ON u.id = wm.user_id\nWHERE $__timeFilter(wm.measured_at)\n  AND COALESCE(u.alias, u.name) = ${user_name:sqlstring}\n  AND wm.waist_cm IS NOT NULL\nORDER BY time",
+          "refId": "A"
+        }
+      ],
+      "title": "Tour de taille (cm)",
+      "type": "timeseries"
+    }
+  ],
+  "preload": false,
+  "refresh": false,
+  "schemaVersion": 40,
+  "tags": [
+    "health",
+    "body"
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "user_name",
+        "label": "Utilisateur",
+        "type": "query",
+        "datasource": "MariaDB-Prod",
+        "refresh": 1,
+        "query": "SELECT COALESCE(alias, name) AS __text, COALESCE(alias, name) AS __value FROM users ORDER BY (COALESCE(alias, name)='Christophe') DESC, is_default DESC, name",
+        "multi": false,
+        "includeAll": false,
+        "current": {
+          "text": "Christophe",
+          "value": "Christophe"
+        }
+      }
+    ]
+  },
+  "time": {
+    "from": "now-1y",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "HealthTracker - Composition corporelle",
+  "uid": "health-body-composition",
+  "version": 1,
+  "weekStart": ""
+}

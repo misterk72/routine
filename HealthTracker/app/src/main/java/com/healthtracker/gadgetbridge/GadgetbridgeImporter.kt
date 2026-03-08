@@ -678,7 +678,8 @@ class GadgetbridgeImporter(
             )
             val cursor = db.rawQuery(
                 "SELECT AVG($hrCol), MIN($hrCol), MAX($hrCol) FROM $table " +
-                    "WHERE $deviceCol = ? AND $timestampCol BETWEEN ? AND ?",
+                    "WHERE $deviceCol = ? AND $timestampCol BETWEEN ? AND ? " +
+                    "AND $hrCol BETWEEN $HR_MIN_VALID AND $HR_MAX_VALID",
                 arrayOf(deviceId.toString(), rangeStart.toString(), rangeEnd.toString())
             )
             cursor.use {
