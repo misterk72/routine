@@ -6,7 +6,8 @@ at runtime in `docker-sqlite/api/sync.php`.
 
 ## Connection
 
-- Host: `192.168.0.13`
+- Prod Host: `192.168.0.103`
+- Dev Host: `192.168.0.13`
 - Port: `3306`
 - DB: `healthtracker`
 - User: `healthuser`
@@ -16,7 +17,7 @@ at runtime in `docker-sqlite/api/sync.php`.
 
 Example:
 ```bash
-mariadb --protocol=TCP --ssl=OFF -h 192.168.0.13 -P 3306 \
+mariadb --protocol=TCP --ssl=OFF -h 192.168.0.103 -P 3306 \
   -u healthuser -phealthpassword -D healthtracker
 ```
 
@@ -89,6 +90,89 @@ All import scripts live in `docker-sqlite/`:
 
 - `import_withings_mariadb.py`
   - Imports Withings XLSX into `weight_measurements`.
+- `import_withings_api_mariadb.py`
+  - Imports Withings API data directly into `weight_measurements` (no mandatory XLSX step).
+  - Uses backfill window (`--backfill-days`, default `30`) and upserts by `source_uid`.
+  - Optional debug export with `--export-xlsx`.
+  - Example:
+    ```bash
+    python docker-sqlite/import_withings_api_mariadb.py \
+      --user-id 1 --backfill-days 30 --apply
+    ```
+
+- `import_health_entries_weights_mariadb.py`
+  - Syncs mobile app entries from `health_entries` into canonical `weight_measurements`.
+  - Source UID format: `healthentry:{id}`.
+  - Example:
+    ```bash
+    python docker-sqlite/import_health_entries_weights_mariadb.py --apply
+    ```
+
+- `scripts/sync_weights_pipeline.sh`
+  - Runs direct Withings import then HealthTracker sync.
+  - Includes dependency checks and stale-data alert (Withings older than 3 days).
+  - Example:
+    ```bash
+    bash scripts/sync_weights_pipeline.sh
+    ```
+
+## Recommended scheduled job
+
+Replace old cron job (`withings.py` only) by the direct DB pipeline.
+Recommended on the **prod server**:
+
+```bash
+0 8 * * * PYTHON_BIN=/home/kassabji/workspace/routine/.venv/bin/python \
+  DB_HOST=192.168.0.103 \
+  /home/kassabji/workspace/routine/scripts/sync_weights_pipeline.sh
+```
+
+This writes directly to MariaDB and keeps optional XLSX export for debugging only.
+
+## Validation queries
+
+Check per-source body measurement counts:
+```bash
+mariadb --protocol=TCP --ssl=OFF -h 192.168.0.13 -P 3306 \
+  -u healthuser -phealthpassword -D healthtracker \
+  -e "SELECT s.name, COUNT(*) AS rows_total, \
+      SUM(wm.weight_kg IS NOT NULL) AS rows_weight, \
+      MIN(wm.measured_at) AS first_at, MAX(wm.measured_at) AS last_at \
+      FROM weight_measurements wm \
+      JOIN sources s ON s.id = wm.source_id \
+      GROUP BY s.name ORDER BY rows_total DESC;"
+```
+
+Check that dashboard day-level join has coverage:
+```bash
+mariadb --protocol=TCP --ssl=OFF -h 192.168.0.13 -P 3306 \
+  -u healthuser -phealthpassword -D healthtracker \
+  -e "SELECT COUNT(*) AS workouts_total, \
+      SUM(wm.id IS NOT NULL) AS workouts_with_weight_same_day \
+      FROM workouts w \
+      LEFT JOIN weight_measurements wm \
+        ON wm.user_id = w.user_id AND DATE(wm.measured_at) = DATE(w.start_time) \
+      WHERE w.deleted = 0;"
+```
+
+## Troubleshooting
+
+- `ModuleNotFoundError: requests`
+  - Install dependencies in the Python environment used by cron.
+  - The pipeline script checks this at startup and exits non-zero when missing.
+
+- Withings token expired
+  - Ensure `tokens.json` contains a valid `refresh_token`.
+  - Set `WITHINGS_CLIENT_ID` and `WITHINGS_CLIENT_SECRET` environment variables,
+    or keep them available in `withings.py` for token refresh fallback.
+
+- No recent Withings rows in DB
+  - Inspect `scripts/sync_weights_pipeline.log`.
+  - Run direct import manually in dry-run mode:
+    ```bash
+    python docker-sqlite/import_withings_api_mariadb.py \
+      --user-id 1 --backfill-days 30 --dry-run
+    ```
 
 ## Cleanup helpers
 
