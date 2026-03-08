@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT_DIR="/home/kassabji/workspace/routine"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 PYTHON_BIN="${PYTHON_BIN:-python3}"
 LOG_FILE="${ROOT_DIR}/scripts/sync_weights_pipeline.log"
 USER_ID="${USER_ID:-1}"
@@ -15,6 +16,7 @@ WITHINGS_TOKENS_JSON="${WITHINGS_TOKENS_JSON:-/home/kassabji/workspace/withings/
 WITHINGS_PY="${WITHINGS_PY:-/home/kassabji/workspace/withings/withings.py}"
 
 log() {
+  mkdir -p "$(dirname "${LOG_FILE}")"
   printf '[%s] %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$1" | tee -a "${LOG_FILE}"
 }
 
