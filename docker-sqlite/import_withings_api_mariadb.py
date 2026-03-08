@@ -11,11 +11,13 @@ import re
 import subprocess
 import sys
 from dataclasses import dataclass
+from pathlib import Path
 
 import requests
 
 TOKEN_URL = "https://wbsapi.withings.net/v2/oauth2"
 DATA_URL = "https://wbsapi.withings.net/measure"
+DEFAULT_WITHINGS_DIR = Path(__file__).resolve().parents[2] / "withings"
 
 
 @dataclass
@@ -42,6 +44,8 @@ def _sql_value(value):
 
 
 def _read_json(path: str) -> dict:
+    if not os.path.exists(path):
+        raise RuntimeError(f"Missing tokens file: {path}")
     with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
 
@@ -57,6 +61,8 @@ def _is_token_valid(tokens: dict) -> bool:
 
 
 def _extract_withings_creds(withings_py: str) -> tuple[str, str]:
+    if not os.path.exists(withings_py):
+        raise RuntimeError(f"Missing withings.py file: {withings_py}")
     with open(withings_py, "r", encoding="utf-8") as f:
         content = f.read()
     id_match = re.search(r"CLIENT_ID\s*=\s*'([^']+)'", content)
@@ -266,8 +272,12 @@ def main() -> int:
     parser.add_argument("--user-id", type=int, required=True)
     parser.add_argument("--source-id", type=int, default=2)
     parser.add_argument("--backfill-days", type=int, default=30)
-    parser.add_argument("--tokens-json", default="/home/kassabji/workspace/withings/tokens.json")
-    parser.add_argument("--withings-py", default="/home/kassabji/workspace/withings/withings.py")
+    parser.add_argument(
+        "--tokens-json", default=str(DEFAULT_WITHINGS_DIR / "tokens.json")
+    )
+    parser.add_argument(
+        "--withings-py", default=str(DEFAULT_WITHINGS_DIR / "withings.py")
+    )
     parser.add_argument("--export-xlsx", default=None)
     parser.add_argument("--out-sql", default="/tmp/withings_api_import.sql")
     parser.add_argument("--apply", action="store_true")

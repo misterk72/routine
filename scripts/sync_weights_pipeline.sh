@@ -12,8 +12,8 @@ DB_PASS="${DB_PASS:-healthpassword}"
 DB_NAME="${DB_NAME:-healthtracker}"
 BACKFILL_DAYS="${BACKFILL_DAYS:-30}"
 STALE_DAYS="${STALE_DAYS:-3}"
-WITHINGS_TOKENS_JSON="${WITHINGS_TOKENS_JSON:-/home/kassabji/workspace/withings/tokens.json}"
-WITHINGS_PY="${WITHINGS_PY:-/home/kassabji/workspace/withings/withings.py}"
+WITHINGS_TOKENS_JSON="${WITHINGS_TOKENS_JSON:-${ROOT_DIR}/../withings/tokens.json}"
+WITHINGS_PY="${WITHINGS_PY:-${ROOT_DIR}/../withings/withings.py}"
 
 log() {
   mkdir -p "$(dirname "${LOG_FILE}")"
@@ -51,6 +51,7 @@ status_withings=$?
 set -e
 if [[ ${status_withings} -ne 0 ]]; then
   log "ERROR: withings direct import failed (exit=${status_withings})"
+  tail -n 40 "${LOG_FILE}" >&2 || true
   exit 10
 fi
 log "Withings direct import completed"
