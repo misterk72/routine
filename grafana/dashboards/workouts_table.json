@@ -232,7 +232,7 @@
             "properties": [
               {
                 "id": "unit",
-                "value": "lengthcm"
+                "value": "cm"
               },
               {
                 "id": "custom.width",

@@ -286,7 +286,7 @@
       "datasource": "MariaDB-Prod",
       "fieldConfig": {
         "defaults": {
-          "unit": "lengthcm",
+          "unit": "cm",
           "color": {
             "mode": "palette-classic"
           },
