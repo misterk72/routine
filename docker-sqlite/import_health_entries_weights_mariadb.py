@@ -7,6 +7,9 @@ import argparse
 import subprocess
 import sys
 
+MIN_WAIST_CM = 30
+MAX_WAIST_CM = 300
+
 
 def _build_sql(source_id: int) -> str:
     return f"""
@@ -29,7 +32,11 @@ SELECT
     he.weight AS weight_kg,
     NULL AS fat_mass_kg,
     he.body_fat AS fat_percentage,
-    he.waist_measurement AS waist_cm,
+    CASE
+        WHEN he.waist_measurement BETWEEN {MIN_WAIST_CM} AND {MAX_WAIST_CM}
+            THEN he.waist_measurement
+        ELSE NULL
+    END AS waist_cm,
     he.notes
 FROM health_entries he
 WHERE he.deleted = 0
