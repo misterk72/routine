@@ -18,7 +18,6 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.widget.doAfterTextChanged
 import androidx.lifecycle.lifecycleScope
@@ -66,6 +65,8 @@ class AddUnifiedActivity : AppCompatActivity() {
         const val ENTRY_TYPE_HEALTH = "health"
         const val ENTRY_TYPE_WORKOUT = "workout"
         private const val TAG = "AddUnifiedActivity"
+        private const val KEY_LAST_USER_ID = "last_user_id"
+        private const val KEY_LAST_LOCATION_ID = "last_location_id"
 
         private fun formatWithCapitalizedDay(dateTime: LocalDateTime, pattern: String): String {
             val formatted = DateTimeFormatter.ofPattern(pattern, Locale.FRENCH).format(dateTime)
@@ -103,6 +104,9 @@ class AddUnifiedActivity : AppCompatActivity() {
     private val programDefaults by lazy {
         getSharedPreferences("workout_program_defaults", Context.MODE_PRIVATE)
     }
+    private val selectionDefaults by lazy {
+        getSharedPreferences("entry_selection_defaults", Context.MODE_PRIVATE)
+    }
     private val gadgetbridgeExportReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             when (intent.action) {
@@ -124,6 +128,7 @@ class AddUnifiedActivity : AppCompatActivity() {
     private var editingHealthId: Long? = null
     private var editingWorkoutId: Long? = null
     private var pendingUserId: Long? = null
+    private var defaultUserObserverRegistered = false
     private var editingWorkoutEntry: WorkoutEntry? = null
     private var editingHealthEntry: HealthEntry? = null
 
@@ -306,6 +311,10 @@ class AddUnifiedActivity : AppCompatActivity() {
         binding.healthUserDropdown.setAdapter(healthAdapter)
         binding.workoutUserDropdown.setAdapter(workoutAdapter)
 
+        if (editingWorkoutId == null && editingHealthId == null) {
+            pendingUserId = getStoredLastUserId()
+        }
+
         healthViewModel.users.observe(this) { users ->
             userList.clear()
             userList.addAll(users)
@@ -321,23 +330,26 @@ class AddUnifiedActivity : AppCompatActivity() {
             workoutAdapter.addAll(userNames)
             workoutAdapter.notifyDataSetChanged()
 
-            healthViewModel.defaultUser.observe(this) { defaultUser ->
-                if (defaultUser != null && editingWorkoutId == null && editingHealthId == null) {
-                    selectedUserId = defaultUser.id
-                    binding.healthUserDropdown.setText(defaultUser.name, false)
-                    binding.workoutUserDropdown.setText(defaultUser.name, false)
-                    applyDefaultProgramForUser(defaultUser.id)
-                }
-            }
-
             pendingUserId?.let { userId ->
                 val selectedUser = userList.firstOrNull { it.id == userId }
                 if (selectedUser != null) {
-                    selectedUserId = selectedUser.id
-                    binding.healthUserDropdown.setText(selectedUser.name, false)
-                    binding.workoutUserDropdown.setText(selectedUser.name, false)
-                    applyDefaultProgramForUser(selectedUser.id)
+                    selectUser(selectedUser)
                     pendingUserId = null
+                }
+            }
+        }
+
+        if (!defaultUserObserverRegistered) {
+            defaultUserObserverRegistered = true
+            healthViewModel.defaultUser.observe(this) { defaultUser ->
+                if (
+                    defaultUser != null &&
+                    editingWorkoutId == null &&
+                    editingHealthId == null &&
+                    selectedUserId == 0L &&
+                    pendingUserId == null
+                ) {
+                    selectUser(defaultUser)
                 }
             }
         }
@@ -353,13 +365,19 @@ class AddUnifiedActivity : AppCompatActivity() {
     private fun handleUserSelection(parent: AdapterView<*>, position: Int) {
         val selectedItem = parent.getItemAtPosition(position).toString()
         if (position < userList.size) {
-            selectedUserId = userList[position].id
-            val name = userList[position].name
-            binding.healthUserDropdown.setText(name, false)
-            binding.workoutUserDropdown.setText(name, false)
-            applyDefaultProgramForUser(selectedUserId)
+            selectUser(userList[position], persist = true)
         } else if (selectedItem == getString(R.string.add_new_user)) {
             showAddUserDialog()
+        }
+    }
+
+    private fun selectUser(user: User, persist: Boolean = true) {
+        selectedUserId = user.id
+        binding.healthUserDropdown.setText(user.name, false)
+        binding.workoutUserDropdown.setText(user.name, false)
+        applyDefaultProgramForUser(user.id)
+        if (persist) {
+            storeLastUserId(user.id)
         }
     }
 
@@ -410,6 +428,13 @@ class AddUnifiedActivity : AppCompatActivity() {
             adapter.clear()
             adapter.addAll(locationNames)
             adapter.notifyDataSetChanged()
+
+            if (editingHealthId == null && selectedLocationId == null) {
+                val storedLocationId = getStoredLastLocationId()
+                if (storedLocationId != null && locationList.any { it.id == storedLocationId }) {
+                    selectedLocationId = storedLocationId
+                }
+            }
             applyLocationSelection()
         }
 
@@ -417,6 +442,7 @@ class AddUnifiedActivity : AppCompatActivity() {
             val selectedItem = parent.getItemAtPosition(position).toString()
             if (position < locationList.size) {
                 selectedLocationId = locationList[position].id
+                storeLastLocationId(selectedLocationId)
             } else if (selectedItem == getString(R.string.add_location)) {
                 showAddLocationDialog()
             }
@@ -460,6 +486,7 @@ class AddUnifiedActivity : AppCompatActivity() {
                             healthViewModel.insertLocationAndReturnId(newLocation)
                         }
                         selectedLocationId = newLocationId
+                        storeLastLocationId(newLocationId)
                         binding.healthLocationDropdown.setText(name, false)
                     }
                 }
@@ -782,6 +809,7 @@ class AddUnifiedActivity : AppCompatActivity() {
         val timestampText = binding.healthTimestampEditText.text?.toString().orEmpty()
         val timestamp = parseDateTime(timestampText)
         val resolvedLocationId = resolveSelectedLocationId()
+        storeLastSelections(selectedUserId, resolvedLocationId)
         val entry = HealthEntry(
             id = editingHealthId ?: 0,
             userId = selectedUserId,
@@ -811,6 +839,7 @@ class AddUnifiedActivity : AppCompatActivity() {
         if (program != null) {
             programDefaults.edit().putString(programKey(selectedUserId), program).apply()
         }
+        storeLastUserId(selectedUserId)
         val entry = WorkoutEntry(
             id = editingWorkoutId ?: 0,
             userId = selectedUserId,
@@ -931,5 +960,31 @@ class AddUnifiedActivity : AppCompatActivity() {
         } catch (_: Exception) {
             null
         }
+    }
+
+    private fun getStoredLastUserId(): Long? =
+        selectionDefaults.getLong(KEY_LAST_USER_ID, -1L).takeIf { it > 0L }
+
+    private fun storeLastUserId(userId: Long) {
+        if (userId <= 0L) return
+        selectionDefaults.edit().putLong(KEY_LAST_USER_ID, userId).apply()
+    }
+
+    private fun getStoredLastLocationId(): Long? =
+        selectionDefaults.getLong(KEY_LAST_LOCATION_ID, -1L).takeIf { it > 0L }
+
+    private fun storeLastLocationId(locationId: Long?) {
+        selectionDefaults.edit().apply {
+            if (locationId != null && locationId > 0L) {
+                putLong(KEY_LAST_LOCATION_ID, locationId)
+            } else {
+                remove(KEY_LAST_LOCATION_ID)
+            }
+        }.apply()
+    }
+
+    private fun storeLastSelections(userId: Long, locationId: Long?) {
+        storeLastUserId(userId)
+        storeLastLocationId(locationId)
     }
 }
