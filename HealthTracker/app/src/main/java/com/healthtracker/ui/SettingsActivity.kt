@@ -2,6 +2,7 @@ package com.healthtracker.ui
 
 import android.net.Uri
 import android.os.Bundle
+import android.util.Log
 import android.view.MenuItem
 import android.view.LayoutInflater
 import android.widget.ArrayAdapter
@@ -12,6 +13,7 @@ import androidx.activity.viewModels
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.widget.doAfterTextChanged
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.healthtracker.R
@@ -19,10 +21,19 @@ import com.healthtracker.data.MetricType
 import com.healthtracker.data.User
 import com.healthtracker.databinding.ActivitySettingsBinding
 import com.healthtracker.gadgetbridge.GadgetbridgeImportConfig
+import com.healthtracker.jellyfin.JellyfinSettingsStore
+import com.healthtracker.jellyfin.WorkoutMediaAutofillCoordinator
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class SettingsActivity : AppCompatActivity() {
+    companion object {
+        private const val TAG = "SettingsActivity"
+    }
 
     private lateinit var binding: ActivitySettingsBinding
     private val viewModel: SettingsViewModel by viewModels()
@@ -30,6 +41,12 @@ class SettingsActivity : AppCompatActivity() {
     private lateinit var metricTypesAdapter: MetricTypesAdapter
     private lateinit var usersAdapter: UsersAdapter
     private lateinit var gadgetbridgeConfig: GadgetbridgeImportConfig
+
+    @Inject
+    lateinit var jellyfinSettingsStore: JellyfinSettingsStore
+
+    @Inject
+    lateinit var workoutMediaAutofillCoordinator: WorkoutMediaAutofillCoordinator
 
     private val selectGadgetbridgeExport = registerForActivityResult(
         ActivityResultContracts.OpenDocument()
@@ -58,6 +75,7 @@ class SettingsActivity : AppCompatActivity() {
         setupUsersAdapter()
         setupExportFormatSpinner()
         setupGadgetbridgeConfig()
+        setupJellyfinConfig()
         setupListeners()
         observeViewModel()
     }
@@ -126,6 +144,49 @@ class SettingsActivity : AppCompatActivity() {
         binding.gadgetbridgeDeviceEditText.setText(gadgetbridgeConfig.getDeviceMatch().orEmpty())
         binding.gadgetbridgeDeviceEditText.doAfterTextChanged { editable ->
             gadgetbridgeConfig.setDeviceMatch(editable?.toString())
+        }
+    }
+
+    private fun setupJellyfinConfig() {
+        binding.jellyfinServerUrlEditText.setText(jellyfinSettingsStore.getServerUrl().orEmpty())
+        binding.jellyfinUsernameEditText.setText(jellyfinSettingsStore.getUsername().orEmpty())
+        binding.jellyfinApiKeyEditText.setText(jellyfinSettingsStore.getApiKey().orEmpty())
+
+        binding.jellyfinServerUrlEditText.doAfterTextChanged { editable ->
+            jellyfinSettingsStore.setServerUrl(editable?.toString())
+            updateJellyfinStatus()
+        }
+        binding.jellyfinUsernameEditText.doAfterTextChanged { editable ->
+            jellyfinSettingsStore.setUsername(editable?.toString())
+            updateJellyfinStatus()
+        }
+        binding.jellyfinApiKeyEditText.doAfterTextChanged { editable ->
+            jellyfinSettingsStore.setApiKey(editable?.toString())
+            updateJellyfinStatus()
+        }
+
+        binding.jellyfinTestConnectionButton.setOnClickListener {
+            lifecycleScope.launch {
+                binding.jellyfinTestConnectionButton.isEnabled = false
+                binding.jellyfinStatusTextView.text = getString(R.string.jellyfin_testing_connection)
+                val result = withContext(Dispatchers.IO) {
+                    workoutMediaAutofillCoordinator.testConnection()
+                }
+                Log.d(TAG, "Jellyfin test result: ${result.message}")
+                binding.jellyfinStatusTextView.text = result.message
+                binding.jellyfinTestConnectionButton.isEnabled = true
+                Toast.makeText(this@SettingsActivity, result.message, Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        updateJellyfinStatus()
+    }
+
+    private fun updateJellyfinStatus() {
+        binding.jellyfinStatusTextView.text = if (jellyfinSettingsStore.isConfigured()) {
+            getString(R.string.jellyfin_configured)
+        } else {
+            getString(R.string.jellyfin_not_configured)
         }
     }
 

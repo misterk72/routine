@@ -36,10 +36,12 @@ import com.healthtracker.gadgetbridge.GadgetbridgeImportConfig
 import com.healthtracker.gadgetbridge.GadgetbridgeImporter
 import com.healthtracker.gadgetbridge.GadgetbridgeIntents
 import com.healthtracker.gadgetbridge.GadgetbridgeImportResult
+import com.healthtracker.jellyfin.WorkoutMediaAutofillCoordinator
 import com.healthtracker.location.LocationService
 import com.healthtracker.sync.SyncManager
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.time.LocalDateTime
@@ -50,6 +52,13 @@ import javax.inject.Inject
 
 @AndroidEntryPoint
 class AddUnifiedActivity : AppCompatActivity() {
+    private enum class GadgetbridgeImportState {
+        NOT_STARTED,
+        IN_PROGRESS,
+        COMPLETED,
+        ABSENT
+    }
+
     companion object {
         const val EXTRA_ENTRY_TYPE = "entry_type"
         const val EXTRA_WORKOUT_ID = "workout_id"
@@ -81,9 +90,16 @@ class AddUnifiedActivity : AppCompatActivity() {
     @Inject
     lateinit var syncManager: SyncManager
 
+    @Inject
+    lateinit var workoutMediaAutofillCoordinator: WorkoutMediaAutofillCoordinator
+
     private lateinit var gadgetbridgeConfig: GadgetbridgeImportConfig
     private var gadgetbridgeReceiverRegistered = false
     private var autoImportTriggered = false
+    private var gadgetbridgeImportState = GadgetbridgeImportState.NOT_STARTED
+    private var soundtrackManuallyEdited = false
+    private var suppressSoundtrackWatcher = false
+    private var jellyfinAutofillJob: Job? = null
     private val programDefaults by lazy {
         getSharedPreferences("workout_program_defaults", Context.MODE_PRIVATE)
     }
@@ -96,6 +112,8 @@ class AddUnifiedActivity : AppCompatActivity() {
                 }
                 GadgetbridgeIntents.ACTION_DATABASE_EXPORT_FAIL -> {
                     Log.w(TAG, "Gadgetbridge export failed broadcast received")
+                    gadgetbridgeImportState = GadgetbridgeImportState.ABSENT
+                    updateWorkoutSoundtrackHelper(null)
                     Toast.makeText(this@AddUnifiedActivity, R.string.gadgetbridge_export_failed, Toast.LENGTH_SHORT).show()
                 }
             }
@@ -139,6 +157,7 @@ class AddUnifiedActivity : AppCompatActivity() {
         setupLocationDropdown()
         checkLocationPermission()
         setupWorkoutComputedFields()
+        setupWorkoutSoundtrackHandling()
         setupGadgetbridgeImport()
         setupSaveButton()
 
@@ -189,6 +208,7 @@ class AddUnifiedActivity : AppCompatActivity() {
     }
 
     override fun onStop() {
+        jellyfinAutofillJob?.cancel()
         if (gadgetbridgeReceiverRegistered) {
             unregisterReceiver(gadgetbridgeExportReceiver)
             gadgetbridgeReceiverRegistered = false
@@ -271,6 +291,7 @@ class AddUnifiedActivity : AppCompatActivity() {
                     binding.workoutStartTimeEditText.setText(
                         formatWithCapitalizedDay(finalDateTime, "EEEE d MMMM yyyy, HH'h'mm")
                     )
+                    maybeTriggerJellyfinAutofill(afterImport = false)
                 }
                 timePicker.show(supportFragmentManager, "workoutTimePicker")
             }
@@ -480,14 +501,23 @@ class AddUnifiedActivity : AppCompatActivity() {
     }
 
     private fun setupWorkoutComputedFields() {
-        val watcher = {
+        binding.workoutDurationEditText.doAfterTextChanged {
             updateComputedFields()
+            maybeTriggerJellyfinAutofill(afterImport = false)
         }
-        binding.workoutDurationEditText.doAfterTextChanged { watcher() }
-        binding.workoutDistanceEditText.doAfterTextChanged { watcher() }
-        binding.workoutCaloriesEditText.doAfterTextChanged { watcher() }
-        binding.workoutHeartRateMaxEditText.doAfterTextChanged { watcher() }
-        binding.workoutSleepHeartRateAvgEditText.doAfterTextChanged { watcher() }
+        binding.workoutDistanceEditText.doAfterTextChanged { updateComputedFields() }
+        binding.workoutCaloriesEditText.doAfterTextChanged { updateComputedFields() }
+        binding.workoutHeartRateMaxEditText.doAfterTextChanged { updateComputedFields() }
+        binding.workoutSleepHeartRateAvgEditText.doAfterTextChanged { updateComputedFields() }
+    }
+
+    private fun setupWorkoutSoundtrackHandling() {
+        binding.workoutSoundtrackEditText.doAfterTextChanged {
+            if (!suppressSoundtrackWatcher) {
+                soundtrackManuallyEdited = true
+                updateWorkoutSoundtrackHelper(null)
+            }
+        }
     }
 
     private fun updateComputedFields() {
@@ -529,7 +559,12 @@ class AddUnifiedActivity : AppCompatActivity() {
         if (autoImportTriggered || currentType != ENTRY_TYPE_WORKOUT || editingWorkoutId != null) {
             return
         }
-        val exportUri = gadgetbridgeConfig.getExportUri() ?: return
+        val exportUri = gadgetbridgeConfig.getExportUri()
+        if (exportUri == null) {
+            gadgetbridgeImportState = GadgetbridgeImportState.ABSENT
+            maybeTriggerJellyfinAutofill(afterImport = false)
+            return
+        }
         autoImportTriggered = true
         triggerGadgetbridgeExport(resetImportState = false, showToast = false, exportUri = exportUri)
     }
@@ -541,11 +576,15 @@ class AddUnifiedActivity : AppCompatActivity() {
     ) {
         val resolvedUri = exportUri ?: gadgetbridgeConfig.getExportUri()
         if (resolvedUri == null) {
+            gadgetbridgeImportState = GadgetbridgeImportState.ABSENT
+            maybeTriggerJellyfinAutofill(afterImport = false)
             if (showToast) {
                 Toast.makeText(this, R.string.gadgetbridge_missing_export, Toast.LENGTH_LONG).show()
             }
             return
         }
+        gadgetbridgeImportState = GadgetbridgeImportState.IN_PROGRESS
+        updateWorkoutSoundtrackHelper(getString(R.string.jellyfin_waiting_for_gadgetbridge))
         if (resetImportState) {
             gadgetbridgeConfig.setLastImportedStartTime(0L)
             Log.d(TAG, "Reset Gadgetbridge import state before export")
@@ -565,6 +604,8 @@ class AddUnifiedActivity : AppCompatActivity() {
                 GadgetbridgeImporter(this@AddUnifiedActivity, gadgetbridgeConfig).importLatestWorkout()
             }
             if (result == null) {
+                gadgetbridgeImportState = GadgetbridgeImportState.ABSENT
+                updateWorkoutSoundtrackHelper(null)
                 Log.w(TAG, "No workout imported from Gadgetbridge")
                 Toast.makeText(this@AddUnifiedActivity, R.string.gadgetbridge_import_empty, Toast.LENGTH_LONG).show()
                 return@launch
@@ -592,9 +633,70 @@ class AddUnifiedActivity : AppCompatActivity() {
         binding.workoutHeartRateMaxEditText.setText(result.heartRateMax?.toString().orEmpty())
         binding.workoutSleepHeartRateAvgEditText.setText(result.sleepHeartRateAvg?.toString().orEmpty())
         binding.workoutVo2MaxEditText.setText(result.vo2Max?.let { String.format(Locale.US, "%.1f", it) }.orEmpty())
+        gadgetbridgeImportState = GadgetbridgeImportState.COMPLETED
         updateComputedFields()
+        maybeTriggerJellyfinAutofill(afterImport = true)
         Log.d(TAG, "Applied Gadgetbridge import result")
         Toast.makeText(this, R.string.gadgetbridge_imported, Toast.LENGTH_SHORT).show()
+    }
+
+    private fun maybeTriggerJellyfinAutofill(afterImport: Boolean) {
+        if (editingWorkoutId != null || currentType != ENTRY_TYPE_WORKOUT) {
+            return
+        }
+        if (!workoutMediaAutofillCoordinator.isConfigured()) {
+            updateWorkoutSoundtrackHelper(null)
+            return
+        }
+        if (gadgetbridgeImportState == GadgetbridgeImportState.IN_PROGRESS) {
+            updateWorkoutSoundtrackHelper(getString(R.string.jellyfin_waiting_for_gadgetbridge))
+            return
+        }
+        if (gadgetbridgeImportState == GadgetbridgeImportState.NOT_STARTED) {
+            return
+        }
+        if (soundtrackManuallyEdited) {
+            return
+        }
+
+        val startTime = parseWorkoutStartTimeOrNull() ?: return
+        val durationMinutes = binding.workoutDurationEditText.text?.toString()?.toIntOrNull()
+            ?.takeIf { it > 0 } ?: return
+
+        jellyfinAutofillJob?.cancel()
+        jellyfinAutofillJob = lifecycleScope.launch {
+            updateWorkoutSoundtrackHelper(getString(R.string.jellyfin_autofill_loading))
+            val result = withContext(Dispatchers.IO) {
+                runCatching {
+                    workoutMediaAutofillCoordinator.buildSoundtrackForSession(startTime, durationMinutes)
+                }
+            }
+            if (result.isFailure) {
+                updateWorkoutSoundtrackHelper(getString(R.string.jellyfin_autofill_error))
+                return@launch
+            }
+            val soundtrack = result.getOrNull()
+            if (soundtrack.isNullOrBlank()) {
+                updateWorkoutSoundtrackHelper(
+                    if (afterImport) getString(R.string.jellyfin_autofill_empty) else null
+                )
+                return@launch
+            }
+            applyAutoFilledSoundtrack(soundtrack)
+            updateWorkoutSoundtrackHelper(getString(R.string.jellyfin_autofill_ready))
+        }
+    }
+
+    private fun applyAutoFilledSoundtrack(value: String) {
+        suppressSoundtrackWatcher = true
+        binding.workoutSoundtrackEditText.setText(value)
+        suppressSoundtrackWatcher = false
+        soundtrackManuallyEdited = false
+    }
+
+    private fun updateWorkoutSoundtrackHelper(message: String?) {
+        binding.workoutSoundtrackLayout.helperText = message
+        binding.workoutSoundtrackLayout.isHelperTextEnabled = !message.isNullOrBlank()
     }
 
     private fun setupSaveButton() {
@@ -636,7 +738,10 @@ class AddUnifiedActivity : AppCompatActivity() {
             binding.workoutHeartRateMaxEditText.setText(workout.heartRateMax?.toString().orEmpty())
             binding.workoutSleepHeartRateAvgEditText.setText(workout.sleepHeartRateAvg?.toString().orEmpty())
             binding.workoutVo2MaxEditText.setText(workout.vo2Max?.toString().orEmpty())
+            suppressSoundtrackWatcher = true
             binding.workoutSoundtrackEditText.setText(workout.soundtrack.orEmpty())
+            suppressSoundtrackWatcher = false
+            soundtrackManuallyEdited = true
             binding.workoutNotesEditText.setText(workout.notes.orEmpty())
             editingWorkoutEntry = workout
             val selectedUser = userList.firstOrNull { it.id == workout.userId }
@@ -809,6 +914,22 @@ class AddUnifiedActivity : AppCompatActivity() {
             LocalDateTime.parse(value.lowercase(Locale.FRENCH), formatter)
         } catch (_: Exception) {
             LocalDateTime.now()
+        }
+    }
+
+    private fun parseWorkoutStartTimeOrNull(): LocalDateTime? {
+        val value = binding.workoutStartTimeEditText.text?.toString().orEmpty()
+        if (value.isBlank()) {
+            return null
+        }
+        return try {
+            val formatter = DateTimeFormatter.ofPattern(
+                "EEEE d MMMM yyyy, HH'h'mm",
+                Locale.FRENCH
+            )
+            LocalDateTime.parse(value.lowercase(Locale.FRENCH), formatter)
+        } catch (_: Exception) {
+            null
         }
     }
 }
