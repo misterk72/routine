@@ -106,9 +106,13 @@ dependencies {
 - Amelioration de la gestion des utilisateurs pour preserver les noms personnalises
 - Resolution du probleme de selecteur d'utilisateur manquant dans l'interface
 
-## Installation
-L'application peut etre installee via les fichiers APK generes pour les variantes dev et prod :
-```
+## Build et installation Android
+Le flux recommande est documente dans [BUILD_AND_INSTALL.md](/home/kassabji/workspace/routine/HealthTracker/BUILD_AND_INSTALL.md).
+
+Commandes les plus utiles depuis `HealthTracker/` :
+```bash
+./gradlew assembleDevDebug
+./gradlew assembleProdDebug
 adb install -r app/build/outputs/apk/dev/debug/app-dev-debug.apk
 adb install -r app/build/outputs/apk/prod/debug/app-prod-debug.apk
 ```
