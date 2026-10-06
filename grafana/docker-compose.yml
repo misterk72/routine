@@ -9,12 +9,20 @@ services:
     restart: unless-stopped
     ports:
       - "3000:3000"
+    networks:
+      - default
+      - healthtracker
     volumes:
       - grafana-data:/var/lib/grafana
       - ./provisioning:/etc/grafana/provisioning
       - ./dashboards:/var/lib/grafana/dashboards
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=admin
+
+networks:
+  healthtracker:
+    external: true
+    name: docker-sqlite_default
 
 volumes:
   grafana-data:

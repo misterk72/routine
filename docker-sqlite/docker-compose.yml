@@ -6,7 +6,7 @@ services:
       - ./mysql-data:/var/lib/mysql
       - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
     ports:
-      - "3306:3306"
+      - "127.0.0.1:3306:3306"
     environment:
       - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:?definir dans docker-sqlite/.env}
       - MYSQL_DATABASE=${MYSQL_DATABASE:?}

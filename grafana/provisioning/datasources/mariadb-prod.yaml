@@ -5,7 +5,7 @@ datasources:
     type: mysql
     access: proxy
     isDefault: false
-    url: "192.168.0.103:3306"
+    url: "db:3306"
     database: "healthtracker"
     user: "healthuser"
     jsonData:
