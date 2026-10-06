@@ -85,3 +85,14 @@ docker-sqlite/mysql-data
 
 samples/Gadgetbridge.db
 docker-sqlite/__pycache__/
+# Secrets (ajoute le 20261005-160047)
+.env
+**/.env
+!**/.env.example
+# Sauvegardes et artefacts locaux (ajoute le 2026-10-05)
+backup-avant-*/
+.state/
+*.bak-*
+# Fichiers portant des identifiants : ne jamais commiter
+grafana/auth.yml
+Gadgetbridge/*.db

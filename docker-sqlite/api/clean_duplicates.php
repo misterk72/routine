@@ -3,11 +3,14 @@
 error_reporting(0);
 header('Content-Type: application/json');
 
-// Configuration de la base de données
-$host = 'db'; // Nom du service dans docker-compose
-$dbname = 'healthtracker';
-$username = 'healthuser';
-$password = 'healthpassword';
+// Configuration de la base de donnees (renseignee par l'environnement -- voir .env)
+$host = getenv('DB_HOST') ?: 'db';
+$dbname = getenv('DB_NAME') ?: 'healthtracker';
+$username = getenv('DB_USER') ?: 'healthuser';
+$password = getenv('DB_PASS');
+if ($password === false || $password === '') {
+    die(json_encode(['error' => 'DB_PASS non defini dans l environnement']));
+}
 
 try {
     // Connexion à la base de données

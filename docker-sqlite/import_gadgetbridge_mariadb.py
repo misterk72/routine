@@ -3,6 +3,7 @@
 
 import argparse
 import datetime as dt
+from pathlib import Path
 import sqlite3
 import subprocess
 from typing import Dict, Iterable, Optional
@@ -21,7 +22,41 @@ def _sql_value(value):
 
 
 def _ts_ms_to_dt_str(ts_ms: int) -> str:
-    return dt.datetime.utcfromtimestamp(ts_ms / 1000).strftime("%Y-%m-%d %H:%M:%S")
+    return dt.datetime.fromtimestamp(ts_ms / 1000, dt.UTC).strftime("%Y-%m-%d %H:%M:%S")
+
+
+def is_gadgetbridge_db(path: Path) -> bool:
+    if not path.is_file() or path.stat().st_size == 0:
+        return False
+    try:
+        conn = sqlite3.connect(path)
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT 1 FROM sqlite_master "
+                "WHERE type='table' AND name='MI_BAND_ACTIVITY_SAMPLE' LIMIT 1"
+            )
+            return cur.fetchone() is not None
+        finally:
+            conn.close()
+    except sqlite3.Error:
+        return False
+
+
+def resolve_db_path(path_arg: str) -> str:
+    path = Path(path_arg)
+    if path.is_file():
+        return str(path)
+    if not path.is_dir():
+        return path_arg
+
+    candidates = []
+    for pattern in ("*.db", "*.sqlite", "*.sqlite3"):
+        candidates.extend(path.rglob(pattern))
+    valid = [candidate for candidate in candidates if is_gadgetbridge_db(candidate)]
+    if not valid:
+        raise FileNotFoundError(f"No Gadgetbridge SQLite database found under {path}")
+    return str(max(valid, key=lambda candidate: candidate.stat().st_mtime))
 
 
 def load_sessions(conn: sqlite3.Connection):
@@ -69,14 +104,26 @@ def _parse_device_ids(value: Optional[str]) -> Optional[list[int]]:
     return [int(v.strip()) for v in value.split(",") if v.strip()]
 
 
+def _table_columns(conn: sqlite3.Connection, table: str) -> set[str]:
+    cur = conn.cursor()
+    cur.execute(f"PRAGMA table_info({table})")
+    return {row[1].upper() for row in cur.fetchall()}
+
+
 def _sample_rows(
     conn: sqlite3.Connection,
     device_ids: Optional[list[int]],
     since_ts: Optional[int],
     until_ts: Optional[int],
-) -> Iterable[tuple[int, int, int, int]]:
+) -> Iterable[tuple[int, int, int, Optional[int], Optional[int], int]]:
     cur = conn.cursor()
-    base = "select DEVICE_ID, TIMESTAMP, HEART_RATE, STEPS from MI_BAND_ACTIVITY_SAMPLE"
+    columns = _table_columns(conn, "MI_BAND_ACTIVITY_SAMPLE")
+    raw_kind_expr = "RAW_KIND" if "RAW_KIND" in columns else "NULL"
+    sleep_kind_expr = "SLEEP_KIND" if "SLEEP_KIND" in columns else "NULL"
+    base = (
+        "select DEVICE_ID, TIMESTAMP, HEART_RATE, "
+        f"{raw_kind_expr}, {sleep_kind_expr}, STEPS from MI_BAND_ACTIVITY_SAMPLE"
+    )
     clauses = []
     params = []
     if device_ids:
@@ -95,6 +142,28 @@ def _sample_rows(
     return cur.fetchall()
 
 
+def sample_schema_statement() -> str:
+    return (
+        "ALTER TABLE gadgetbridge_samples "
+        "ADD COLUMN IF NOT EXISTS raw_kind INT DEFAULT NULL, "
+        "ADD COLUMN IF NOT EXISTS sleep_kind INT DEFAULT NULL;"
+    )
+
+
+def sample_insert_statement(batch: list[str]) -> str:
+    return (
+        "INSERT INTO gadgetbridge_samples "
+        "(user_id, source_id, device_id, sample_time, heart_rate, raw_kind, sleep_kind, steps) VALUES "
+        + ",".join(batch)
+        + " ON DUPLICATE KEY UPDATE "
+        "user_id=VALUES(user_id), "
+        "heart_rate=VALUES(heart_rate), "
+        "raw_kind=VALUES(raw_kind), "
+        "sleep_kind=VALUES(sleep_kind), "
+        "steps=VALUES(steps);"
+    )
+
+
 def build_sample_inserts(
     conn: sqlite3.Connection,
     mapping: Dict[int, int],
@@ -104,37 +173,28 @@ def build_sample_inserts(
     until_ts: Optional[int],
     batch_size: int,
 ):
-    statements = []
+    statements = [sample_schema_statement()]
     total = 0
     rows = _sample_rows(conn, device_ids, since_ts, until_ts)
     batch = []
-    for device_id, ts, heart_rate, steps in rows:
+    for device_id, ts, heart_rate, raw_kind, sleep_kind, steps in rows:
         user_id = mapping.get(device_id)
         if not user_id:
             continue
         if heart_rate == 255:
             heart_rate = None
-        sample_time = dt.datetime.utcfromtimestamp(ts).strftime("%Y-%m-%d %H:%M:%S")
+        sample_time = dt.datetime.fromtimestamp(ts, dt.UTC).strftime("%Y-%m-%d %H:%M:%S")
         batch.append(
             f"({_sql_value(user_id)}, {source_id}, {_sql_value(device_id)}, "
-            f"{_sql_value(sample_time)}, {_sql_value(heart_rate)}, {_sql_value(steps)})"
+            f"{_sql_value(sample_time)}, {_sql_value(heart_rate)}, "
+            f"{_sql_value(raw_kind)}, {_sql_value(sleep_kind)}, {_sql_value(steps)})"
         )
         total += 1
         if len(batch) >= batch_size:
-            statements.append(
-                "INSERT INTO gadgetbridge_samples "
-                "(user_id, source_id, device_id, sample_time, heart_rate, steps) VALUES "
-                + ",".join(batch)
-                + ";"
-            )
+            statements.append(sample_insert_statement(batch))
             batch = []
     if batch:
-        statements.append(
-            "INSERT INTO gadgetbridge_samples "
-            "(user_id, source_id, device_id, sample_time, heart_rate, steps) VALUES "
-            + ",".join(batch)
-            + ";"
-        )
+        statements.append(sample_insert_statement(batch))
     return statements, total
 
 
@@ -187,7 +247,11 @@ def parse_mapping(mapping_str: Optional[str]) -> Dict[int, int]:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Import Gadgetbridge data into MariaDB.")
-    parser.add_argument("--db", default="samples/Gadgetbridge.db")
+    parser.add_argument(
+        "--db",
+        default="samples/Gadgetbridge.db",
+        help="Gadgetbridge SQLite file, or backup root directory to scan recursively.",
+    )
     parser.add_argument("--source-id", type=int, default=3)
     parser.add_argument(
         "--mapping",
@@ -208,6 +272,7 @@ def main() -> int:
     parser.add_argument("--samples-batch-size", type=int, default=1000)
     parser.add_argument("--apply", action="store_true")
     parser.add_argument("--db-host", default="192.168.0.13")
+    parser.add_argument("--db-port", type=int, default=3306)
     parser.add_argument("--db-user", default="healthuser")
     parser.add_argument("--db-pass", default="healthpassword")
     parser.add_argument("--db-name", default="healthtracker")
@@ -229,9 +294,14 @@ def main() -> int:
             10: 2,
             11: 2,
             12: 2,
+            13: 2,
         }
 
-    conn = sqlite3.connect(args.db)
+    db_path = resolve_db_path(args.db)
+    if db_path != args.db:
+        print(f"Using latest Gadgetbridge DB: {db_path}")
+
+    conn = sqlite3.connect(db_path)
     try:
         statements = []
         skipped = 0
@@ -268,12 +338,15 @@ def main() -> int:
     if args.apply:
         cmd = [
             "mariadb",
+            "--protocol=TCP",
+            "-P",
+            str(args.db_port),
             "-h",
             args.db_host,
             "-u",
             args.db_user,
             f"-p{args.db_pass}",
-            "--ssl=0",
+            "--ssl=OFF",
             args.db_name,
         ]
         if not args.samples_only:

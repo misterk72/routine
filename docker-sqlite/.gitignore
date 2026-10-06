@@ -1,0 +1,11 @@
+# Secrets et donnees locales : ne jamais commiter
+.env
+*.env
+!*.env.example
+mysql-data/
+data/
+.state/
+__pycache__/
+*.pyc
+*.log
+*.bak-*

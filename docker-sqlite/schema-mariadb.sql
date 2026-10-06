@@ -102,6 +102,8 @@ CREATE TABLE IF NOT EXISTS gadgetbridge_samples (
     device_id VARCHAR(128) NOT NULL,
     sample_time DATETIME NOT NULL,
     heart_rate INT DEFAULT NULL,
+    raw_kind INT DEFAULT NULL,
+    sleep_kind INT DEFAULT NULL,
     steps INT DEFAULT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),

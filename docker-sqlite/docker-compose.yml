@@ -8,10 +8,10 @@ services:
     ports:
       - "3306:3306"
     environment:
-      - MYSQL_ROOT_PASSWORD=rootpassword
-      - MYSQL_DATABASE=healthtracker
-      - MYSQL_USER=healthuser
-      - MYSQL_PASSWORD=healthpassword
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:?definir dans docker-sqlite/.env}
+      - MYSQL_DATABASE=${MYSQL_DATABASE:?}
+      - MYSQL_USER=${MYSQL_USER:?}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD:?}
     restart: always
 
   phpmyadmin:
@@ -21,12 +21,17 @@ services:
     environment:
       - PMA_HOST=db
       - PMA_USER=root
-      - PMA_PASSWORD=rootpassword
+      - PMA_PASSWORD=${MYSQL_ROOT_PASSWORD:?}
     depends_on:
       - db
     restart: always
     
   api:
+    environment:
+      - DB_HOST=db
+      - DB_NAME=${MYSQL_DATABASE:?}
+      - DB_USER=${MYSQL_USER:?}
+      - DB_PASS=${MYSQL_PASSWORD:?}
     build:
       context: ./api
       dockerfile: Dockerfile

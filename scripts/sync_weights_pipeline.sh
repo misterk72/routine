@@ -1,14 +1,19 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ENV_FILE="${ENV_FILE:-$(cd "${SCRIPT_DIR}/.." && pwd)/docker-sqlite/.env}"
+# Secrets hors du depot : ils viennent du .env (jamais commite)
+if [ -f "${ENV_FILE:-}" ]; then set -a; . "$ENV_FILE"; set +a; fi
+
 ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 PYTHON_BIN="${PYTHON_BIN:-python3}"
 LOG_FILE="${ROOT_DIR}/scripts/sync_weights_pipeline.log"
 USER_ID="${USER_ID:-1}"
-DB_HOST="${DB_HOST:-192.168.0.103}"
-DB_USER="${DB_USER:-healthuser}"
-DB_PASS="${DB_PASS:-healthpassword}"
+DB_HOST="${DB_HOST:-127.0.0.1}"
+DB_USER="${DB_USER:?DB_USER manquant (voir docker-sqlite/.env)}"
+DB_PASS="${DB_PASS:?DB_PASS manquant (voir docker-sqlite/.env)}"
 DB_NAME="${DB_NAME:-healthtracker}"
 BACKFILL_DAYS="${BACKFILL_DAYS:-30}"
 STALE_DAYS="${STALE_DAYS:-3}"

@@ -3,11 +3,14 @@
 error_reporting(0);
 header('Content-Type: application/json');
 
-// Configuration de la base de données
-$host = 'db'; // Nom du service dans docker-compose
-$dbname = 'healthtracker';
-$username = 'healthuser';
-$password = 'healthpassword';
+// Configuration de la base de donnees (renseignee par l'environnement -- voir .env)
+$host = getenv('DB_HOST') ?: 'db';
+$dbname = getenv('DB_NAME') ?: 'healthtracker';
+$username = getenv('DB_USER') ?: 'healthuser';
+$password = getenv('DB_PASS');
+if ($password === false || $password === '') {
+    die(json_encode(['error' => 'DB_PASS non defini dans l environnement']));
+}
 
 // Fonction pour se connecter à la base de données
 function connectDB() {
@@ -65,6 +68,13 @@ switch ($method) {
             $response['workouts'] = $result;
         }
 
+        // Traiter les échantillons cardio détaillés
+        if (isset($data['heartRateSamples']) && is_array($data['heartRateSamples'])) {
+            error_log("DEBUG - Nombre d'échantillons cardio reçus: " . count($data['heartRateSamples']));
+            $result = processHeartRateSamples($pdo, $data['heartRateSamples']);
+            $response['heartRateSamples'] = $result;
+        }
+
         if (empty($response)) {
             error_log("DEBUG - Format de données invalide");
             echo json_encode(['error' => 'Format de données invalide']);
@@ -99,6 +109,14 @@ switch ($method) {
 
 // Fonction pour créer les tables si elles n'existent pas
 function createTablesIfNotExist($pdo) {
+    // Créer la table des sources si elle n'existe pas
+    $pdo->exec("CREATE TABLE IF NOT EXISTS sources (
+        id BIGINT PRIMARY KEY AUTO_INCREMENT,
+        name VARCHAR(64) NOT NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY uniq_sources_name (name)
+    )");
+
     // Créer la table des utilisateurs si elle n'existe pas
     $pdo->exec("CREATE TABLE IF NOT EXISTS users (
         id BIGINT PRIMARY KEY AUTO_INCREMENT,
@@ -166,6 +184,22 @@ function createTablesIfNotExist($pdo) {
         last_modified TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
         UNIQUE KEY (client_id)
+    )");
+
+    // Créer la table des échantillons Gadgetbridge / FC700 si elle n'existe pas
+    $pdo->exec("CREATE TABLE IF NOT EXISTS gadgetbridge_samples (
+        id BIGINT PRIMARY KEY AUTO_INCREMENT,
+        user_id BIGINT NOT NULL,
+        source_id BIGINT NOT NULL,
+        device_id VARCHAR(128) NOT NULL,
+        sample_time DATETIME NOT NULL,
+        heart_rate INTEGER DEFAULT NULL,
+        raw_kind INTEGER DEFAULT NULL,
+        sleep_kind INTEGER DEFAULT NULL,
+        steps INTEGER DEFAULT NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        UNIQUE KEY uniq_gb_sample (source_id, device_id, sample_time)
     )");
     
     // Vérifier si la colonne 'deleted' existe dans la table health_entries
@@ -235,6 +269,19 @@ function createTablesIfNotExist($pdo) {
         }
     }
 
+    $sampleInfo = $pdo->query("DESCRIBE gadgetbridge_samples");
+    $sampleColumns = $sampleInfo->fetchAll(PDO::FETCH_COLUMN);
+    $sampleColumnDefs = [
+        'raw_kind' => 'INTEGER DEFAULT NULL',
+        'sleep_kind' => 'INTEGER DEFAULT NULL',
+    ];
+    foreach ($sampleColumnDefs as $column => $definition) {
+        if (!in_array($column, $sampleColumns)) {
+            error_log("Ajout de la colonne '$column' a la table gadgetbridge_samples");
+            $pdo->exec("ALTER TABLE gadgetbridge_samples ADD COLUMN $column $definition");
+        }
+    }
+
     $workoutIndex = $pdo->query("SHOW INDEX FROM workouts WHERE Key_name = 'uniq_workouts_source_uid'");
     if ($workoutIndex->rowCount() === 0) {
         error_log("Ajout de la contrainte unique (source_id, source_uid) sur workouts");
@@ -242,6 +289,16 @@ function createTablesIfNotExist($pdo) {
             $pdo->exec("ALTER TABLE workouts ADD UNIQUE KEY uniq_workouts_source_uid (source_id, source_uid)");
         } catch (Exception $e) {
         error_log("Impossible d'ajouter uniq_workouts_source_uid: " . $e->getMessage());
+        }
+    }
+
+    $sampleIndex = $pdo->query("SHOW INDEX FROM gadgetbridge_samples WHERE Key_name = 'uniq_gb_sample'");
+    if ($sampleIndex->rowCount() === 0) {
+        error_log("Ajout de la contrainte unique (source_id, device_id, sample_time) sur gadgetbridge_samples");
+        try {
+            $pdo->exec("ALTER TABLE gadgetbridge_samples ADD UNIQUE KEY uniq_gb_sample (source_id, device_id, sample_time)");
+        } catch (Exception $e) {
+            error_log("Impossible d'ajouter uniq_gb_sample: " . $e->getMessage());
         }
     }
 
@@ -345,8 +402,9 @@ function processWorkouts($pdo, $workouts) {
     foreach ($workouts as $workout) {
         try {
             $userId = ensureUserExists($pdo, $workout['userId']);
+            enrichWorkoutRecoveryMetrics($pdo, $workout, $userId);
             $deleted = isset($workout['deleted']) && $workout['deleted'] ? 1 : 0;
-            $sourceId = isset($workout['sourceId']) ? (int)$workout['sourceId'] : 1;
+            $sourceId = resolveSourceId($pdo, $workout['sourceName'] ?? null, isset($workout['sourceId']) ? (int)$workout['sourceId'] : 1);
             $sourceUid = $workout['sourceUid'] ?? ("healthtracker:" . $workout['id']);
             $endTime = $workout['endTime'] ?? null;
             $serverId = isset($workout['serverId']) ? (int)$workout['serverId'] : null;
@@ -358,7 +416,7 @@ function processWorkouts($pdo, $workouts) {
                 $existing->execute([$serverId]);
                 $row = $existing->fetch(PDO::FETCH_ASSOC);
                 if ($row) {
-                    $effectiveSourceId = isset($workout['sourceId']) ? (int)$workout['sourceId'] : (int)$row['source_id'];
+                    $effectiveSourceId = (isset($workout['sourceId']) || isset($workout['sourceName'])) ? $sourceId : (int)$row['source_id'];
                     $effectiveSourceUid = $workout['sourceUid'] ?? $row['source_uid'];
                     $stmt = $pdo->prepare("UPDATE workouts
                         SET user_id = ?, start_time = ?, end_time = ?, duration_minutes = ?, distance_km = ?, avg_speed_kmh = ?,
@@ -459,6 +517,320 @@ function processWorkouts($pdo, $workouts) {
         } catch (Exception $e) {
             $errors[] = [
                 'workout' => $workout,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    return [
+        'success' => true,
+        'processed' => $processed,
+        'errors' => $errors
+    ];
+}
+
+function enrichWorkoutRecoveryMetrics($pdo, &$workout, $userId) {
+    if (!array_key_exists('sleepHeartRateAvg', $workout) || $workout['sleepHeartRateAvg'] === null || $workout['sleepHeartRateAvg'] === '') {
+        $workout['sleepHeartRateAvg'] = findPreviousNightHeartRateAvg($pdo, $userId, $workout['startTime'] ?? null);
+    }
+
+    if ((!array_key_exists('vo2Max', $workout) || $workout['vo2Max'] === null || $workout['vo2Max'] === '') &&
+        isset($workout['maxHeartRate']) && $workout['maxHeartRate'] !== null &&
+        isset($workout['sleepHeartRateAvg']) && $workout['sleepHeartRateAvg'] !== null &&
+        (float)$workout['sleepHeartRateAvg'] > 0) {
+        $workout['vo2Max'] = round(15.0 * (float)$workout['maxHeartRate'] / (float)$workout['sleepHeartRateAvg'], 1);
+    }
+}
+
+function findPreviousNightHeartRateAvg($pdo, $userId, $workoutStartTime) {
+    if (!$workoutStartTime) {
+        return null;
+    }
+
+    $window = computeSleepWindow($workoutStartTime);
+    if ($window === null) {
+        return null;
+    }
+
+    $rawKindColumns = getRawKindColumns($pdo);
+    if (!empty($rawKindColumns)) {
+        $avg = findSleepTaggedHeartRateAvg($pdo, $userId, $window['start'], $window['end'], $rawKindColumns);
+        if ($avg !== null) {
+            return $avg;
+        }
+    }
+
+    return findRestingHeartRateFallback($pdo, $userId, $workoutStartTime);
+}
+
+function computeSleepWindow($workoutStartTime) {
+    try {
+        $start = new DateTime($workoutStartTime);
+    } catch (Exception $e) {
+        return null;
+    }
+
+    $windowEnd = clone $start;
+    $windowEnd->setTime(12, 0, 0);
+    $windowStart = clone $windowEnd;
+    $windowStart->modify('-1 day');
+
+    return [
+        'start' => $windowStart->format('Y-m-d H:i:s'),
+        'end' => $windowEnd->format('Y-m-d H:i:s')
+    ];
+}
+
+function getRawKindColumns($pdo) {
+    $columns = getTableColumns($pdo, 'gadgetbridge_samples');
+    return array_values(array_intersect(['raw_kind', 'sleep_kind'], $columns));
+}
+
+function findSleepTaggedHeartRateAvg($pdo, $userId, $windowStart, $windowEnd, $rawKindColumns) {
+    $selectColumns = "UNIX_TIMESTAMP(sample_time) AS timestamp_sec, heart_rate";
+    if (in_array('raw_kind', $rawKindColumns)) {
+        $selectColumns .= ", raw_kind";
+    } else {
+        $selectColumns .= ", NULL AS raw_kind";
+    }
+    if (in_array('sleep_kind', $rawKindColumns)) {
+        $selectColumns .= ", sleep_kind";
+    } else {
+        $selectColumns .= ", NULL AS sleep_kind";
+    }
+
+    $kindPredicates = [];
+    foreach ($rawKindColumns as $column) {
+        $kindPredicates[] = "$column IS NOT NULL";
+    }
+
+    $stmt = $pdo->prepare("SELECT $selectColumns FROM gadgetbridge_samples
+        WHERE user_id = ? AND sample_time >= ? AND sample_time < ?
+        AND heart_rate BETWEEN 10 AND 250
+        AND (" . implode(' OR ', $kindPredicates) . ")
+        ORDER BY sample_time ASC");
+    $stmt->execute([$userId, $windowStart, $windowEnd]);
+    $samples = [];
+    $lastKind = -1;
+    while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+        $sleepKind = $row['sleep_kind'] !== null ? (int)$row['sleep_kind'] : 0;
+        if ($sleepKind === 0 && $row['raw_kind'] !== null) {
+            $normalized = normalizeMiBandRawKind((int)$row['raw_kind'], $lastKind);
+            $lastKind = $normalized['lastKind'];
+            $sleepKind = mapHuamiRawKindToSleepKind($normalized['rawKind']);
+        }
+        $samples[] = [
+            'timestampSec' => (int)$row['timestamp_sec'],
+            'sleepKind' => $sleepKind,
+            'heartRate' => (int)$row['heart_rate']
+        ];
+    }
+    return computeSleepAverageHr($samples);
+}
+
+function normalizeMiBandRawKind($rawKind, $lastKind) {
+    $normalized = $rawKind;
+    if ($normalized !== -1) {
+        $normalized = $normalized & 0x0f;
+    }
+    if ($normalized === 10 || $normalized === 0) {
+        if ($lastKind !== -1) {
+            $normalized = $lastKind;
+        }
+    } else {
+        $lastKind = $normalized;
+    }
+    return ['rawKind' => $normalized, 'lastKind' => $lastKind];
+}
+
+function mapHuamiRawKindToSleepKind($rawKind) {
+    if ($rawKind === 9 || $rawKind === 120) {
+        return 1;
+    }
+    if ($rawKind === 11 || $rawKind === 121) {
+        return 2;
+    }
+    if ($rawKind === 122) {
+        return 3;
+    }
+    if ($rawKind === 123) {
+        return 4;
+    }
+    return 0;
+}
+
+function computeSleepAverageHr($samples) {
+    if (empty($samples)) {
+        return null;
+    }
+
+    $sessions = computeSleepSessions($samples);
+    $range = null;
+    if (!empty($sessions)) {
+        $first = $sessions[0];
+        $last = $sessions[count($sessions) - 1];
+        $range = ['start' => $first['startSec'], 'end' => $last['endSec']];
+    }
+
+    $sum = 0;
+    $count = 0;
+    foreach ($samples as $sample) {
+        if ($sample['sleepKind'] === 0) {
+            continue;
+        }
+        if ($sample['heartRate'] < 10 || $sample['heartRate'] > 250) {
+            continue;
+        }
+        if ($range !== null &&
+            ($sample['timestampSec'] < $range['start'] || $sample['timestampSec'] > $range['end'])) {
+            continue;
+        }
+        $sum += $sample['heartRate'];
+        $count++;
+    }
+
+    return $count > 0 ? (int)round($sum / $count) : null;
+}
+
+function computeSleepSessions($samples) {
+    $sessions = [];
+    $previous = null;
+    $sleepStart = null;
+    $sleepEnd = null;
+    $light = 0;
+    $deep = 0;
+    $rem = 0;
+    $awake = 0;
+    $durationSinceLastSleep = 0;
+
+    $finalize = function () use (&$sessions, &$sleepStart, &$sleepEnd, &$light, &$deep, &$rem, &$awake) {
+        if ($sleepStart === null || $sleepEnd === null) {
+            return;
+        }
+        $duration = $light + $deep + $rem + $awake;
+        if ($sleepEnd - $sleepStart > 300 && $duration > 300) {
+            $sessions[] = ['startSec' => $sleepStart, 'endSec' => $sleepEnd];
+        }
+    };
+
+    foreach ($samples as $sample) {
+        if ($sample['sleepKind'] !== 0) {
+            if ($sleepStart === null) {
+                $sleepStart = $sample['timestampSec'];
+            }
+            $sleepEnd = $sample['timestampSec'];
+            $durationSinceLastSleep = 0;
+        } else {
+            $finalize();
+            $sleepStart = null;
+            $sleepEnd = null;
+            $light = 0;
+            $deep = 0;
+            $rem = 0;
+            $awake = 0;
+        }
+
+        if ($previous !== null) {
+            $delta = $sample['timestampSec'] - $previous['timestampSec'];
+            switch ($sample['sleepKind']) {
+                case 1:
+                    $light += $delta;
+                    break;
+                case 2:
+                    $deep += $delta;
+                    break;
+                case 3:
+                    $rem += $delta;
+                    break;
+                case 4:
+                    $awake += $delta;
+                    break;
+                default:
+                    $durationSinceLastSleep += $delta;
+                    if ($sleepStart !== null && $durationSinceLastSleep > 7200) {
+                        $finalize();
+                        $sleepStart = null;
+                        $sleepEnd = null;
+                        $light = 0;
+                        $deep = 0;
+                        $rem = 0;
+                        $awake = 0;
+                    }
+                    break;
+            }
+        }
+        $previous = $sample;
+    }
+
+    if ($sleepStart !== null && $sleepEnd !== null) {
+        $duration = $light + $deep + $rem + $awake;
+        if ($duration > 300) {
+            $sessions[] = ['startSec' => $sleepStart, 'endSec' => $sleepEnd];
+        }
+    }
+
+    return $sessions;
+}
+
+function findRestingHeartRateFallback($pdo, $userId, $workoutStartTime) {
+    try {
+        $end = new DateTime($workoutStartTime);
+    } catch (Exception $e) {
+        return null;
+    }
+    $start = clone $end;
+    $start->modify('-12 hours');
+
+    $stmt = $pdo->prepare("SELECT ROUND(AVG(heart_rate)) FROM gadgetbridge_samples
+        WHERE user_id = ? AND sample_time >= ? AND sample_time < ?
+        AND heart_rate BETWEEN 10 AND 250");
+    $stmt->execute([
+        $userId,
+        $start->format('Y-m-d H:i:s'),
+        $end->format('Y-m-d H:i:s')
+    ]);
+    $value = $stmt->fetchColumn();
+    return $value !== false && $value !== null ? (int)$value : null;
+}
+
+function processHeartRateSamples($pdo, $samples) {
+    $processed = 0;
+    $errors = [];
+
+    foreach ($samples as $sample) {
+        try {
+            $userId = ensureUserExists($pdo, $sample['userId']);
+            $sourceId = resolveSourceId($pdo, $sample['sourceName'] ?? null, isset($sample['sourceId']) ? (int)$sample['sourceId'] : 1);
+            $deviceId = $sample['deviceId'] ?? 'unknown';
+            $sampleTime = $sample['sampleTime'];
+            $heartRate = $sample['heartRate'] ?? null;
+            $rawKind = $sample['rawKind'] ?? $sample['raw_kind'] ?? null;
+            $sleepKind = $sample['sleepKind'] ?? $sample['sleep_kind'] ?? null;
+            $steps = $sample['steps'] ?? null;
+
+            $stmt = $pdo->prepare("INSERT INTO gadgetbridge_samples
+                (user_id, source_id, device_id, sample_time, heart_rate, raw_kind, sleep_kind, steps)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                ON DUPLICATE KEY UPDATE
+                user_id = VALUES(user_id),
+                heart_rate = VALUES(heart_rate),
+                raw_kind = VALUES(raw_kind),
+                sleep_kind = VALUES(sleep_kind),
+                steps = VALUES(steps)");
+            $stmt->execute([
+                $userId,
+                $sourceId,
+                $deviceId,
+                $sampleTime,
+                $heartRate,
+                $rawKind,
+                $sleepKind,
+                $steps
+            ]);
+            $processed++;
+        } catch (Exception $e) {
+            $errors[] = [
+                'sample' => $sample,
                 'error' => $e->getMessage()
             ];
         }
@@ -675,6 +1047,24 @@ function getLocationsSince($pdo, $timestamp) {
     }
 
     return $locations;
+}
+
+function resolveSourceId($pdo, $sourceName, $fallbackId = 1) {
+    if ($sourceName === null || trim($sourceName) === '') {
+        return $fallbackId;
+    }
+
+    $name = substr(trim($sourceName), 0, 64);
+    $stmt = $pdo->prepare("SELECT id FROM sources WHERE name = ?");
+    $stmt->execute([$name]);
+    $result = $stmt->fetch(PDO::FETCH_ASSOC);
+    if ($result) {
+        return (int)$result['id'];
+    }
+
+    $insert = $pdo->prepare("INSERT INTO sources (name) VALUES (?)");
+    $insert->execute([$name]);
+    return (int)$pdo->lastInsertId();
 }
 
 // Fonction pour s'assurer qu'un utilisateur existe
