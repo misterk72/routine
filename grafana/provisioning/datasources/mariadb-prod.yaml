@@ -12,4 +12,4 @@ datasources:
       tlsAuth: false
       tlsSkipVerify: false
     secureJsonData:
-      password: "healthpassword"
+      password: $__env{HEALTH_DB_PASS}

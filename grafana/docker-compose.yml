@@ -2,6 +2,8 @@ version: "3.8"
 
 services:
   grafana:
+    env_file:
+      - ../docker-sqlite/.env
     image: grafana/grafana:latest
     container_name: grafana
     restart: unless-stopped
